@@ -130,14 +130,28 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   console.log('OK — torneio sem jogadores suficientes é cancelado e devolve as fichas');
 }
 
-// resgate de fichas por troféu: não troca o avatar e vira "resgate" no painel
+// resgate de fichas por troféu: fichas saem na hora, troféu só depois que o admin libera
 {
   const R = memRepo(); const U = addUsers(R, 2, 120);
+  R.T.profiles.find(x => x.id === 'u0').is_admin = true;
   const av0 = (await R.getProfile('u1')).avatar;
-  await buy(R, U[1], 'tr-prata');
-  const p = await R.getProfile('u1');
-  assert.equal(p.coins, 20); assert.ok(p.owned.includes('tr-prata')); assert.equal(p.avatar, av0, 'troféu não troca o avatar');
-  await assert.rejects(buy(R, U[1], 'tr-prata'), /já tem/);
+  const r = await buy(R, U[1], 'tr-prata'); assert.ok(r.pending);
+  let p = await R.getProfile('u1');
+  assert.equal(p.coins, 20); assert.ok(!(p.owned || []).includes('tr-prata'), 'ainda não liberado'); assert.equal(p.avatar, av0);
+  await assert.rejects(buy(R, U[1], 'tr-prata'), /aguardando/);
   await assert.rejects(buy(R, U[1], 'tr-ouro'), /insuficientes/);
-  console.log('OK — resgate de fichas por troféu de coleção');
+  const A = (op, b = {}) => adminOp(R, U[0], { op, ...b });
+  let lst = (await A('resgates')).resgates; assert.equal(lst.length, 1); assert.equal(lst[0].item, 'Troféu Prata');
+  assert.equal((await A('sales')).pendentes, 1);
+  await A('liberarResgate', { id: lst[0].id });
+  p = await R.getProfile('u1'); assert.ok(p.owned.includes('tr-prata')); assert.equal(p.coins, 20);
+  await assert.rejects(A('liberarResgate', { id: lst[0].id }), /resolvido/);
+  await assert.rejects(buy(R, U[1], 'tr-prata'), /já tem/);
+  // recusar devolve as fichas
+  await A('coins', { uid: 'u1', delta: 30 });
+  await buy(R, U[1], 'tr-bronze'); assert.equal((await R.getProfile('u1')).coins, 0);
+  lst = (await A('resgates')).resgates; await A('recusarResgate', { id: lst[0].id });
+  p = await R.getProfile('u1'); assert.equal(p.coins, 50); assert.ok(!p.owned.includes('tr-bronze'));
+  assert.equal((await A('resgates')).resgates.length, 0);
+  console.log('OK — resgate de troféu: pedido pendente, admin libera ou recusa (devolve fichas)');
 }

@@ -255,19 +255,42 @@ function Sales({ onSeen }) {
   </>;
 }
 
-const TABS = [['geral', 'Visão geral'], ['vendas', 'Vendas'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
+function Resgates({ onChange }) {
+  const [list, setList] = useState(null), [busy, setBusy] = useState(null);
+  const load = useCallback(() => adm('resgates').then(r => { setList(r.resgates); onChange(r.resgates.length); }).catch(e => toast(e.message)), [onChange]);
+  useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, [load]);
+  async function decidir(x, liberar) {
+    if (!liberar && !confirm(`Recusar o resgate de ${x.who}? As ${fmt(x.coins)} fichas voltam para ele.`)) return;
+    setBusy(x.id);
+    try { await adm(liberar ? 'liberarResgate' : 'recusarResgate', { id: x.id }); toast(liberar ? `${x.em} Liberado para ${x.who}` : 'Recusado, fichas devolvidas'); load(); }
+    catch (e) { toast(e.message); load(); }
+    setBusy(null);
+  }
+  if (!list) return <div className="empty">Carregando…</div>;
+  if (!list.length) return <div className="empty">Nenhum resgate esperando liberação. 🎉</div>;
+  return <div className="rows">{list.map(x => (
+    <div key={x.id} className="rowi" style={{ flexWrap: 'wrap' }}>
+      <span className="av" style={{ fontSize: 28 }}>{x.em}</span>
+      <div className="grow"><b>{x.who} quer o {x.item}</b>
+        <small>{new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {fmt(x.coins)} fichas já descontadas</small></div>
+      <button className="pillbtn" disabled={busy === x.id} style={{ background: 'linear-gradient(180deg,#34d399,#059669)', padding: '6px 14px' }} onClick={() => decidir(x, true)}>✔ Liberar</button>
+      <button className="pillbtn dark" disabled={busy === x.id} style={{ padding: '6px 14px', color: '#fca5a5' }} onClick={() => decidir(x, false)}>✖ Recusar</button>
+    </div>))}</div>;
+}
+
+const TABS = [['geral', 'Visão geral'], ['resgates', 'Resgates'], ['vendas', 'Vendas'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
 function Body({ profile, user }) {
   const [tab, setTab] = useState('geral');
   const [logged, setLogged] = useState(() => !!getTok());
   useEffect(() => { const f = () => setLogged(false); window.addEventListener('cc-admin-logout', f); return () => window.removeEventListener('cc-admin-logout', f); }, []);
-  const [unread, setUnread] = useState(0);
+  const [unread, setUnread] = useState(0), [pend, setPend] = useState(0);
   const clearUnread = useCallback(() => setUnread(0), []);
   useEffect(() => {
     if (!logged || !profile?.is_admin) return;
     let last = -1;
     const poll = () => adm('sales').then(r => {
       if (last >= 0 && r.unread > last) { toast(`🔔 Nova venda: ${r.sales[0]?.who} comprou ${r.sales[0]?.item}`); try { navigator.vibrate && navigator.vibrate(200); } catch {} }
-      last = r.unread; setUnread(r.unread);
+      last = r.unread; setUnread(r.unread); setPend(r.pendentes || 0);
     }).catch(() => {});
     poll(); const t = setInterval(poll, 20000); return () => clearInterval(t);
   }, [logged, profile]);
@@ -275,9 +298,9 @@ function Body({ profile, user }) {
   if (!profile.is_admin) return <div className="empty">Área só para administradores.</div>;
   if (!logged) return <PanelLogin onOk={() => setLogged(true)} />;
   return <>
-    <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}{k === 'vendas' && unread > 0 && tab !== 'vendas' && <span className="badge-n" style={{ position: 'static', marginLeft: 6 }}>{unread}</span>}</button>)}
+    <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}{k === 'vendas' && unread > 0 && tab !== 'vendas' && <span className="badge-n" style={{ position: 'static', marginLeft: 6 }}>{unread}</span>}{k === 'resgates' && pend > 0 && <span className="badge-n" style={{ position: 'static', marginLeft: 6 }}>{pend}</span>}</button>)}
       <button onClick={() => { setTok(''); setLogged(false); }}>🚪 Sair do painel</button></div>
-    {tab === 'geral' && <Overview />}{tab === 'vendas' && <Sales onSeen={clearUnread} />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
+    {tab === 'geral' && <Overview />}{tab === 'vendas' && <Sales onSeen={clearUnread} />}{tab === 'resgates' && <Resgates onChange={setPend} />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
     {tab === 'salas' && <Rooms />}{tab === 'tor' && <Tournaments />}{tab === 'cfg' && <><Settings /><ChangePass /></>}
   </>;
 }
