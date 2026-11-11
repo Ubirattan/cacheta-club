@@ -48,6 +48,7 @@ export default function Home() {
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
         <button onClick={() => router.push('/ranking')} title="Ranking">🏆</button>
         <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
+        {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
         <div className="ver">Cacheta Club · v3.0 beta</div>
         <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>
       </div>
