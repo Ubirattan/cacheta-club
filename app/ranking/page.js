@@ -25,7 +25,7 @@ export default function Ranking() {
             <span className="pos">{i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span><span className="av">{p.avatar}</span>
             <div className="grow"><b>{p.nickname}{p.vip_until && new Date(p.vip_until) > new Date() ? ' 👑' : ''}</b>
               <small>{p.games} partidas · {p.wins} vitórias · {p.games ? Math.round(p.wins / p.games * 100) : 0}%</small></div>
-            <span className="num">{by === 'coins' ? '🪙 ' + fmt(p.coins) : by === 'wins' ? p.wins : fmt(p.rank_points) + ' pts'}</span>
+            <span className="num">{by === 'coins' ? '💰 ' + fmt(p.coins) : by === 'wins' ? p.wins : fmt(p.rank_points) + ' pts'}</span>
           </div>))}
       </div></>}
     </Shell>

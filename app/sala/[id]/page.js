@@ -273,7 +273,7 @@ export default function Sala() {
       <div className="center-box"><div className="authcard" style={{ textAlign: 'center' }}>
         <h2 style={{ font: '700 28px Oswald', fontStyle: 'italic', color: 'var(--gold)', margin: 0 }}>{room.is_private ? '🔒 ' : ''}{room.name}</h2>
         {room.vip_only && <p className="vip">👑 Sala exclusiva para VIP</p>}
-        <p>{MODES[room.mode]?.name} · 👥 {players.length}/{room.max_players} · Pontos {room.points} · {room.entry ? `Entrada 🪙 ${fmt(room.entry)}` : 'Grátis'}</p>
+        <p>{MODES[room.mode]?.name} · 👥 {players.length}/{room.max_players} · Pontos {room.points} · {room.entry ? `Entrada 💰 ${fmt(room.entry)}` : 'Grátis'}</p>
         {room.status === 'playing' ? <p>Essa mesa está jogando agora. Assim que a partida acabar, dá pra sentar.</p> : <>
           {room.is_private && <input className="field" placeholder="Senha da sala" value={pass} onChange={e => setPass(e.target.value)} />}
           {joinErr && <div className="err">{joinErr}</div>}
@@ -306,7 +306,7 @@ export default function Sala() {
           <div className="panel">
             <h3>{room.is_private ? '🔒 ' : ''}{room.name}</h3>
             <div className="meta"><span>{MODES[room.mode]?.name}</span><span>👥 {players.length}/{room.max_players}</span><span>Pontos {room.points}</span>
-              <span>{room.entry ? `Entrada 🪙 ${fmt(room.entry)} · pote ${fmt(room.entry * players.length)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
+              <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · pote ${fmt(room.entry * players.length)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
             <div className="invite"><input readOnly value={link} onFocus={e => e.target.select()} />
               <button className="pillbtn" onClick={async () => { try { await navigator.clipboard.writeText(`Bora jogar cacheta! ${link}${room.is_private ? ' (peça a senha pra quem te convidou)' : ''}`); toast('Convite copiado'); } catch { toast('Copie o link acima'); } }}>Copiar convite</button></div>
             <div className="seatsgrid">
@@ -439,9 +439,9 @@ export default function Sala() {
 
       {modal === 'placar' && <Modal onClose={() => setModal(null)}><h2>Placar</h2>
         <div className="score">{game.players.map((p, i) => <div key={p.uid}><span>{p.avatar} {p.name}{i === myIdx ? ' (você)' : ''}</span><b>{p.left ? 'saiu' : p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>)}</div>
-        {game.cfg.entry ? <p>Pote: 🪙 {fmt(game.pot)}</p> : null}<button className="go" onClick={() => setModal(null)}>Fechar</button></Modal>}
+        {game.cfg.entry ? <p>Pote: 💰 {fmt(game.pot)}</p> : null}<button className="go" onClick={() => setModal(null)}>Fechar</button></Modal>}
       {modal === 'sair' && <Modal onClose={() => setModal(null)}><h2>Sair da mesa?</h2>
-        <p>{room.status === 'playing' ? `A partida não acabou. Saindo agora você é eliminado${game.cfg.entry ? ` e perde a entrada de 🪙 ${fmt(game.cfg.entry)}` : ''}.` : 'Você vai voltar para a lista de salas.'}</p>
+        <p>{room.status === 'playing' ? `A partida não acabou. Saindo agora você é eliminado${game.cfg.entry ? ` e perde a entrada de 💰 ${fmt(game.cfg.entry)}` : ''}.` : 'Você vai voltar para a lista de salas.'}</p>
         <button className="go" onClick={leave}>Sair</button><button className="sec" onClick={() => setModal(null)}>Continuar jogando</button></Modal>}
       {modal === 'errou' && <Modal><h2>Batida errada!</h2><p>Suas cartas não fechavam. A carta foi pro descarte e você perdeu a vez.</p>
         <p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button className="go" onClick={() => setModal(null)}>Continuar</button></Modal>}
@@ -452,7 +452,7 @@ export default function Sala() {
             <h2>{res.matchOver ? (res.champion === myIdx ? 'Você venceu! 🏆' : `${game.players[res.champion]?.name || 'Ninguém'} venceu`) : res.winner === myIdx ? 'Você bateu!' : `${game.players[res.winner]?.name} bateu`}</h2>
             {res.forfeit ? <p>Os outros jogadores saíram da mesa.</p> : <p>{res.limpa && game.cfg.limpaDobro ? <><b>Batida limpa</b>, sem coringa: os outros perdem 2 pontos.</> : `Os outros perdem ${res.loss} ponto.`}</p>}
             {res.melds && <div className="melds">{res.melds.map((m, i) => <div key={i} className="meld">{m.map(c => <Card key={c.id} c={c} cor={game.cor} />)}</div>)}</div>}
-            {res.matchOver && res.champion === myIdx && game.pot > 0 && <div className="prize">+ 🪙 {fmt(game.pot)}</div>}
+            {res.matchOver && res.champion === myIdx && game.pot > 0 && <div className="prize">+ 💰 {fmt(game.pot)}</div>}
             <div className="score">{game.players.map((p, i) => {
               const d = res.before ? p.fichas - res.before[i] : 0;
               return <div key={p.uid}><span>{p.avatar} {p.name}</span>{d < 0 && <span className="d" style={{ flex: 'none' }}>{d}</span>}{i === res.winner && <span className="w" style={{ flex: 'none' }}>bateu</span>}<b>{p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>;

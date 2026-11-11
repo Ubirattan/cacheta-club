@@ -32,8 +32,8 @@ export default function Torneios() {
           <button key={t.id} className="tcard" onClick={() => router.push('/torneios/' + t.id)}>
             <span className={`tag ${t.status}`}>{STATUS[t.status]}</span>
             <h4>{t.name}</h4>
-            <div className="kv"><span>{MODES[t.mode]?.name}</span><span>Mesas de {t.table_size}</span><span>👥 {t.n}/{t.max_players}</span><span>Inscrição {t.entry ? '🪙 ' + fmt(t.entry) : 'grátis'}</span></div>
-            <div style={{ font: '600 18px Oswald', color: 'var(--gold)' }}>Prêmio 🪙 {fmt(t.entry * t.n + t.prize)}</div>
+            <div className="kv"><span>{MODES[t.mode]?.name}</span><span>Mesas de {t.table_size}</span><span>👥 {t.n}/{t.max_players}</span><span>Inscrição {t.entry ? '💰 ' + fmt(t.entry) : 'grátis'}</span></div>
+            <div style={{ font: '600 18px Oswald', color: 'var(--gold)' }}>Prêmio 💰 {fmt(t.entry * t.n + t.prize)}</div>
             {t.starts_at && t.status === 'open' && <small className="hint">Começa {new Date(t.starts_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</small>}
             {t.status === 'finished' && <small className="hint">Campeão: {t.champion_name || '—'}</small>}
           </button>))}

@@ -44,14 +44,14 @@ function Body({ user, profile, reloadProfile }) {
       <span className={`tag ${t.status}`} style={{ float: 'right', font: '600 12px Oswald', padding: '3px 10px', borderRadius: 10 }}>{STATUS[t.status]}</span>
       <h3>{t.name}</h3>
       <div className="meta"><span>{MODES[t.mode]?.name}</span><span>Mesas de até {t.table_size}</span><span>Pontos {t.points}</span><span>⏱ {t.turn_seconds} s</span>
-        <span>Inscrição {t.entry ? '🪙 ' + fmt(t.entry) : 'grátis'}</span><span>👥 {ps.length}/{t.max_players}</span>
+        <span>Inscrição {t.entry ? '💰 ' + fmt(t.entry) : 'grátis'}</span><span>👥 {ps.length}/{t.max_players}</span>
         {t.starts_at && <span>Início {new Date(t.starts_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}</div>
-      <div className="prize" style={{ marginTop: 10 }}>Prêmio 🪙 {fmt(t.entry * ps.length + t.prize)}</div>
+      <div className="prize" style={{ marginTop: 10 }}>Prêmio 💰 {fmt(t.entry * ps.length + t.prize)}</div>
       {t.status === 'finished' && <p style={{ fontSize: 18 }}>🏆 Campeão: <b className="vip">{t.champion_name || '—'}</b></p>}
       {t.status === 'open' && (me
         ? <><p className="okmsg">Você está inscrito. {t.starts_at ? 'O torneio começa no horário marcado.' : 'Espere o administrador começar.'}</p>
             <button className="sec" disabled={busy} onClick={() => op('leave')}>Cancelar inscrição (devolve as fichas)</button></>
-        : <button className="go" disabled={busy || (profile && profile.coins < t.entry)} onClick={() => op('join')}>{profile && profile.coins < t.entry ? 'Fichas insuficientes' : `Inscrever-se${t.entry ? ` (🪙 ${fmt(t.entry)})` : ''}`}</button>)}
+        : <button className="go" disabled={busy || (profile && profile.coins < t.entry)} onClick={() => op('join')}>{profile && profile.coins < t.entry ? 'Fichas insuficientes' : `Inscrever-se${t.entry ? ` (💰 ${fmt(t.entry)})` : ''}`}</button>)}
       {myTable && <button className="go" onClick={() => router.push('/sala/' + myTable.room_id)}>▶ Ir para a minha mesa (rodada {t.round})</button>}
       {t.status === 'running' && me && me.status === 'out' && <p className="hint">Você foi eliminado na rodada {me.round_reached}. Acompanhe as mesas abaixo.</p>}
     </div>

@@ -27,7 +27,7 @@ function Body({ profile, reloadProfile, user }) {
     if (st === 'erro') return toast('O pagamento não foi concluído.');
     if (!pid) return toast('Pagamento em processamento. As fichas entram assim que o Mercado Pago confirmar.');
     api('/api/pay', { op: 'check', paymentId: pid }).then(r => {
-      if (r.credited) { sfx('coin'); toast(`Pagamento aprovado! + 🪙 ${fmt(r.credited)}`); }
+      if (r.credited) { sfx('coin'); toast(`Pagamento aprovado! + 💰 ${fmt(r.credited)}`); }
       else if (r.already) toast('Pagamento confirmado, fichas já estão no seu saldo.');
       else toast('Pagamento pendente (Pix): as fichas entram sozinhas assim que for confirmado.');
       reloadProfile(); loadBuys();
@@ -54,12 +54,12 @@ function Body({ profile, reloadProfile, user }) {
     <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 40 }}>🎁</span>
       <div style={{ flex: 1, minWidth: 180 }}><h3 style={{ fontSize: 20 }}>Bônus diário</h3><span className="hint">Fichas grátis todo dia{vip ? ' (VIP ganha em dobro)' : ''}.</span></div>
-      <button className="pillbtn" disabled={busy || !bonusOk} onClick={() => call({ op: 'bonus' }, r => `+ 🪙 ${fmt(r.amount)} no seu saldo!`)}>{bonusOk ? 'Pegar bônus' : 'Volte amanhã'}</button>
+      <button className="pillbtn" disabled={busy || !bonusOk} onClick={() => call({ op: 'bonus' }, r => `+ 💰 ${fmt(r.amount)} no seu saldo!`)}>{bonusOk ? 'Pegar bônus' : 'Volte amanhã'}</button>
     </div>
     <div className="vipbox">
       <h3 style={{ margin: 0, font: '700 24px Oswald', color: 'var(--gold)' }}>👑 VIP {vip && <small style={{ fontSize: 14, color: '#fff' }}>ativo até {new Date(profile.vip_until).toLocaleDateString('pt-BR')}</small>}</h3>
       <ul>{VIP_PERKS.map(p => <li key={p}>{p}</li>)}</ul>
-      <button className="go" disabled={busy || profile.coins < vipItem.price} onClick={() => call({ op: 'buy', item: vipItem.id }, 'VIP ativado! 👑')}>{vip ? 'Renovar' : 'Ativar'} 30 dias · 🪙 {fmt(vipItem.price)}</button>
+      <button className="go" disabled={busy || profile.coins < vipItem.price} onClick={() => call({ op: 'buy', item: vipItem.id }, 'VIP ativado! 👑')}>{vip ? 'Renovar' : 'Ativar'} 30 dias · 💰 {fmt(vipItem.price)}</button>
     </div>
     {['back', 'felt'].map(slot => (
       <div key={slot} className="panel"><h3 style={{ fontSize: 20 }}>{slot === 'back' ? 'Verso das cartas' : 'Feltro da mesa'}</h3>
@@ -72,13 +72,13 @@ function Body({ profile, reloadProfile, user }) {
               {isEq ? <span className="won">✓ Em uso</span>
                 : has ? <button className="pillbtn dark" disabled={busy} onClick={() => call({ op: 'equip', item: it.id }, 'Pronto, já está na sua mesa')}>Usar</button>
                 : it.vipOnly ? <span className="hint">Só para VIP</span>
-                : <button className="pillbtn" disabled={busy || profile.coins < it.price} onClick={() => call({ op: 'buy', item: it.id }, 'Comprado e equipado!')}>🪙 {fmt(it.price)}</button>}
+                : <button className="pillbtn" disabled={busy || profile.coins < it.price} onClick={() => call({ op: 'buy', item: it.id }, 'Comprado e equipado!')}>💰 {fmt(it.price)}</button>}
             </div>);
         })}</div></div>))}
     <div className="panel"><h3 style={{ fontSize: 20 }}>Pacotes de fichas</h3>
       <p className="hint">Pague com <b>Pix</b> ou cartão pelo Mercado Pago. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
       <div className="shopgrid">{PACKS.map(p => (
-        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>🪙</span><b>{fmt(p.coins)} fichas</b><span className="hint">R$ {p.brl.toFixed(2).replace('.', ',')}</span>
+        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b>{fmt(p.coins)} fichas</b><span className="hint">R$ {p.brl.toFixed(2).replace('.', ',')}</span>
           <button className="pillbtn blue" disabled={busy} onClick={() => pay(p)}>Comprar com Pix</button></div>))}</div>
       {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
         <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>

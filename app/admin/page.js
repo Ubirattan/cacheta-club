@@ -23,7 +23,7 @@ function Overview() {
       <div><b>{s.tournamentsOpen}</b><small>torneios abertos</small></div>
       <div><b>{s.tournamentsRunning}</b><small>torneios rolando</small></div>
     </div>
-    <div className="panel"><h3 style={{ fontSize: 18 }}>Mais fichas</h3><div className="rows">{s.rich.map((p, i) => <div key={i} className="rowi"><div className="grow"><b>{p.nickname}</b></div><span className="num">🪙 {fmt(p.coins)}</span></div>)}</div></div>
+    <div className="panel"><h3 style={{ fontSize: 18 }}>Mais fichas</h3><div className="rows">{s.rich.map((p, i) => <div key={i} className="rowi"><div className="grow"><b>{p.nickname}</b></div><span className="num">💰 {fmt(p.coins)}</span></div>)}</div></div>
   </>;
 }
 
@@ -39,7 +39,7 @@ function Players({ me }) {
       <div key={p.id} className="rowi" style={{ flexWrap: 'wrap' }}>
         <span className="av">{p.avatar}</span>
         <div className="grow"><b>{p.nickname}{p.is_admin ? ' 🛠' : ''}{p.vip_until && new Date(p.vip_until) > new Date() ? ' 👑' : ''}{p.blocked ? ' 🚫' : ''}</b>
-          <small>🪙 {fmt(p.coins)} · {p.games} partidas · {p.wins} vitórias · desde {new Date(p.created_at).toLocaleDateString('pt-BR')}</small></div>
+          <small>💰 {fmt(p.coins)} · {p.games} partidas · {p.wins} vitórias · desde {new Date(p.created_at).toLocaleDateString('pt-BR')}</small></div>
         <input className="mini-in" type="number" placeholder="± fichas" value={delta[p.id] || ''} onChange={e => setDelta(d => ({ ...d, [p.id]: e.target.value }))} />
         <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={() => coins(p)}>Ajustar</button>
         {p.id !== me && <button className="pillbtn" style={{ padding: '6px 12px', background: p.blocked ? '' : 'linear-gradient(180deg,#ef4444,#991b1b)' }} onClick={() => block(p)}>{p.blocked ? 'Desbloquear' : 'Bloquear'}</button>}

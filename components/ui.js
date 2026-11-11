@@ -27,7 +27,7 @@ export function Header({ profile, right, onProfile }) {
       <div className="plate">
         <button className="badge" onClick={onProfile}>{profile?.avatar || '😎'}</button>
         <div className="who"><b>{profile?.nickname || '...'}{profile?.vip_until && new Date(profile.vip_until) > new Date() ? ' 👑' : ''}</b><small>ID: {profile ? profile.id.slice(0, 8).toUpperCase() : ''}</small></div>
-        <div className="coins"><i>🪙</i><span>{fmt(profile?.coins)}</span></div>
+        <div className="coins"><i>💰</i><span>{fmt(profile?.coins)}</span></div>
       </div>
       <div className="right">{right}</div>
     </div>

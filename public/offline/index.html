@@ -257,13 +257,13 @@ button{font-family:inherit;cursor:pointer;color:inherit}
     <div class="plate">
       <button class="badge" data-act="profile" id="hAv"></button>
       <div class="who"><b id="hNick"></b><small id="hId"></small></div>
-      <div class="coins" data-act="coins"><i>🪙</i><span id="hCoins">0</span></div>
+      <div class="coins" data-act="coins"><i>💰</i><span id="hCoins">0</span></div>
     </div>
     <div class="right"><button class="rbtn" data-act="stats" title="Estatísticas">📊</button></div>
   </div>
   <div class="modes">
     <button class="mode" style="--g:linear-gradient(180deg,#38b6ff,#1565d8 60%,#0a3fa8)" data-act="lobby">
-      <div class="art"><div class="burst"></div><span class="c1" data-card="0,1"></span><span class="c2" data-card="0,0"></span><span class="c3" data-card="0,3"></span><span class="em">🪙🪙🪙</span></div><h3>Cacheta</h3></button>
+      <div class="art"><div class="burst"></div><span class="c1" data-card="0,1"></span><span class="c2" data-card="0,0"></span><span class="c3" data-card="0,3"></span><span class="em">💰💰💰</span></div><h3>Cacheta</h3></button>
     <button class="mode" style="--g:linear-gradient(180deg,#43e0a0,#109c61 60%,#06703f)" data-act="soon3">
       <em>EM BREVE</em><div class="art"><div class="burst"></div><span class="c1" data-card="12,2"></span><span class="c3" data-card="11,1"></span><span class="em" style="font-size:clamp(40px,10vmin,70px);bottom:0">🏆</span></div><h3>Torneio Cacheta</h3></button>
     <button class="mode" style="--g:linear-gradient(180deg,#ffb347,#ef6c0a 55%,#a3380a)" data-act="quick">
@@ -275,7 +275,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
     <button data-act="settings" title="Configurações">⚙️</button>
     <button data-act="rules" title="Regras">📖</button>
     <div class="ver">Cacheta Club · v1.1 beta</div>
-    <button class="shop" data-act="coins"><i>🪙</i>Fichas</button>
+    <button class="shop" data-act="coins"><i>💰</i>Fichas</button>
   </div>
 </section>
 
@@ -285,7 +285,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
     <div class="plate">
       <button class="badge" data-act="profile" id="lAv"></button>
       <div class="who"><b id="lNick"></b><small id="lId"></small></div>
-      <div class="coins" data-act="coins"><i>🪙</i><span id="lCoins">0</span></div>
+      <div class="coins" data-act="coins"><i>💰</i><span id="lCoins">0</span></div>
     </div>
     <div class="right"><button class="rbtn" data-act="home">↩</button></div>
   </div>
@@ -748,7 +748,7 @@ function statsModal(){
 }
 function coinsModal(){
   const can=coins<100;
-  showOv(`<h2>Fichas</h2><p>Você tem <b style="color:var(--gold)">🪙 ${fmt(coins)}</b> fichas virtuais.</p><p>As fichas são só pra jogar: não valem dinheiro, não podem ser sacadas nem trocadas.</p>
+  showOv(`<h2>Fichas</h2><p>Você tem <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas virtuais.</p><p>As fichas são só pra jogar: não valem dinheiro, não podem ser sacadas nem trocadas.</p>
   ${can?'<button class="go" data-act="refill">Pegar 1.000 fichas grátis</button>':'<p style="color:var(--mut);font-size:12px">Quando tiver menos de 100 fichas, aparece aqui uma recarga grátis.</p>'}
   <button class="sec" data-act="close">Fechar</button>`);
 }
@@ -876,12 +876,12 @@ function onBater(ev){
     const champ=res.champion, pot=(table.entry||0)*M.players.length;
     if(champ===0){
       stats.vitorias++; title='Você venceu! 🏆';
-      extra=pot?`<div class="prize">+ 🪙 ${fmt(pot)}</div><p>O pote da mesa é seu.</p>`:'<p>Último na mesa com pontos. Mandou bem!</p>';
+      extra=pot?`<div class="prize">+ 💰 ${fmt(pot)}</div><p>O pote da mesa é seu.</p>`:'<p>Último na mesa com pontos. Mandou bem!</p>';
       if(pot){setCoins(coins+pot);setTimeout(()=>sfx('coin'),600);}
     }
     else if(meOut){ title=meWon?title:'Você foi eliminado'; extra=`<p>Seus pontos acabaram${champ!=null?` e <b>${M.players[champ].name}</b> levou a partida`:''}.</p>`; }
     else { title=`${M.players[champ].name} venceu`; }
-    btn=`<button class="go" data-act="again">Jogar de novo${table.entry?` (🪙 ${fmt(table.entry)})`:''}</button><button class="sec" data-act="${table.entry?'toLobby':'home'}">${table.entry?'Voltar às mesas':'Início'}</button>`;
+    btn=`<button class="go" data-act="again">Jogar de novo${table.entry?` (💰 ${fmt(table.entry)})`:''}</button><button class="sec" data-act="${table.entry?'toLobby':'home'}">${table.entry?'Voltar às mesas':'Início'}</button>`;
     M.finished=true;
   }
   store.set('stats',stats);
@@ -1070,9 +1070,9 @@ document.addEventListener('click',e=>{
       <button class="sec" data-act="settings">⚙️ Configurações</button><button class="go" data-act="close">Voltar ao jogo</button>`); break;
     case 'board': {
       if(!M) break;
-      showOv(`<h2>Placar</h2><div class="score">${M.players.map(p=>`<div><span>${p.avatar} ${p.name}${p.human?'':' · '+LEVELS[p.level]}</span><b>${p.fichas>0?p.fichas+' pts':'fora'}</b></div>`).join('')}</div>${table.entry?`<p>Pote: 🪙 ${fmt(table.entry*M.players.length)}</p>`:''}<button class="go" data-act="close">Fechar</button>`); break; }
+      showOv(`<h2>Placar</h2><div class="score">${M.players.map(p=>`<div><span>${p.avatar} ${p.name}${p.human?'':' · '+LEVELS[p.level]}</span><b>${p.fichas>0?p.fichas+' pts':'fora'}</b></div>`).join('')}</div>${table.entry?`<p>Pote: 💰 ${fmt(table.entry*M.players.length)}</p>`:''}<button class="go" data-act="close">Fechar</button>`); break; }
     case 'leave':
-      if(M&&!M.finished&&table.entry) showOv(`<h2>Sair da mesa?</h2><p>A partida ainda não acabou. Saindo agora você perde a entrada de 🪙 ${fmt(table.entry)}.</p><button class="go" data-act="toLobby">Sair</button><button class="sec" data-act="close">Continuar jogando</button>`);
+      if(M&&!M.finished&&table.entry) showOv(`<h2>Sair da mesa?</h2><p>A partida ainda não acabou. Saindo agora você perde a entrada de 💰 ${fmt(table.entry)}.</p><button class="go" data-act="toLobby">Sair</button><button class="sec" data-act="close">Continuar jogando</button>`);
       else { const back=table&&table.entry; leaveMatch(); renderHeader(); if(back){renderLobby();show('lobby');} else show('home'); }
       break;
     case 'monte': humanDraw('monte'); break;
