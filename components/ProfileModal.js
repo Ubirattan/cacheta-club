@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { sb } from '../lib/supabase-browser.js';
 import { AVATARS } from '../lib/modes.js';
+import { ITEMS } from '../lib/shop-items.js';
 import { Modal, toast } from './ui.js';
 import { soundOn, setSound } from '../lib/sfx.js';
 
@@ -25,7 +26,7 @@ export default function ProfileModal({ profile, onClose, onSaved }) {
     <Modal onClose={onClose}>
       <h2>Seu perfil</h2>
       <input className="field" maxLength={16} placeholder="Apelido" value={nick} onChange={e => setNick(e.target.value)} />
-      <div className="avpick">{AVATARS.map(a => <button key={a} className={a === av ? 'on' : ''} onClick={() => setAv(a)}>{a}</button>)}</div>
+      <div className="avpick">{[...AVATARS, ...ITEMS.filter(i => i.slot === 'avatar' && (profile?.owned || []).includes(i.id)).map(i => i.em)].map(a => <button key={a} className={a === av ? 'on' : ''} onClick={() => setAv(a)}>{a}</button>)}</div>
       <div className="stats4">
         <div><b>{profile?.games || 0}</b><small>Partidas</small></div>
         <div><b>{profile?.wins || 0}</b><small>Vitórias</small></div>

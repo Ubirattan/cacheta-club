@@ -9,6 +9,7 @@ import { toast, Modal } from '../../components/ui.js';
 import { sfx } from '../../lib/sfx.js';
 
 function Swatch({ it }) {
+  if (it.slot === 'avatar') return <div className="swatch" style={{ display: 'grid', placeItems: 'center', fontSize: 40, background: 'radial-gradient(circle,#3a2f1d,#120e08)', borderColor: '#f2c94c' }}>{it.em}</div>;
   if (it.slot === 'felt') return <div className="swatch felt" style={{ background: `radial-gradient(ellipse at 50% 45%,${it.colors[0]},${it.colors[1]} 45%,${it.colors[2]})` }} />;
   return <div className="swatch" style={{ background: `repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 3px,transparent 3px 7px),linear-gradient(135deg,${it.colors[0]},${it.colors[1]})`, borderColor: it.gold ? '#f2c94c' : '#fff' }} />;
 }
@@ -106,10 +107,10 @@ function Body({ profile, reloadProfile, user }) {
       <ul>{VIP_PERKS.map(p => <li key={p}>{p}</li>)}</ul>
       <button className="go" disabled={busy || profile.coins < vipItem.price} onClick={() => call({ op: 'buy', item: vipItem.id }, 'VIP ativado! 👑')}>{vip ? 'Renovar' : 'Ativar'} 30 dias · 💰 {fmt(vipItem.price)}</button>
     </div>
-    {['back', 'felt'].map(slot => (
-      <div key={slot} className="panel"><h3 style={{ fontSize: 20 }}>{slot === 'back' ? 'Verso das cartas' : 'Feltro da mesa'}</h3>
+    {['avatar', 'back', 'felt'].map(slot => (
+      <div key={slot} id={slot === 'avatar' ? 'itens' : undefined} className="panel"><h3 style={{ fontSize: 20 }}>{slot === 'avatar' ? '✨ Avatares especiais' : slot === 'back' ? '🂠 Baralhos' : '🟩 Mesas'}</h3>
         <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot).map(it => {
-          const isEq = (eq[slot] || (slot === 'back' ? 'back-azul' : 'felt-verde')) === it.id;
+          const isEq = slot === 'avatar' ? profile.avatar === it.em : (eq[slot] || (slot === 'back' ? 'back-azul' : 'felt-verde')) === it.id;
           const has = it.price === 0 && !it.vipOnly || owned.includes(it.id) || (it.vipOnly && vip);
           return (
             <div key={it.id} className={`item ${isEq ? 'eq' : ''}`}>
