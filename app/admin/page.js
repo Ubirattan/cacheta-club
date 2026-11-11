@@ -6,7 +6,58 @@ import { api, sb } from '../../lib/supabase-browser.js';
 import { MODES, fmt, TURN_SECONDS } from '../../lib/modes.js';
 import { Seg, toast } from '../../components/ui.js';
 
-const adm = (op, b = {}) => api('/api/admin', { op, ...b });
+// sessão do painel (login e senha próprios), guardada só nesta aba do navegador
+const getTok = () => { try { return sessionStorage.getItem('cc_admin') || ''; } catch { return ''; } };
+const setTok = t => { try { t ? sessionStorage.setItem('cc_admin', t) : sessionStorage.removeItem('cc_admin'); } catch {} };
+const adm = async (op, b = {}) => {
+  try { return await api('/api/admin', { op, ...b, adminToken: getTok() }); }
+  catch (e) {
+    if (e.message === 'PAINEL_LOGIN') { setTok(''); window.dispatchEvent(new Event('cc-admin-logout')); throw new Error('Sessão do painel expirou, entre de novo'); }
+    throw e;
+  }
+};
+
+function PanelLogin({ onOk }) {
+  const [st, setSt] = useState(null), [u, setU] = useState(''), [p, setP] = useState(''), [p2, setP2] = useState(''), [err, setErr] = useState(''), [busy, setBusy] = useState(false);
+  useEffect(() => { api('/api/admin', { op: 'authStatus' }).then(setSt).catch(e => setErr(e.message)); }, []);
+  async function go(e) {
+    e.preventDefault(); setErr('');
+    if (!st.configured && p !== p2) return setErr('As senhas não são iguais');
+    setBusy(true);
+    try { const r = await api('/api/admin', { op: st.configured ? 'login' : 'setup', username: u, password: p }); setTok(r.token); onOk(); }
+    catch (e2) { setErr(e2.message); }
+    setBusy(false);
+  }
+  if (!st) return <div className="empty">{err || 'Carregando…'}</div>;
+  return (
+    <div className="center-box"><form className="authcard" onSubmit={go}>
+      <h2 style={{ font: '700 24px Oswald', color: 'var(--gold)', textAlign: 'center', margin: 0 }}>🔐 {st.configured ? 'Entrar no painel' : 'Criar login do painel'}</h2>
+      <p className="hint" style={{ textAlign: 'center' }}>{st.configured ? 'Digite o usuário e a senha do painel administrativo.' : 'Primeira vez aqui: crie um usuário e uma senha só para o painel (mínimo 8 caracteres). Guarde bem: ela será pedida sempre que abrir o painel.'}</p>
+      <input className="field" placeholder="Usuário do painel" autoComplete="username" value={u} onChange={e => setU(e.target.value)} />
+      <input className="field" type="password" placeholder="Senha do painel" autoComplete={st.configured ? 'current-password' : 'new-password'} value={p} onChange={e => setP(e.target.value)} />
+      {!st.configured && <input className="field" type="password" placeholder="Repita a senha" autoComplete="new-password" value={p2} onChange={e => setP2(e.target.value)} />}
+      {err && <div className="err">{err}</div>}
+      <button className="go" disabled={busy}>{busy ? 'Aguarde…' : st.configured ? 'Entrar' : 'Criar e entrar'}</button>
+    </form></div>
+  );
+}
+
+function ChangePass() {
+  const [f, setF] = useState({ current: '', username: '', password: '', p2: '' }), [msg, setMsg] = useState('');
+  async function save() {
+    setMsg('');
+    if (f.password !== f.p2) return setMsg('As senhas novas não são iguais');
+    try { const r = await adm('changePass', { current: f.current, username: f.username || undefined, password: f.password }); setTok(r.token); toast('Senha do painel trocada'); setF({ current: '', username: '', password: '', p2: '' }); }
+    catch (e) { setMsg(e.message); }
+  }
+  return <div className="panel"><h3 style={{ fontSize: 20 }}>🔐 Trocar login e senha do painel</h3>
+    <input className="field" type="password" placeholder="Senha atual" value={f.current} onChange={e => setF({ ...f, current: e.target.value })} />
+    <input className="field" placeholder="Novo usuário (deixe vazio para manter)" value={f.username} onChange={e => setF({ ...f, username: e.target.value })} />
+    <input className="field" type="password" placeholder="Nova senha (mín. 8)" value={f.password} onChange={e => setF({ ...f, password: e.target.value })} />
+    <input className="field" type="password" placeholder="Repita a nova senha" value={f.p2} onChange={e => setF({ ...f, p2: e.target.value })} />
+    {msg && <div className="err">{msg}</div>}
+    <button className="go" onClick={save}>Trocar</button></div>;
+}
 
 function Overview() {
   const [s, setS] = useState(null);
@@ -126,12 +177,16 @@ function Settings() {
 const TABS = [['geral', 'Visão geral'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
 function Body({ profile, user }) {
   const [tab, setTab] = useState('geral');
+  const [logged, setLogged] = useState(() => !!getTok());
+  useEffect(() => { const f = () => setLogged(false); window.addEventListener('cc-admin-logout', f); return () => window.removeEventListener('cc-admin-logout', f); }, []);
   if (!profile) return <div className="empty">Carregando…</div>;
   if (!profile.is_admin) return <div className="empty">Área só para administradores.</div>;
+  if (!logged) return <PanelLogin onOk={() => setLogged(true)} />;
   return <>
-    <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>)}</div>
+    <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>)}
+      <button onClick={() => { setTok(''); setLogged(false); }}>🚪 Sair do painel</button></div>
     {tab === 'geral' && <Overview />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
-    {tab === 'salas' && <Rooms />}{tab === 'tor' && <Tournaments />}{tab === 'cfg' && <Settings />}
+    {tab === 'salas' && <Rooms />}{tab === 'tor' && <Tournaments />}{tab === 'cfg' && <><Settings /><ChangePass /></>}
   </>;
 }
 export default function Admin() { return <Shell title="🛠 Painel administrativo">{auth => <Body {...auth} />}</Shell>; }

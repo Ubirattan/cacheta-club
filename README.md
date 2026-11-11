@@ -58,6 +58,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
    update public.profiles set is_admin = true where id = (select id from auth.users where email = 'seu@email.com');
    ```
    Depois disso, o botão 🛠 aparece no rodapé da tela inicial.
+7. **Login do painel:** rode também o `supabase/admin-login.sql`. Na primeira vez que abrir o painel, ele pede pra criar um usuário e uma senha só do painel. Depois disso, essa senha é pedida sempre. A sessão dura 12 horas, e o painel trava por 15 minutos depois de 5 senhas erradas.
 
 ### 2. Copiar as chaves
 Em **Project Settings → API** (ou **API Keys**), copie estes três valores:

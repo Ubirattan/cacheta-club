@@ -4,7 +4,15 @@ import { memRepo, addUsers } from './memrepo.mjs';
 import * as S from '../lib/service.js';
 import * as TT from '../lib/tournament.js';
 import { buy, equip, dailyBonus } from '../lib/shop.js';
-import { adminOp } from '../lib/admin.js';
+import { adminOp as adminOpRaw } from '../lib/admin.js';
+// faz login no painel (cria o login na primeira vez) antes de cada operação
+const tokens = new WeakMap();
+async function adminOp(R, u, b) {
+  if (['authStatus', 'setup', 'login'].includes(b.op)) return adminOpRaw(R, u, b);
+  const me = await R.getProfile(u.id); if (!me || !me.is_admin) return adminOpRaw(R, u, b);
+  if (!tokens.get(R)) { const st = await adminOpRaw(R, u, { op: 'authStatus' }); tokens.set(R, (await adminOpRaw(R, u, { op: st.configured ? 'login' : 'setup', username: 'admin', password: 'senha-teste-123' })).token); }
+  return adminOpRaw(R, u, { ...b, adminToken: tokens.get(R) });
+}
 import { AI } from '../lib/engine.js';
 
 async function playAllTables(R) {
