@@ -410,3 +410,6 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .convite{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#2a2218,#15110b);border:2px solid var(--gold);border-radius:16px;padding:8px 12px;box-shadow:0 12px 30px rgba(0,0,0,.6);max-width:94vw;animation:convIn .3s ease}
 .convite .cav{font-size:30px}.convite .ctx{display:flex;flex-direction:column;color:#fff;font:500 14px Rubik}.convite .ctx small{color:var(--mut);font-size:12px}
 @keyframes convIn{from{transform:translate(-50%,-30px);opacity:0}}
+
+.forgot{display:block;margin:10px auto 0;background:none;border:0;color:var(--gold);font:500 14px Rubik;text-decoration:underline;cursor:pointer}
+.authkb .forgot{margin-top:6px;font-size:12px}

@@ -41,6 +41,7 @@ export default function Login() {
 
   const fields = tab === 'criar'
     ? [['nick', 'Apelido', 16], ['email', 'E-mail', 120], ['pass', 'Senha', 72], ['pass2', 'Confirmar senha', 72]]
+    : tab === 'esqueci' ? [['email', 'E-mail da sua conta', 120]]
     : [['email', 'E-mail', 120], ['pass', 'Senha', 72]];
   useEffect(() => { setAct(tab === 'criar' ? 'nick' : 'email'); setErr(''); setOk(''); }, [tab]);
   const set = (k, val) => setV(o => ({ ...o, [k]: val }));
@@ -49,6 +50,14 @@ export default function Login() {
     if (e) e.preventDefault();
     setErr(''); setOk('');
     const email = v.email.trim(), pass = v.pass;
+    if (tab === 'esqueci') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return setErr('Digite o e-mail da sua conta');
+      setBusy(true);
+      const { error } = await sb().auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/nova-senha' });
+      setBusy(false);
+      if (error) return setErr(/rate|seconds|many/i.test(error.message) ? 'Muitas tentativas. Espere alguns minutos e tente de novo' : 'Não deu pra enviar: ' + error.message);
+      return setOk('Pronto! Se esse e-mail tiver conta, chega um link para criar uma senha nova. Veja também o spam.');
+    }
     if (tab === 'criar') {
       if (v.nick.trim().length < 2) return setErr('Escolha um apelido com pelo menos 2 letras');
       if (pass.length < 6) return setErr('A senha precisa ter pelo menos 6 caracteres');
@@ -87,7 +96,7 @@ export default function Login() {
     if ((cur + ch).length <= f[2]) set(f[0], cur + ch);
   }
   const lastField = act === fields[fields.length - 1][0];
-  const okLabel = lastField ? (tab === 'entrar' ? 'Entrar' : 'Criar') : 'Próximo';
+  const okLabel = lastField ? (tab === 'entrar' ? 'Entrar' : tab === 'esqueci' ? 'Enviar' : 'Criar') : 'Próximo';
 
   const card = (
     <form className="authcard" onSubmit={submit}>
@@ -107,7 +116,9 @@ export default function Login() {
             value={v[k]} onChange={e => set(k, e.target.value)} />)}
       {err && <div className="err">{err}</div>}
       {ok && <div className="okmsg">{ok}</div>}
-      <button className="go" disabled={busy}>{busy ? 'Aguarde…' : tab === 'entrar' ? 'Entrar' : 'Criar conta e jogar'}</button>
+      <button className="go" disabled={busy}>{busy ? 'Aguarde…' : tab === 'entrar' ? 'Entrar' : tab === 'esqueci' ? 'Enviar link de nova senha' : 'Criar conta e jogar'}</button>
+      {tab === 'entrar' && <button type="button" className="forgot" onClick={() => setTab('esqueci')}>Esqueci a senha</button>}
+      {tab === 'esqueci' && <button type="button" className="forgot" onClick={() => setTab('entrar')}>← Voltar para entrar</button>}
       {!kb && <><div className="or">ou</div>
         <button type="button" className="gbtn" onClick={google}><span style={{ fontWeight: 800, color: '#4285F4' }}>G</span> Entrar com Google</button>
         <p className="hint" style={{ textAlign: 'center', marginTop: 14 }}>As fichas do Cacheta Club são virtuais: não valem dinheiro e não podem ser sacadas.</p></>}
