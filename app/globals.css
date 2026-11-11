@@ -415,9 +415,9 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .authkb .forgot{margin-top:6px;font-size:12px}
 
 /* cartas do meio da mesa (monte, vira, coringas e descarte) maiores */
-.center{--pcw:clamp(56px,13.5vmin,98px)}
-.center .piles{--cw:var(--pcw);gap:clamp(22px,7vmin,72px)}
-.center .corbox .card{--cw:calc(var(--pcw)*.56)}
+.center{--pcw:clamp(64px,16vmin,116px)}
+.center .piles{--cw:var(--pcw);gap:clamp(24px,7.5vmin,80px)}
+.center .corbox .card{--cw:calc(var(--pcw)*.62)}
 .center .corbox small{font-size:11px}
 /* coringa no descarte: ninguém pode pegar */
 .card.lockj{filter:saturate(.6) brightness(.9)}

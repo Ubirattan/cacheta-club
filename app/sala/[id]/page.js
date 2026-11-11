@@ -88,6 +88,12 @@ export default function Sala() {
   const [players, setPlayers] = useState([]);
   const [game, setGame] = useState(null);
   const [hand, setHand] = useState([]);
+  const verRef = useRef({ m: null, v: 0 }); // versão da mesa mais nova já mostrada (ignora atualização velha que chega atrasada)
+  const showGame = (st, v) => { // partida nova (outra matchId) sempre entra
+    const cur = verRef.current;
+    if (st && cur.m === st.matchId && v != null && v < cur.v) return;
+    verRef.current = { m: st ? st.matchId : null, v: v || 0 }; setGame(st);
+  };
   const [grp, setGrp] = useState([]); // grupos da mão, montados pelo jogador (listas de ids)
   const [msgs, setMsgs] = useState([]);
   const [sel, setSel] = useState(null);
@@ -157,8 +163,8 @@ export default function Sala() {
     setPlayers(data || []);
   }, [id]);
   const loadGame = useCallback(async () => {
-    const { data } = await sb().from('games').select('state').eq('room_id', id).maybeSingle();
-    setGame(data ? data.state : null);
+    const { data } = await sb().from('games').select('state,version').eq('room_id', id).maybeSingle();
+    if (data) showGame(data.state, data.version); else { verRef.current = { m: null, v: 0 }; setGame(null); }
   }, [id]);
   const loadHand = useCallback(async () => {
     if (!user) return;
@@ -177,7 +183,7 @@ export default function Sala() {
     const ch = sb().channel('sala-' + id)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${id}` }, p => { if (p.eventType === 'DELETE') setRoom(null); else setRoom(p.new); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players' }, p => { if ((p.new && p.new.room_id === id) || (p.old && (p.old.room_id === id || !p.old.room_id))) loadPlayers(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `room_id=eq.${id}` }, p => { if (p.new && p.new.state) setGame(p.new.state); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `room_id=eq.${id}` }, p => { if (p.new && p.new.state) showGame(p.new.state, p.new.version); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'hands', filter: `room_id=eq.${id}` }, p => { if (p.new && p.new.user_id === user.id) setHand(p.new.cards); })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${id}` }, p => {
         setMsgs(m => [...m.slice(-80), p.new]);
@@ -258,8 +264,15 @@ export default function Sala() {
 
   async function act(body) {
     if (busy) return; setBusy(true);
-    try { await api(`/api/rooms/${id}/action`, body); if (body.type !== 'draw') setSel(null); }
-    catch (e) { sfx('err'); toast(e.message); }
+    // mostra na hora o que já se sabe (descarte e carta do descarte), antes do servidor responder
+    if (body.type === 'discard') { const c = hand.find(x => x.id === body.cardId); if (c) { setHand(h => h.filter(x => x.id !== c.id)); setSel(null); } }
+    else if (body.type === 'draw' && body.from === 'desc' && game?.descTop && !game.players.find(p => p.uid === user.id)?.queimado && !Engine.isJ(game.descTop, game.cor) && !hand.some(x => x.id === game.descTop.id)) { const c = game.descTop; setHand(h => [...h, c]); }
+    try {
+      const r = await api(`/api/rooms/${id}/action`, body);
+      if (r && r.state) { showGame(r.state, r.version); if (r.hand) setHand(r.hand); }
+      if (body.type !== 'draw') setSel(null);
+    }
+    catch (e) { sfx('err'); toast(e.message); loadHand(); loadGame(); }
     setBusy(false);
   }
   async function join() {

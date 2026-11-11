@@ -138,7 +138,7 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   const r = await buy(R, U[1], 'tr-prata'); assert.ok(r.pending);
   let p = await R.getProfile('u1');
   assert.equal(p.coins, 20); assert.ok(!(p.owned || []).includes('tr-prata'), 'ainda não liberado'); assert.equal(p.avatar, av0);
-  await assert.rejects(buy(R, U[1], 'tr-prata'), /aguardando/);
+  await assert.rejects(buy(R, U[1], 'tr-prata'), /insuficientes/); // pode pedir de novo, mas aqui falta ficha
   await assert.rejects(buy(R, U[1], 'tr-ouro'), /insuficientes/);
   const A = (op, b = {}) => adminOp(R, U[0], { op, ...b });
   let lst = (await A('resgates')).resgates; assert.equal(lst.length, 1); assert.equal(lst[0].item, 'Troféu Prata');
@@ -146,7 +146,10 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   await A('liberarResgate', { id: lst[0].id });
   p = await R.getProfile('u1'); assert.ok(p.owned.includes('tr-prata')); assert.equal(p.coins, 20);
   await assert.rejects(A('liberarResgate', { id: lst[0].id }), /resolvido/);
-  await assert.rejects(buy(R, U[1], 'tr-prata'), /já tem/);
+  // troféu acumula: com fichas, resgata o mesmo de novo
+  await R.adjustProfile('u1', 100, 0, 0);
+  const r2 = await buy(R, U[1], 'tr-prata'); assert.ok(r2.pending); assert.equal((await R.getProfile('u1')).coins, 20);
+  lst = (await A('resgates')).resgates; assert.equal(lst.length, 1); await A('liberarResgate', { id: lst[0].id });
   // recusar devolve as fichas
   await A('coins', { uid: 'u1', delta: 30 });
   await buy(R, U[1], 'tr-bronze'); assert.equal((await R.getProfile('u1')).coins, 0);
