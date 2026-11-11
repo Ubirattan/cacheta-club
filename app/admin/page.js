@@ -175,6 +175,46 @@ function Tournaments() {
   </>;
 }
 
+// reduz a foto no próprio celular antes de salvar (fica leve para carregar no lobby)
+function fotoParaDataUrl(file) {
+  return new Promise((ok, bad) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 900 / img.width, 300 / img.height), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      let q = .85, d = c.toDataURL('image/jpeg', q);
+      while (d.length > 380000 && q > .4) { q -= .15; d = c.toDataURL('image/jpeg', q); }
+      ok(d);
+    };
+    img.onerror = () => bad(new Error('Não deu para abrir essa imagem'));
+    img.src = url;
+  });
+}
+function AdsEditor({ ads, onChange }) {
+  const upd = (i, k, v) => onChange(ads.map((a, j) => j === i ? { ...a, [k]: v } : a));
+  const del = i => onChange(ads.filter((_, j) => j !== i));
+  async function foto(i, e) { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; try { upd(i, 'img', await fotoParaDataUrl(f)); } catch (er) { toast(er.message); } }
+  return <div className="opt-row"><label>Anúncios ({ads.length})</label>
+    {ads.map((a, i) => <div key={i} className="adedit">
+      {a.img && <img className="prev" src={a.img} alt="" />}
+      <div className="row">
+        <label className="pillbtn blue" style={{ padding: '6px 12px', cursor: 'pointer' }}>📷 Enviar imagem<input type="file" accept="image/*" hidden onChange={e => foto(i, e)} /></label>
+        {a.img && <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={() => upd(i, 'img', '')}>Tirar imagem</button>}
+      </div>
+      {!String(a.img || '').startsWith('data:') && <input className="field" style={{ marginTop: 0 }} placeholder="ou cole o link da imagem (https://…)" value={a.img || ''} onChange={e => upd(i, 'img', e.target.value)} />}
+      <input className="field" style={{ marginTop: 0 }} placeholder="Link ao tocar (ex.: https://wa.me/5511999999999)" value={a.link || ''} onChange={e => upd(i, 'link', e.target.value)} />
+      <input className="field" style={{ marginTop: 0 }} maxLength={80} placeholder="Texto (opcional)" value={a.text || ''} onChange={e => upd(i, 'text', e.target.value)} />
+      <div className="row">
+        <button className={`pillbtn ${a.on === false ? 'dark' : 'blue'}`} style={{ padding: '6px 12px' }} onClick={() => upd(i, 'on', a.on === false)}>{a.on === false ? '⏸ Pausado' : '▶ No ar'}</button>
+        <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={() => { if (confirm('Apagar este anúncio?')) del(i); }}>🗑 Apagar</button>
+      </div>
+    </div>)}
+    {ads.length < 10 && <button className="pillbtn" style={{ padding: '8px 14px', marginTop: 6 }} onClick={() => onChange([...ads, { img: '', link: '', text: '', on: true }])}>➕ Novo anúncio</button>}
+    <small style={{ color: 'var(--mut)', display: 'block', marginTop: 4 }}>Depois de mexer, toque em Salvar.</small>
+  </div>;
+}
+
 function Settings() {
   const [s, setS] = useState(null);
   useEffect(() => { adm('settings').then(r => setS(r.settings)).catch(e => toast(e.message)); }, []);
@@ -188,7 +228,8 @@ function Settings() {
     })}</div></div>
     <div className="opt-row"><label>Bônus diário (fichas)</label><input className="field" style={{ marginTop: 0 }} type="number" value={s.daily_bonus} onChange={e => set('daily_bonus', e.target.value)} /></div>
     <div className="opt-row"><label>Entrada máxima das salas</label><input className="field" style={{ marginTop: 0 }} type="number" value={s.max_entry} onChange={e => set('max_entry', e.target.value)} /></div>
-    <Seg label="Espaço de anúncios" value={!!s.ads_enabled} onChange={v => set('ads_enabled', v)} options={[[false, 'Desligado'], [true, 'Ligado']]} hint="Quando ligado, aparece um espaço de publicidade no lobby (VIP não vê)." />
+    <Seg label="Espaço de anúncios" value={!!s.ads_enabled} onChange={v => set('ads_enabled', v)} options={[[false, 'Desligado'], [true, 'Ligado']]} hint="Quando ligado, os anúncios abaixo aparecem no lobby, se revezando a cada 8 segundos (VIP não vê)." />
+    <AdsEditor ads={s.ads || []} onChange={v => set('ads', v)} />
     <div className="opt-row"><label>Recado na tela inicial</label><input className="field" style={{ marginTop: 0 }} maxLength={140} value={s.motd || ''} onChange={e => set('motd', e.target.value)} /></div>
     <button className="go" onClick={save}>Salvar</button>
   </div>;

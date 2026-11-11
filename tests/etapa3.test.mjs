@@ -110,6 +110,11 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   const cfg = (await adminOp(R, U[0], { op: 'settings' })).settings;
   assert.equal(cfg.daily_bonus, 500); assert.deepEqual(cfg.modes_enabled, ['cacheta']); assert.equal(cfg.hack, undefined);
   await assert.rejects(S.createRoom(R, U[0], { mode: 'pifpaf', maxPlayers: 2, points: 3 }), /indisponível/);
+  // anúncios próprios: guarda imagem/link/texto, descarta vazios e recusa link ou imagem estranhos
+  await adminOp(R, U[0], { op: 'saveSettings', settings: { ads: [{ img: 'https://x.com/a.png', link: 'https://wa.me/55', text: 'Promo' }, { img: '', text: '' }] } });
+  assert.deepEqual((await adminOp(R, U[0], { op: 'settings' })).settings.ads, [{ img: 'https://x.com/a.png', link: 'https://wa.me/55', text: 'Promo', on: true }]);
+  await assert.rejects(adminOp(R, U[0], { op: 'saveSettings', settings: { ads: [{ img: 'javascript:alert(1)' }] } }), /imagem/);
+  await assert.rejects(adminOp(R, U[0], { op: 'saveSettings', settings: { ads: [{ text: 'a', link: 'javascript:alert(1)' }] } }), /link/);
   // vendas no painel: compras aparecem como novas até o admin abrir a aba
   let sv = await adminOp(R, U[0], { op: 'sales' });
   assert.ok(sv.sales.some(x => x.item === 'Verso roxo neon' && x.coins === 10 && x.isNew)); assert.equal(sv.unread, 2);

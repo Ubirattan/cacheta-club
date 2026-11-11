@@ -425,3 +425,13 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 
 /* tipo da chave Pix no cadastro */
 .pixseg{margin-top:8px}.pixseg button{padding:5px 2px;font-size:13px}
+
+/* anúncio próprio no lobby */
+.adslot.adreal{border:1.5px solid #5a4a2a;border-style:solid;padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--txt);text-decoration:none;position:relative;background:rgba(0,0,0,.25)}
+.adslot.adreal img{max-width:100%;max-height:110px;border-radius:8px;object-fit:contain;display:block}
+.adslot.adreal span{font:500 14px Rubik}
+.adslot.adreal small{position:absolute;top:4px;right:8px;font:500 9px Rubik;color:#8b7d62;background:rgba(0,0,0,.5);padding:1px 5px;border-radius:6px}
+.adedit{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;display:grid;gap:6px}
+.adedit .prev{max-width:100%;max-height:90px;border-radius:8px;object-fit:contain}
+.adedit .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.opt-row .adedit label.pillbtn{display:inline-flex;margin:0;font:inherit;color:inherit;letter-spacing:0}
