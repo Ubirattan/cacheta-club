@@ -58,8 +58,21 @@ const pub = R.db.pub.get(room);
 assert.ok(pub.players.every(p => !('hand' in p) && typeof p.count === 'number'), 'estado público sem as cartas dos jogadores');
 assert.equal(typeof pub.monte, 'number');
 
-// jogadas inválidas são barradas pelo servidor
+// ir ou correr: ninguém compra antes de decidir
 let M = (await R.getGame(room)).state;
+assert.equal(M.phase, 'decide');
+await assert.rejects(S.act(R, { id: M.players[M.turn].uid }, room, { type: 'draw', from: 'monte' }), /comprou|decid/);
+async function decideAll() {
+  let st = (await R.getGame(room)).state;
+  for (let k = 0; k < st.players.length && st.phase === 'decide'; k++) {
+    const q = st.players[k]; if (q.fichas <= 0 || q.dec) continue;
+    await S.act(R, { id: q.uid }, room, { type: 'decide', go: k < 3 || AI.chooseGo(st, k, 'medio') });
+    st = (await R.getGame(room)).state;
+  }
+}
+await decideAll();
+// jogadas inválidas são barradas pelo servidor
+M = (await R.getGame(room)).state;
 const notTurn = users.find(u => u.id !== M.players[M.turn].uid);
 await assert.rejects(S.act(R, notTurn, room, { type: 'draw', from: 'monte' }), /Não é a sua vez/);
 const cur = users.find(u => u.id === M.players[M.turn].uid);
@@ -82,6 +95,7 @@ while (R.db.rooms.get(room).status === 'playing' && steps < 20000) {
   steps++;
   M = (await R.getGame(room)).state;
   if (M.over) { R.db.games.get(room).state.endedAt = Date.now() - 60000; await S.tick(R, users[0], room); rounds++; continue; }
+  if (M.phase === 'decide') { await decideAll(); continue; }
   const pi = M.turn, u = { id: M.players[pi].uid };
   await S.act(R, u, room, { type: 'draw', from: AI.chooseDraw(M, pi, 'medio') });
   M = (await R.getGame(room)).state; if (M.over) continue;

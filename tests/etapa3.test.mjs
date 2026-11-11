@@ -24,6 +24,10 @@ async function playAllTables(R) {
       const g = await R.getGame(room.id); if (!g) continue;
       const M = g.state;
       if (M.over) { R.games.get(room.id).state.endedAt = Date.now() - 60000; await S.tick(R, null, room.id); continue; }
+      if (M.phase === 'decide') {
+        for (let k = 0; k < M.players.length; k++) { const q = M.players[k]; if (q.fichas > 0 && !q.dec) { await S.act(R, { id: q.uid }, room.id, { type: 'decide', go: AI.chooseGo(M, k, 'medio') }); break; } }
+        continue;
+      }
       const pi = M.turn, u = { id: M.players[pi].uid };
       await S.act(R, u, room.id, { type: 'draw', from: AI.chooseDraw(M, pi, 'medio') });
       const M2 = (await R.getGame(room.id)).state; if (M2.over) continue;

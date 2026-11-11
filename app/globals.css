@@ -213,6 +213,10 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   #mine{display:grid;grid-template-columns:132px 1fr;grid-template-areas:"bar me" "bar tm" "bar hd";column-gap:10px;padding:0 8px 4px;align-items:end}
   #meRow{grid-area:me;margin:0}#timer{grid-area:tm;margin:3px 0 0;max-width:none}#hand{grid-area:hd;padding-top:16px;min-height:0}
   #bar{grid-area:bar;display:flex;flex-direction:column;gap:5px;margin:0;align-self:end}
+  /* BATER à direita, acima das cartas (longe do selo do Netlify) */
+  #bar{position:static}#bBate{position:absolute;right:12px;top:-4px;width:150px;padding:9px 4px!important;font-size:18px!important;z-index:6}
+  #meRow,#timer{margin-right:170px!important}
+
   #bar button{padding:7px 4px;font-size:15px;flex:none!important}
   #meRow .av{width:26px;height:26px;font-size:14px}
   #meRow .info{font-size:12px}
@@ -343,6 +347,9 @@ a{color:inherit;text-decoration:none}
 #hand .card.insR{box-shadow:5px 0 0 #38bdf8,0 3px 8px rgba(0,0,0,.4)}
 #hand .grp.bad{border-color:#f97316;background:rgba(249,115,22,.10)}
 #hand .grp.bad .gtag{background:#ea580c}
+#msg .dbtn{border:2px solid #000;border-radius:20px;padding:2px 12px;margin:2px 0 2px 8px;font:600 13px Oswald;color:#fff;cursor:pointer;vertical-align:middle}
+#msg .dbtn.dgo{background:linear-gradient(180deg,#34d399,#059669)}#msg .dbtn.drun{background:linear-gradient(180deg,#f87171,#b91c1c)}
+#hand.outr{opacity:.45;filter:grayscale(.6)}
 #desc.droptgt{outline:3px dashed #38bdf8;outline-offset:6px;border-radius:10px}
 #hand .grp.gapL{box-shadow:-9px 0 0 -5px #38bdf8}#hand .grp.gapR{box-shadow:9px 0 0 -5px #38bdf8}
 .corbox{flex-direction:row!important;gap:10px!important;align-items:flex-end!important}

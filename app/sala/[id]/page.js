@@ -362,7 +362,8 @@ export default function Sala() {
   const okN = gType.filter(Boolean).length, full = groups.reduce((n, x, i) => n + (gType[i] ? x.cards.length : 0), 0) >= game.cfg.hand;
   const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 160 : 0) - (typeof document !== 'undefined' && document.body.classList.contains('nfb') ? 190 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
-  const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
+  const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : game.result?.semJogo ? 'Rodada sem jogo' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
+    : me && me.out ? 'Você correu desta rodada. Assista o jogo'
     : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele'
       : full && myHand.length === game.cfg.hand + 1 ? '✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER'
       : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
@@ -378,6 +379,8 @@ export default function Sala() {
   // BATER fica sempre disponível: na vez, ou fora dela com a carta que o adversário acabou de descartar
   function bater() {
     if (game.over) return;
+    if (game.phase === 'decide') return toast('Primeiro decida se vai jogar ou correr');
+    if (me.out) return toast('Você correu desta rodada');
     if (!canEnd) {
       if (game.phase === 'draw' && game.descTop && !me.queimado) return act({ type: 'baterDesc' });
       return toast(me.queimado ? 'Você errou uma batida: agora só pode bater comprando do monte, na sua vez' : myTurn ? 'Ainda não tem carta no descarte: compre do monte' : 'Espere o próximo descarte para bater');
@@ -406,7 +409,12 @@ export default function Sala() {
         <div className="rail"><div className="felt" style={{ background: feltBg }}>
           <div className="wm"><b>CACHETA CLUB</b><small>{MODES[room.mode]?.name} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
           <div className="center">
-            <div id="msg"><span dangerouslySetInnerHTML={{ __html: msg }} /></div>
+            {game.phase === 'decide' && !game.over && myIdx >= 0 && me.fichas > 0
+              ? <div id="msg"><span>{me.dec ? 'Aguardando os outros decidirem…' : me.fichas <= 1 ? 'Você tem 1 ponto e precisa jogar' : 'Vai jogar esta rodada?'}</span>
+                  {!me.dec && <button className="dbtn dgo" disabled={busy} onClick={() => act({ type: 'decide', go: true })}>JOGAR</button>}
+                  {!me.dec && me.fichas > 1 && <button className="dbtn drun" disabled={busy} onClick={() => act({ type: 'decide', go: false })}>CORRER (−1)</button>}
+                  <small style={{ marginLeft: 8, opacity: .8 }}>{Math.ceil(left / 1000)}s</small></div>
+              : <div id="msg"><span dangerouslySetInnerHTML={{ __html: msg }} /></div>}
             <div className="piles">
               <div className="pile">
                 <div id="viraBox">{game.vira && <Card c={game.vira} cor={game.cor} cls="vira" />}</div>
@@ -423,10 +431,12 @@ export default function Sala() {
             {others.map((pi, k) => {
               const p = game.players[pi], { x, y } = seatPos(k + 1, n, portrait), turn = game.turn === pi && !game.over;
               return (
-                <div key={p.uid} id={`seat-${pi}`} className={`seat ${turn ? 'turn' : ''} ${p.fichas <= 0 ? 'out' : ''} ${x > 60 ? 'rt' : ''}`} style={{ left: x + '%', top: y + '%' }}>
+                <div key={p.uid} id={`seat-${pi}`} className={`seat ${turn && game.phase !== 'decide' ? 'turn' : ''} ${p.fichas <= 0 || p.out ? 'out' : ''} ${x > 60 ? 'rt' : ''}`} style={{ left: x + '%', top: y + '%' }}>
                   <div className="av">{p.avatar}{p.fichas > 0 && <span className="cnt">🂠{p.count}</span>}</div>
-                  <div className="np"><b>{p.name}</b><small>{p.left ? 'saiu' : p.fichas > 0 ? `${p.fichas} pts${turn ? ` · ${Math.ceil(left / 1000)}s` : ''}` : 'eliminado'}</small></div>
-                  {game.last?.pi === pi && lastTxt(game.last) && <div className="bubble">{lastTxt(game.last)}{game.last.timeout ? ' ⏱' : ''}</div>}
+                  <div className="np"><b>{p.name}</b><small>{p.left ? 'saiu' : p.fichas > 0 ? `${p.fichas} pts${turn && game.phase !== 'decide' ? ` · ${Math.ceil(left / 1000)}s` : ''}` : 'eliminado'}</small></div>
+                  {game.phase === 'decide' && p.fichas > 0 ? <div className="bubble">{p.dec ? '✓ decidiu' : 'decidindo…'}</div>
+                    : game.last?.t === 'decidido' && p.dec ? <div className="bubble">{p.dec === 'go' ? 'vai jogar' : 'correu (−1)'}</div>
+                    : game.last?.pi === pi && lastTxt(game.last) && <div className="bubble">{lastTxt(game.last)}{game.last.timeout ? ' ⏱' : ''}</div>}
                 </div>
               );
             })}
@@ -438,7 +448,7 @@ export default function Sala() {
           <div className="info"><b>{me.name}</b>{me.fichas} pts <small>· {okN} {okN === 1 ? 'jogo montado' : 'jogos montados'}</small>
             {me.queimado && <span className="burn">🔥 só bate comprando do monte</span>}</div></div>
         <div id="timer" className={left < 6000 ? 'warn' : ''} style={{ visibility: myTurn ? 'visible' : 'hidden' }}><i style={{ width: pct + '%' }} /></div>
-        <div id="hand" style={{ '--hcw': hcw + 'px' }} onPointerDown={e => {
+        <div id="hand" className={me.out ? 'outr' : ''} style={{ '--hcw': hcw + 'px' }} onPointerDown={e => {
           const el = e.target.closest('.card'); if (!el) return;
           dragRef.current = { id: +el.dataset.id, el, x: e.clientX, y: e.clientY, on: false };
         }}>
@@ -469,14 +479,18 @@ export default function Sala() {
 
       {game.over && res && (
         <Modal>
-          {res.empate ? <><h2>Monte esgotado</h2><p>Ninguém bateu. Ninguém perde pontos.</p></> : <>
+          {res.empate ? <><h2>Monte esgotado</h2><p>Ninguém bateu. Ninguém perde pontos.</p></> : res.semJogo && !res.matchOver ? <>
+            <h2>{res.todosCorreram ? 'Todos correram' : res.winner === myIdx ? 'Você ganhou sem jogar!' : `${game.players[res.winner]?.name} ganhou sem jogar`}</h2>
+            <p>{res.todosCorreram ? 'Ninguém quis jogar: quem correu perdeu 1 ponto.' : 'Os outros correram e perderam 1 ponto cada.'}</p>
+            <div className="score">{game.players.map((p, i) => { const d = res.before ? p.fichas - res.before[i] : 0;
+              return <div key={p.uid}><span>{p.avatar} {p.name}</span>{d < 0 && <span className="d" style={{ flex: 'none' }}>{d}</span>}{i === res.winner && <span className="w" style={{ flex: 'none' }}>ganhou</span>}<b>{p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>; })}</div></> : <>
             <h2>{res.matchOver ? (res.champion === myIdx ? 'Você venceu! 🏆' : `${game.players[res.champion]?.name || 'Ninguém'} venceu`) : res.winner === myIdx ? 'Você bateu!' : `${game.players[res.winner]?.name} bateu`}</h2>
-            {res.forfeit ? <p>Os outros jogadores saíram da mesa.</p> : <p>{res.limpa && game.cfg.limpaDobro ? <><b>Batida limpa</b>, sem coringa: os outros perdem 2 pontos.</> : `Os outros perdem ${res.loss} ponto.`}</p>}
+            {res.forfeit ? <p>Os outros jogadores saíram da mesa.</p> : res.semJogo ? <p>Os outros correram.</p> : game.cfg.correr ? <p>Quem jogou e perdeu perde {res.loss} pontos.</p> : <p>{res.limpa && game.cfg.limpaDobro ? <><b>Batida limpa</b>, sem coringa: os outros perdem 2 pontos.</> : `Os outros perdem ${res.loss} ponto.`}</p>}
             {res.melds && <div className="melds">{res.melds.map((m, i) => <div key={i} className="meld">{m.map(c => <Card key={c.id} c={c} cor={game.cor} />)}</div>)}</div>}
             {res.matchOver && res.champion === myIdx && game.pot > 0 && <div className="prize">+ 💰 {fmt(game.pot)}</div>}
             <div className="score">{game.players.map((p, i) => {
               const d = res.before ? p.fichas - res.before[i] : 0;
-              return <div key={p.uid}><span>{p.avatar} {p.name}</span>{d < 0 && <span className="d" style={{ flex: 'none' }}>{d}</span>}{i === res.winner && <span className="w" style={{ flex: 'none' }}>bateu</span>}<b>{p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>;
+              return <div key={p.uid}><span>{p.avatar} {p.name}</span>{d < 0 && <span className="d" style={{ flex: 'none' }}>{d}</span>}{i === res.winner && <span className="w" style={{ flex: 'none' }}>{res.semJogo ? 'ganhou' : 'bateu'}</span>}<b>{p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>;
             })}</div></>}
           {res.matchOver && room.tournament_id
             ? <><p>{res.champion === myIdx ? '✅ Você passou para a próxima rodada do torneio! Aguarde a próxima mesa.' : 'Você foi eliminado do torneio.'}</p>

@@ -194,6 +194,9 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 #hand .card.insR{box-shadow:5px 0 0 #38bdf8,0 3px 8px rgba(0,0,0,.4)}
 #hand .grp.bad{border-color:#f97316;background:rgba(249,115,22,.10)}
 #hand .grp.bad .gtag{background:#ea580c}
+#msg .dbtn{border:2px solid #000;border-radius:20px;padding:2px 12px;margin:2px 0 2px 8px;font:600 13px Oswald;color:#fff;cursor:pointer;vertical-align:middle}
+#msg .dbtn.dgo{background:linear-gradient(180deg,#34d399,#059669)}#msg .dbtn.drun{background:linear-gradient(180deg,#f87171,#b91c1c)}
+#hand.outr{opacity:.45;filter:grayscale(.6)}
 #desc.droptgt{outline:3px dashed #38bdf8;outline-offset:6px;border-radius:10px}
 #hand .grp.gapL{box-shadow:-9px 0 0 -5px #38bdf8}#hand .grp.gapR{box-shadow:9px 0 0 -5px #38bdf8}
 .corbox .vcol{display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -284,6 +287,10 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   #mine{display:grid;grid-template-columns:132px 1fr;grid-template-areas:"bar me" "bar tm" "bar hd";column-gap:10px;padding:0 8px 4px;align-items:end}
   #meRow{grid-area:me;margin:0}#timer{grid-area:tm;margin:3px 0 0;max-width:none}#hand{grid-area:hd;padding-top:16px;min-height:0}
   #bar{grid-area:bar;display:flex;flex-direction:column;gap:5px;margin:0;align-self:end}
+  /* BATER à direita, acima das cartas (longe do selo do Netlify) */
+  #bar{position:static}#bBate{position:absolute;right:12px;top:-4px;width:150px;padding:9px 4px!important;font-size:18px!important;z-index:6}
+  #meRow,#timer{margin-right:170px!important}
+
   #bar button{padding:7px 4px;font-size:15px;flex:none!important}
   #meRow .av{width:26px;height:26px;font-size:14px}
   #meRow .info{font-size:12px}
@@ -491,20 +498,41 @@ const Engine=(()=>{
     return {cfg,players:players.map(p=>({...p,fichas:cfg.fichas,hand:[]})),dealer:Math.random()*players.length|0,round:0};
   }
   const alive=M=>M.players.filter(p=>p.fichas>0);
-  function nextIdx(M,i){do{i=(i+1)%M.players.length;}while(M.players[i].fichas<=0);return i;}
+  // próximo jogador DA RODADA (pula quem saiu e quem correu)
+  function nextIdx(M,i){do{i=(i+1)%M.players.length;}while(M.players[i].fichas<=0||M.players[i].out);return i;}
+  // próximo jogador ainda com pontos (para girar o carteador)
+  function nextAlive(M,i){do{i=(i+1)%M.players.length;}while(M.players[i].fichas<=0);return i;}
   function startRound(M){
     const deck=[];let id=0;
     const decks=M.cfg.decks||(M.players.length>=6?3:2); M.decks=decks;
     const ORD=order(M.cfg);
     for(let k=0;k<decks;k++)for(let s=0;s<4;s++)for(const r of ORD)deck.push({id:id++,r,s});
     shuffle(deck);
-    M.players.forEach(p=>{p.hand=[];p.queimado=false;});
+    M.players.forEach(p=>{p.hand=[];p.queimado=false;p.out=false;p.dec=null;});
+    M.start=M.players.map(p=>p.fichas);
     for(let n=0;n<M.cfg.hand;n++) M.players.forEach(p=>{if(p.fichas>0)p.hand.push(deck.pop());});
     M.vira=deck.pop();
     const nx=ORD[(posOf(M.cfg)[M.vira.r]+1)%ORD.length];   // a carta seguinte à vira
     M.cor=M.cfg.coringa==='vira'?nx:M.cfg.coringa==='viraCor'?nx+16*(1+colorOf(M.vira.s)):-1;
     M.monte=deck; M.desc=[]; M.taken=null; M.phase='draw'; M.over=false; M.result=null;
     M.history=[]; M.round++; M.turn=nextIdx(M,M.dealer);
+    // cacheta de pontos: cada um vê as cartas e decide se vai jogar ou correr
+    if(M.cfg.correr) M.phase='decide';
+  }
+  // todos decidiram: quem correu perde 1 ponto e fica de fora da rodada
+  function resolveDecide(M){
+    M.players.forEach(x=>{ if(x.fichas>0&&x.dec==='run'){ x.fichas=Math.max(0,x.fichas-1); x.out=true; } });
+    const goers=M.players.map((_,i)=>i).filter(i=>M.players[i].fichas>0&&M.players[i].dec==='go');
+    const al=alive(M);
+    if(goers.length<=1||al.length<=1){
+      // ninguém ou só um foi jogar: rodada acaba sem jogo
+      M.over=true; M.phase='end'; M.dealer=nextAlive(M,M.dealer);
+      M.result={semJogo:true,winner:goers.length===1?goers[0]:null,todosCorreram:goers.length===0,before:M.start,loss:0,melds:[],
+        matchOver:al.length<=1,champion:al.length===1?M.players.indexOf(al[0]):null};
+      return {ok:true,ev:{type:'semJogo',result:M.result}};
+    }
+    M.phase='draw'; M.turn=nextIdx(M,M.dealer); M.taken=null;
+    return {ok:true,ev:{type:'decidido',goers}};
   }
   function drawMonte(M){
     if(!M.monte.length){
@@ -524,10 +552,20 @@ const Engine=(()=>{
   const err=e=>({ok:false,err:e});
   function act(M,pi,a){
     if(M.over) return err('A rodada já terminou');
+    if(a.type==='decide'){
+      const p=M.players[pi];
+      if(M.phase!=='decide') return err('Não é hora de decidir');
+      if(!p||p.fichas<=0) return err('Você não está na rodada');
+      if(p.dec) return err('Você já decidiu');
+      if(!a.go&&p.fichas<=1) return err('Com 1 ponto não dá pra correr: você precisa jogar');
+      p.dec=a.go?'go':'run';
+      if(M.players.some(x=>x.fichas>0&&!x.dec)) return {ok:true,ev:{type:'decide',pi,wait:true}};
+      return resolveDecide(M);
+    }
     if(a.type==='baterDesc'){
       // bater com a carta que o adversário acabou de descartar, sem comprar — vale até fora da vez
       const p=M.players[pi], mine=M.turn===pi;
-      if(!p||p.fichas<=0) return err('Você não está na rodada');
+      if(!p||p.fichas<=0||p.out) return err('Você não está na rodada');
       if(M.phase!=='draw') return err(mine?'Você já comprou: escolha a carta e toque em BATER':'Espere o próximo descarte para bater');
       if(!M.desc.length) return err('Não tem carta no descarte');
       if(p.queimado) return err('Você errou uma batida nesta rodada: agora só pode bater comprando do monte');
@@ -554,7 +592,7 @@ const Engine=(()=>{
       let c;
       if(a.from==='desc'){ if(!M.desc.length) return err('O descarte está vazio'); c=M.desc.pop(); M.taken=c.id; }
       else { c=drawMonte(M); M.taken=null;
-        if(!c){ M.over=true; M.result={empate:true}; M.dealer=nextIdx(M,M.dealer); return {ok:true,ev:{type:'empate'}}; } }
+        if(!c){ M.over=true; M.result={empate:true}; M.dealer=nextAlive(M,M.dealer); return {ok:true,ev:{type:'empate'}}; } }
       p.hand.push(c); M.phase='discard';
       M.history.push({pi,t:'draw',from:a.from,card:c});
       return {ok:true,ev:{type:'draw',pi,from:a.from,card:c}};
@@ -578,10 +616,11 @@ const Engine=(()=>{
         }
         p.hand=rest; M.desc.push(card);
         const limpa=M.cor>=0&&!rest.some(c=>isJ(c,M.cor));
-        const loss=limpa&&M.cfg.limpaDobro?2:1;
-        const before=M.players.map(x=>x.fichas);
-        M.players.forEach((x,k)=>{if(k!==pi&&x.fichas>0)x.fichas=Math.max(0,x.fichas-loss);});
-        M.over=true; M.phase='end'; M.dealer=nextIdx(M,M.dealer);
+        // cacheta de pontos: quem jogou e perdeu perde 2; senão 1 (2 na batida limpa)
+        const loss=M.cfg.correr?2:limpa&&M.cfg.limpaDobro?2:1;
+        const before=M.start||M.players.map(x=>x.fichas);
+        M.players.forEach((x,k)=>{if(k!==pi&&x.fichas>0&&!x.out)x.fichas=Math.max(0,x.fichas-loss);});
+        M.over=true; M.phase='end'; M.dealer=nextAlive(M,M.dealer);
         M.result={winner:pi,melds:an.melds,limpa,loss,before,card,
           matchOver:alive(M).length<=1, champion:alive(M).length===1?M.players.indexOf(alive(M)[0]):null};
         return {ok:true,ev:{type:'bater',pi,card,result:M.result}};
@@ -601,7 +640,7 @@ const Engine=(()=>{
     const nat=cards.filter(c=>!isJ(c,cor));
     return nat.length&&nat.every(c=>c.r===nat[0].r)?'trinca':'sequencia';
   }
-  return {RANKS,SUITS,DEFAULT,analyze,meldType,newMatch,startRound,act,findBater,isJ,corRank,corColor,corSuits,order,posOf,name,nextIdx,alive};
+  return {RANKS,SUITS,DEFAULT,analyze,meldType,newMatch,startRound,act,findBater,isJ,corRank,corColor,corSuits,order,posOf,name,nextIdx,nextAlive,alive};
 })();
 
 /* =====================================================================
@@ -692,7 +731,15 @@ const AI=(()=>{
     if(b>=0&&!(level==='facil'&&Math.random()<0.35)) return {type:'bater',cardId:p.hand[b].id};
     return {type:'discard',cardId:p.hand[chooseDiscard(M,pi,p.hand,M.taken,level)].id};
   }
-  return {chooseDraw,chooseEnd,chooseDiscard};
+  // ir ou correr: joga se a mão já tem jogos ou coringas; com 1 ponto sempre joga
+  function chooseGo(M,pi,level){
+    const p=M.players[pi]; if(p.fichas<=1) return true;
+    const an=E.analyze(p.hand,M.cor,M.cfg), jk=p.hand.filter(c=>E.isJ(c,M.cor)).length, sc=an.cov+jk*2;
+    if(level==='facil') return Math.random()<.75;
+    if(level==='dificil') return sc>=3||(sc>=2&&Math.random()<.4);
+    return sc>=3||Math.random()<.3;
+  }
+  return {chooseDraw,chooseEnd,chooseDiscard,chooseGo};
 })();
 
 /* =====================================================================
@@ -703,13 +750,13 @@ const AVATARS=['😎','🤠','🦊','🐯','🦁','🐼','🐸','🦅','👑','�
 const BOTS=[{name:'Zé Baralho',avatar:'🤠'},{name:'Dona Cida',avatar:'👵'},{name:'Tonhão',avatar:'🧔'},{name:'Neide',avatar:'👩‍🦱'},{name:'Marcão',avatar:'🧢'},{name:'Seu Juca',avatar:'👴'},{name:'Lurdinha',avatar:'👩‍🦳'},{name:'Bigode',avatar:'🥸'}];
 const LEVELS={facil:'Fácil',medio:'Médio',dificil:'Difícil'};
 const MODES=[
-  {id:'cacheta',name:'Cacheta',cfg:{hand:9,coringa:'viraCor',deck:'completo'}},
-  {id:'dez',name:'Cacheta 10 cartas',cfg:{hand:10,coringa:'viraCor',deck:'completo'}},
+  {id:'cacheta',name:'Cacheta',cfg:{hand:9,coringa:'viraCor',deck:'completo',correr:true}},
+  {id:'dez',name:'Cacheta 10 cartas',cfg:{hand:10,coringa:'viraCor',deck:'completo',correr:true}},
   {id:'pifpaf',name:'Pif Paf',cfg:{hand:9,coringa:'sem',deck:'completo'}},
 ];
 const ENTRIES=[10,20,40,100,200,500,1000,2000];
 const store={get(k,d){try{const v=localStorage.getItem('cc_'+k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem('cc_'+k,JSON.stringify(v));}catch(e){}}};
-let S=Object.assign({bots:2,level:'medio',fichas:5,hand:9,coringa:'viraCor',deck:'completo',maxJ:99,aceHigh:true,limpaDobro:true,timer:30,sound:true,hints:true},store.get('settings',{}));
+let S=Object.assign({bots:2,level:'medio',fichas:5,hand:9,coringa:'viraCor',deck:'completo',maxJ:99,aceHigh:true,limpaDobro:true,correr:true,timer:30,sound:true,hints:true},store.get('settings',{}));
 let me=Object.assign({nick:'',avatar:'😎',id:String(100000000+Math.floor(Math.random()*899999999))},store.get('me',{}));
 store.set('me',me);
 let stats=store.get('stats',{partidas:0,vitorias:0,rodadas:0,limpas:0});
@@ -833,6 +880,7 @@ function customModal(){
     (S.coringa!=='sem'?seg('maxJ',{...c,label:'Coringas por jogo',v:[[99,'Livre'],[1,'Só 1']]})+
      seg('limpaDobro',{...c,label:'Batida limpa (sem coringa)',v:[[true,'Vale 2 pontos'],[false,'Vale 1']]}):'')+
     seg('aceHigh',{...c,label:'Ás depois do Rei (Q-K-A)',v:[[true,'Vale'],[false,'Não vale']]})+
+    seg('correr',{...c,label:'Ir ou correr (cacheta de pontos)',v:[[true,'Sim'],[false,'Não']]},'Com as cartas na mão, cada um decide: correr perde 1 ponto; quem joga e perde perde 2.')+
     `<button class="go" data-act="startCustom">Sentar na mesa</button><button class="sec" data-act="close">Cancelar</button>`);
 }
 function settingsModal(){
@@ -881,7 +929,51 @@ function newRound(){
   autoSort(); dealing=true; sfx('card');
   render(); setTimeout(()=>{dealing=false;$('#hand').classList.remove('deal');},900);
   setMsg(M.cor>=0?`Vira ${E.name(M.vira)} → coringa: <b>${corTxt()}</b>`:'Rodada sem coringa');
-  const g=gen; setTimeout(()=>{if(g===gen)beginTurn();},1100);
+  const g=gen; setTimeout(()=>{if(g===gen){ if(M.phase==='decide') beginDecide(); else beginTurn(); }},1100);
+}
+/* ---- ir ou correr ---- */
+function beginDecide(){
+  M.ready=false; bubbles={}; render();
+  const p=M.players[0];
+  if(p.fichas<=0) return humanDecide(true);
+  sfx('turn');
+  setMsg(p.fichas<=1
+    ? `Você tem 1 ponto e precisa jogar <button class="dbtn dgo" data-act="decGo">JOGAR</button>`
+    : `Vai jogar esta rodada? <button class="dbtn dgo" data-act="decGo">JOGAR</button><button class="dbtn drun" data-act="decRun">CORRER (−1)</button>`);
+}
+function humanDecide(go){
+  if(!M||M.phase!=='decide') return;
+  let r=null;
+  if(M.players[0].fichas>0){ r=E.act(M,0,{type:'decide',go}); if(!r.ok){sfx('err');return toast(r.err);} }
+  for(let k=1;k<M.players.length&&M.phase==='decide';k++){
+    const b=M.players[k]; if(b.fichas<=0||b.dec) continue;
+    r=E.act(M,k,{type:'decide',go:AI.chooseGo(M,k,b.level)});
+  }
+  bubbles={}; M.players.forEach((x,k)=>{ if(k&&x.dec) bubbles[k]=x.dec==='go'?'vai jogar':'correu (−1)'; });
+  if(r&&r.ev.type==='semJogo') return onSemJogo(r.ev);
+  sfx(go?'card':'err');
+  setMsg(go?'Você vai jogar! Boa sorte':'Você correu e perdeu 1 ponto. Assista a rodada');
+  render();
+  const g=gen; setTimeout(()=>{if(g===gen)beginTurn();},1300);
+}
+function onSemJogo(ev){
+  stopTimer(); render();
+  const res=ev.result, w=res.winner;
+  const score=M.players.map((p,i)=>{ const d=p.fichas-res.before[i];
+    return `<div><span>${p.avatar} ${p.name}</span>${d<0?`<span class="d" style="flex:none">${d}</span>`:''}${i===w?'<span class="w" style="flex:none">ganhou</span>':''}<b>${p.fichas>0?p.fichas+' pts':'fora'}</b></div>`; }).join('');
+  let title=res.todosCorreram?'Todos correram':w===0?'Você ganhou sem jogar!':`${M.players[w].name} ganhou sem jogar`;
+  let btn='<button class="go" data-act="next">Próxima rodada</button>', extra='';
+  const meOut=M.players[0].fichas<=0;
+  if(res.matchOver||meOut){
+    stats.partidas++;
+    const champ=res.champion;
+    if(champ===0){ stats.vitorias++; title='Você venceu! 🏆'; }
+    else if(meOut){ title='Você foi eliminado'; extra=`<p>Seus pontos acabaram${champ!=null?` e <b>${M.players[champ].name}</b> levou a partida`:''}.</p>`; }
+    else if(champ!=null) title=`${M.players[champ].name} venceu`;
+    btn=`<button class="go" data-act="again">Jogar de novo</button><button class="sec" data-act="${table.entry?'toLobby':'home'}">${table.entry?'Voltar às mesas':'Início'}</button>`;
+    M.finished=true; store.set('stats',stats);
+  }
+  setTimeout(()=>showOv(`<h2>${title}</h2><p>${res.todosCorreram?'Ninguém quis jogar: quem correu perdeu 1 ponto.':'Os outros correram e perderam 1 ponto cada.'}</p>${extra}<div class="score">${score}</div>${btn}`),400);
 }
 function setMsg(h){M.msg=h;const e=$('#msg');if(e)e.innerHTML='<span>'+h+'</span>';}
 function setGroups(lists){ gid=new Map(); gseq=0; lists.filter(l=>l.length).forEach(l=>{const g=++gseq; l.forEach(c=>gid.set(c.id,g));}); M.players[0].hand=lists.flat(); }
@@ -978,6 +1070,8 @@ async function humanEnd(type,cardId){
 function humanBater(){ // BATER fica sempre disponível
   if(!M||M.over) return;
   const me0=M.players[0];
+  if(M.phase==='decide'){ sfx('err'); return toast('Primeiro decida se vai jogar ou correr'); }
+  if(me0.out){ sfx('err'); return toast('Você correu desta rodada'); }
   if(M.turn!==0||M.phase==='draw'){
     if(M.phase==='draw'&&M.desc.length&&!me0.queimado) return humanBaterDesc();
     sfx('err');
@@ -1042,7 +1136,7 @@ function onBater(ev){
     M.finished=true;
   }
   store.set('stats',stats);
-  setTimeout(()=>showOv(`<h2>${title}</h2><p>${res.limpa&&M.cfg.limpaDobro?'<b>Batida limpa</b>, sem coringa: os outros perdem 2 pontos.':`Os outros perdem ${res.loss} ponto.`}</p><div class="melds">${melds}</div>${extra}<div class="score">${score}</div>${btn}`),500);
+  setTimeout(()=>showOv(`<h2>${title}</h2><p>${M.cfg.correr?`Quem jogou e perdeu perde ${res.loss} pontos.`:res.limpa&&M.cfg.limpaDobro?'<b>Batida limpa</b>, sem coringa: os outros perdem 2 pontos.':`Os outros perdem ${res.loss} ponto.`}</p><div class="melds">${melds}</div>${extra}<div class="score">${score}</div>${btn}`),500);
 }
 
 /* ---- cronômetro ---- */
@@ -1153,7 +1247,7 @@ function render(){
   $('#seats').classList.toggle('many',n>=8);
   $('#seats').innerHTML=M.players.slice(1).map((p,k)=>{
     const i=k+1, {x,y}=seatPos(i,n), turn=M.turn===i&&!M.over;
-    return `<div class="seat ${turn?'turn':''} ${p.fichas<=0?'out':''} ${x>60?'rt':''}" id="opp${i}" style="left:${x}%;top:${y}%">
+    return `<div class="seat ${turn?'turn':''} ${p.fichas<=0||p.out?'out':''} ${x>60?'rt':''}" id="opp${i}" style="left:${x}%;top:${y}%">
       <div class="av">${p.avatar}${p.fichas>0?`<span class="cnt">🂠${p.hand.length}</span>`:''}</div>
       <div class="np"><b>${p.name}</b><small>${p.fichas>0?p.fichas+' pts · '+LEVELS[p.level]:'eliminado'}</small></div>
       ${bubbles[i]&&p.fichas>0?`<div class="bubble">${bubbles[i]}</div>`:''}</div>`;
@@ -1177,7 +1271,7 @@ function render(){
   const maxH=innerHeight<520?innerHeight*0.19:96;
   const groups=myGroups(), ng=groups.length-1;
   const hcw=Math.max(28,Math.min(84,maxH/1.42,(W-(ng+1)*12)/(1+(nh-1)*0.64+ng*0.55)));
-  const hand=$('#hand'); hand.style.setProperty('--hcw',hcw+'px'); hand.classList.toggle('deal',dealing); hand.classList.toggle('nohint',!S.hints);
+  const hand=$('#hand'); hand.style.setProperty('--hcw',hcw+'px'); hand.classList.toggle('deal',dealing); hand.classList.toggle('nohint',!S.hints); hand.classList.toggle('outr',!!meP.out);
   let okN=0, k=0;
   let okCards=0;
   if(!(drag&&drag.on)) hand.innerHTML=groups.map(({g:gi,cards:g})=>{
@@ -1202,6 +1296,7 @@ const RULES=()=>`<ol class="rules">
 <li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem). <b>Arraste as cartas</b> pra montar seus grupos, do tamanho que quiser (2, 3, 4, 5…). Solte em cima de um grupo pra juntar, ou no espaço entre os grupos pra separar. Com 3 ou mais cartas o grupo mostra <b>Trinca</b> ou <b>Sequência</b> em verde, ou <b>Inválido</b>.</li>
 <li>Quem fechar todas as cartas em jogos <b>bate</b>: toque em BATER. O botão fica sempre ativo: dá pra bater na hora com a carta que um adversário acabou de descartar, sem comprar, <b>mesmo fora da sua vez</b>. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
 <li><b>Batida errada:</b> se as cartas não fecharem, você fica impedido de bater com o descarte: até o fim da rodada, só pode bater com carta comprada do monte. Se era a sua vez, também perde a vez.</li>
+<li><b>Ir ou correr</b> (cacheta de pontos): com as cartas na mão, cada um decide se vai jogar. Quem <b>corre perde 1 ponto</b> e assiste a rodada. Quem <b>joga e perde, perde 2 pontos</b>; quem bate não perde nada. Se só um for jogar, ele ganha a rodada sem jogo. Com 1 ponto não dá pra correr.</li>
 <li>Quem zera os pontos sai. O último na mesa vence e leva o pote de fichas.</li></ol>`;
 
 /* ---- eventos ---- */
@@ -1228,9 +1323,9 @@ document.addEventListener('click',e=>{
       if(!SITE&&coins<e){sfx('err');toast('Fichas insuficientes pra essa mesa');break;}
       startMatch({entry:e,fichas:+el.dataset.p,players:mode.players,cfg:{...mode.cfg,maxJ:99,aceHigh:true,limpaDobro:true},level:S.level,modeName:mode.name});
       break; }
-    case 'quick': startMatch({entry:0,fichas:3,players:3,cfg:{hand:9,coringa:'viraCor',deck:'completo',maxJ:99,aceHigh:true,limpaDobro:true},level:S.level,modeName:'Partida rápida'}); break;
+    case 'quick': startMatch({entry:0,fichas:3,players:3,cfg:{hand:9,coringa:'viraCor',deck:'completo',maxJ:99,aceHigh:true,limpaDobro:true,correr:true},level:S.level,modeName:'Partida rápida'}); break;
     case 'custom': customModal(); break;
-    case 'startCustom': startMatch({entry:0,fichas:S.fichas,players:S.bots+1,cfg:{hand:S.hand,coringa:S.coringa,deck:S.deck,maxJ:S.maxJ,aceHigh:S.aceHigh,limpaDobro:S.limpaDobro},level:S.level,modeName:'Mesa personalizada'}); break;
+    case 'startCustom': startMatch({entry:0,fichas:S.fichas,players:S.bots+1,cfg:{hand:S.hand,coringa:S.coringa,deck:S.deck,maxJ:S.maxJ,aceHigh:S.aceHigh,limpaDobro:S.limpaDobro,correr:S.correr!==false},level:S.level,modeName:'Mesa personalizada'}); break;
     case 'again': { const t=table; leaveMatch(); startMatch(t); break; }
     case 'set': S[el.dataset.k]=JSON.parse(el.dataset.v); store.set('settings',S);
       document.body.classList.toggle('four',!!S.four);
@@ -1261,6 +1356,8 @@ document.addEventListener('click',e=>{
       if(M&&M.phase==='discard'&&M.turn===0&&sel!=null) humanEnd('discard',sel); else humanDraw('desc'); break;
     case 'discard': humanEnd('discard',sel); break;
     case 'bater': humanBater(); break;
+    case 'decGo': humanDecide(true); break;
+    case 'decRun': humanDecide(false); break;
     case 'sort': if(!M)break; sortMode=(sortMode+1)%3; autoSort(); render(); toast(['Organizado por jogos','Organizado por naipe','Organizado por valor'][sortMode]); break;
     case 'left': case 'right': {
       if(!M||sel==null) break; const h=M.players[0].hand, i=h.findIndex(c=>c.id===sel), j=i+(act==='left'?-1:1);
