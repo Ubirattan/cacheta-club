@@ -82,10 +82,10 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
 
 // loja, VIP, bônus, salas VIP, admin
 {
-  const R = memRepo(); const U = addUsers(R, 3, 400);
+  const R = memRepo(); const U = addUsers(R, 3, 40);
   await buy(R, U[1], 'back-roxo');
   await assert.rejects(buy(R, U[1], 'back-roxo'), /já tem/);
-  let p = await R.getProfile('u1'); assert.equal(p.coins, 300); assert.equal(p.equipped.back, 'back-roxo');
+  let p = await R.getProfile('u1'); assert.equal(p.coins, 30); assert.equal(p.equipped.back, 'back-roxo');
   await assert.rejects(equip(R, U[1], 'felt-azul'), /Compre/);
   await assert.rejects(equip(R, U[1], 'felt-noite'), /VIP/);
   await assert.rejects(S.createRoom(R, U[1], { mode: 'cacheta', maxPlayers: 2, points: 3, entry: 1, vipOnly: true }), /VIP/);
@@ -104,7 +104,7 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   await adminOp(R, U[0], { op: 'block', uid: 'u2', blocked: true });
   await assert.rejects(S.createRoom(R, U[2], { mode: 'cacheta', maxPlayers: 2, points: 3 }), /bloqueada/);
   await adminOp(R, U[0], { op: 'coins', uid: 'u2', delta: 250 });
-  assert.equal((await R.getProfile('u2')).coins, 650);
+  assert.equal((await R.getProfile('u2')).coins, 290);
   await assert.rejects(adminOp(R, U[0], { op: 'coins', uid: 'u2', delta: -99999 }), /negativo/);
   await adminOp(R, U[0], { op: 'saveSettings', settings: { daily_bonus: 500, modes_enabled: ['cacheta'], hack: 1 } });
   const cfg = (await adminOp(R, U[0], { op: 'settings' })).settings;
