@@ -194,14 +194,57 @@ function Settings() {
   </div>;
 }
 
+const keyBytes = k => { const p = '='.repeat((4 - k.length % 4) % 4), raw = atob((k + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(raw, c => c.charCodeAt(0)); };
+function PushBox() {
+  const [st, setSt] = useState('…'), [busy, setBusy] = useState(false), [count, setCount] = useState(0);
+  const ok = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const ios = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
+  useEffect(() => {
+    if (!ok) return setSt('sem');
+    adm('pushKey').then(r => setCount(r.count)).catch(() => {});
+    navigator.serviceWorker.getRegistration('/').then(reg => reg && reg.pushManager.getSubscription()).then(sub => setSt(sub && Notification.permission === 'granted' ? 'on' : 'off')).catch(() => setSt('off'));
+  }, [ok]);
+  async function ativar() {
+    setBusy(true);
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') throw new Error('Permissão negada. Libere as notificações deste site nas configurações do navegador.');
+      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' }); await navigator.serviceWorker.ready;
+      const { key } = await adm('pushKey');
+      let sub = await reg.pushManager.getSubscription();
+      if (sub) { const cur = sub.options && sub.options.applicationServerKey; const a = cur ? new Uint8Array(cur) : null, b = keyBytes(key); if (!a || a.length !== b.length || a.some((x, i) => x !== b[i])) { await sub.unsubscribe(); sub = null; } }
+      if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) });
+      const r = await adm('pushSubscribe', { sub: sub.toJSON() }); setCount(r.count);
+      await adm('pushTest'); setSt('on'); toast('Pronto! Deve chegar uma notificação de teste');
+    } catch (e) { toast(e.message || 'Não deu pra ativar'); }
+    setBusy(false);
+  }
+  async function desativar() {
+    setBusy(true);
+    try { const reg = await navigator.serviceWorker.getRegistration('/'); const sub = reg && await reg.pushManager.getSubscription();
+      if (sub) { await adm('pushUnsubscribe', { endpoint: sub.endpoint }); await sub.unsubscribe(); } setSt('off'); toast('Notificações desligadas neste aparelho'); }
+    catch (e) { toast(e.message); }
+    setBusy(false);
+  }
+  return <div className="panel" style={{ marginBottom: 10, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+    <div style={{ flex: 1, minWidth: 220 }}><b>🔔 Notificação de vendas no celular</b><br />
+      <small style={{ color: 'var(--mut)' }}>{st === 'sem' ? (ios ? 'No iPhone: abra o site no Safari, toque em Compartilhar → "Adicionar à Tela de Início", abra pelo ícone e volte aqui.' : 'Este navegador não aceita notificações. Use o Chrome.')
+        : st === 'on' ? `Ativada neste aparelho${count > 1 ? ` (${count} aparelhos no total)` : ''}. Avisa mesmo com o painel fechado.` : 'Receba um aviso a cada compra, mesmo com o painel fechado.'}</small></div>
+    {st === 'off' && <button className="pillbtn" disabled={busy} style={{ background: 'linear-gradient(180deg,#34d399,#059669)' }} onClick={ativar}>{busy ? 'Ativando…' : 'Ativar neste celular'}</button>}
+    {st === 'on' && <><button className="pillbtn dark" disabled={busy} onClick={() => adm('pushTest').then(r => toast(r.sent ? 'Teste enviado' : 'Nenhum aparelho recebeu')).catch(e => toast(e.message))}>Testar</button>
+      <button className="pillbtn dark" disabled={busy} onClick={desativar}>Desligar</button></>}
+  </div>;
+}
+
 function Sales({ onSeen }) {
   const [list, setList] = useState(null);
   const load = useCallback(() => adm('sales').then(r => { setList(r.sales); if (r.unread) adm('salesSeen').then(onSeen).catch(() => {}); else onSeen(); }).catch(e => toast(e.message)), [onSeen]);
   useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
-  if (!list) return <div className="empty">Carregando…</div>;
-  if (!list.length) return <div className="empty">Nenhuma venda ainda.</div>;
+  if (!list) return <><PushBox /><div className="empty">Carregando…</div></>;
+  if (!list.length) return <><PushBox /><div className="empty">Nenhuma venda ainda.</div></>;
   const hoje = list.filter(x => Date.now() - new Date(x.at).getTime() < 86400000);
   return <>
+    <PushBox />
     <div className="panel" style={{ marginBottom: 10 }}>Últimas 24h: <b>{hoje.length}</b> vendas · <b>R$ {fmt(hoje.reduce((s, x) => s + (x.brl || 0), 0))}</b> em Pix · <b>{fmt(hoje.reduce((s, x) => s + x.coins, 0))}</b> fichas gastas na loja</div>
     <div className="rows">{list.map(x => (
       <div key={x.id} className="rowi" style={x.isNew ? { border: '2px solid #4ade80', background: 'rgba(74,222,128,.10)' } : {}}>
