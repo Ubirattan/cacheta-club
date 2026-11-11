@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { sb, api } from '../../../lib/supabase-browser.js';
 import { useAuth, useOnline } from '../../../components/useAuth.js';
+import { sendInvite } from '../../../components/Convites.js';
 import { Header, Card, Modal, toast } from '../../../components/ui.js';
 import { Engine } from '../../../lib/engine.js';
 import { MODES, fmt } from '../../../lib/modes.js';
@@ -82,7 +83,7 @@ export default function Sala() {
   const { id } = useParams();
   const router = useRouter();
   const { user, profile, reloadProfile } = useAuth();
-  useOnline(user, profile, 'sala');
+  const online = useOnline(user, profile, 'sala');
   const [room, setRoom] = useState(undefined);
   const [players, setPlayers] = useState([]);
   const [game, setGame] = useState(null);
@@ -324,6 +325,21 @@ export default function Sala() {
               <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · pote ${fmt(room.entry * players.length)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
             <div className="invite"><input readOnly value={link} onFocus={e => e.target.select()} />
               <button className="pillbtn" onClick={async () => { try { await navigator.clipboard.writeText(`Bora jogar cacheta! ${link}${room.is_private ? ' (peça a senha pra quem te convidou)' : ''}`); toast('Convite copiado'); } catch { toast('Copie o link acima'); } }}>Copiar convite</button></div>
+            <div className="invite" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a className="pillbtn" style={{ background: 'linear-gradient(180deg,#25d366,#128c4a)', textDecoration: 'none' }} target="_blank" rel="noreferrer"
+                href={`https://wa.me/?text=${encodeURIComponent(`Bora jogar cacheta no Cacheta Club! 🃏 Entra na minha mesa: ${link}${room.is_private ? ' (peça a senha)' : ''}`)}`}>📲 Convidar no WhatsApp</a>
+              {(() => {
+                const inRoom = new Set(players.map(p => p.user_id));
+                const free = online.filter(o => o.uid !== user.id && !inRoom.has(o.uid) && o.where !== 'sala');
+                const base = { roomId: id, roomName: room.name, entry: room.entry, isPrivate: room.is_private, fromNick: profile?.nickname, fromAvatar: profile?.avatar };
+                const go = (to, who) => { const e = sendInvite({ ...base, to }); toast(e || (to === 'all' ? `Convite enviado para ${free.length} ${free.length === 1 ? 'jogador online' : 'jogadores online'}` : `Convite enviado para ${who}`)); };
+                return <>
+                  <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} disabled={!free.length} onClick={() => go('all')}>📣 Convidar todos online ({free.length})</button>
+                  {free.length > 0 && <div className="onl">{free.slice(0, 30).map(o => (
+                    <button key={o.uid} className="onlp" onClick={() => go(o.uid, o.nick)} title="Convidar"><span>{o.avatar}</span>{o.nick}<i>+ convidar</i></button>))}</div>}
+                </>;
+              })()}
+            </div>
             <div className="seatsgrid">
               {seats.map((p, i) => p
                 ? <div key={i} className={`wseat ${p.ready ? 'rdy' : ''}`}><div className="av">{p.avatar}</div><b>{p.nickname}{p.user_id === room.host ? ' 👑' : ''}</b><small className={p.ready ? '' : 'no'}>{p.ready ? '✓ Pronto' : 'Aguardando'}</small></div>
