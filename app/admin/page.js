@@ -194,18 +194,47 @@ function Settings() {
   </div>;
 }
 
-const TABS = [['geral', 'Visão geral'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
+function Sales({ onSeen }) {
+  const [list, setList] = useState(null);
+  const load = useCallback(() => adm('sales').then(r => { setList(r.sales); if (r.unread) adm('salesSeen').then(onSeen).catch(() => {}); else onSeen(); }).catch(e => toast(e.message)), [onSeen]);
+  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
+  if (!list) return <div className="empty">Carregando…</div>;
+  if (!list.length) return <div className="empty">Nenhuma venda ainda.</div>;
+  const hoje = list.filter(x => Date.now() - new Date(x.at).getTime() < 86400000);
+  return <>
+    <div className="panel" style={{ marginBottom: 10 }}>Últimas 24h: <b>{hoje.length}</b> vendas · <b>R$ {fmt(hoje.reduce((s, x) => s + (x.brl || 0), 0))}</b> em Pix · <b>{fmt(hoje.reduce((s, x) => s + x.coins, 0))}</b> fichas gastas na loja</div>
+    <div className="rows">{list.map(x => (
+      <div key={x.id} className="rowi" style={x.isNew ? { border: '2px solid #4ade80', background: 'rgba(74,222,128,.10)' } : {}}>
+        <span className="av">{x.brl != null ? '💰' : '🛍'}</span>
+        <div className="grow"><b>{x.isNew ? '🆕 ' : ''}{x.who} comprou {x.item}</b>
+          <small>{new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {x.brl != null ? `R$ ${x.brl.toFixed(2).replace('.', ',')} → ${fmt(x.got)} fichas` : `${fmt(x.coins)} fichas`}</small></div>
+      </div>))}</div>
+  </>;
+}
+
+const TABS = [['geral', 'Visão geral'], ['vendas', 'Vendas'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
 function Body({ profile, user }) {
   const [tab, setTab] = useState('geral');
   const [logged, setLogged] = useState(() => !!getTok());
   useEffect(() => { const f = () => setLogged(false); window.addEventListener('cc-admin-logout', f); return () => window.removeEventListener('cc-admin-logout', f); }, []);
+  const [unread, setUnread] = useState(0);
+  const clearUnread = useCallback(() => setUnread(0), []);
+  useEffect(() => {
+    if (!logged || !profile?.is_admin) return;
+    let last = -1;
+    const poll = () => adm('sales').then(r => {
+      if (last >= 0 && r.unread > last) { toast(`🔔 Nova venda: ${r.sales[0]?.who} comprou ${r.sales[0]?.item}`); try { navigator.vibrate && navigator.vibrate(200); } catch {} }
+      last = r.unread; setUnread(r.unread);
+    }).catch(() => {});
+    poll(); const t = setInterval(poll, 20000); return () => clearInterval(t);
+  }, [logged, profile]);
   if (!profile) return <div className="empty">Carregando…</div>;
   if (!profile.is_admin) return <div className="empty">Área só para administradores.</div>;
   if (!logged) return <PanelLogin onOk={() => setLogged(true)} />;
   return <>
-    <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}</button>)}
+    <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}{k === 'vendas' && unread > 0 && tab !== 'vendas' && <span className="badge-n" style={{ position: 'static', marginLeft: 6 }}>{unread}</span>}</button>)}
       <button onClick={() => { setTok(''); setLogged(false); }}>🚪 Sair do painel</button></div>
-    {tab === 'geral' && <Overview />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
+    {tab === 'geral' && <Overview />}{tab === 'vendas' && <Sales onSeen={clearUnread} />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
     {tab === 'salas' && <Rooms />}{tab === 'tor' && <Tournaments />}{tab === 'cfg' && <><Settings /><ChangePass /></>}
   </>;
 }

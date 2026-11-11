@@ -110,6 +110,12 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   const cfg = (await adminOp(R, U[0], { op: 'settings' })).settings;
   assert.equal(cfg.daily_bonus, 500); assert.deepEqual(cfg.modes_enabled, ['cacheta']); assert.equal(cfg.hack, undefined);
   await assert.rejects(S.createRoom(R, U[0], { mode: 'pifpaf', maxPlayers: 2, points: 3 }), /indisponível/);
+  // vendas no painel: compras aparecem como novas até o admin abrir a aba
+  let sv = await adminOp(R, U[0], { op: 'sales' });
+  assert.ok(sv.sales.some(x => x.item === 'Verso roxo neon' && x.coins === 10 && x.isNew)); assert.equal(sv.unread, 2);
+  assert.ok(!sv.sales.some(x => /admin/.test(x.item)), 'ajuste do admin não é venda');
+  await adminOp(R, U[0], { op: 'salesSeen' });
+  assert.equal((await adminOp(R, U[0], { op: 'sales' })).unread, 0);
   console.log('OK — loja, VIP, bônus diário, salas VIP e painel admin');
 }
 
