@@ -366,3 +366,25 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 
 /* aviso da vez embaixo das cartas da mesa (não cobre os jogadores) */
 .piles{order:1}#msg{order:2}
+/* login no celular deitado: campos à esquerda, teclado do jogo à direita */
+.authkb{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px;padding:8px;height:100dvh;box-sizing:border-box;align-items:stretch}
+.authkb .authcard{max-width:none;padding:10px 14px;overflow:auto;display:flex;flex-direction:column;justify-content:center}
+.authkb .seg button{padding:6px 2px;font-size:14px}
+.authkb .field{margin-top:7px;padding:0 12px;font-size:16px;height:40px;box-sizing:border-box}
+.authkb .go{margin-top:9px;padding:9px;font-size:17px}
+.authkb .err,.authkb .okmsg{margin-top:6px;font-size:13px}
+.kf{display:flex;align-items:center;overflow:hidden;white-space:nowrap;cursor:text;border:2px solid transparent}
+.kf.act{border-color:var(--gold);box-shadow:0 0 0 3px rgba(233,189,74,.25)}
+.kf .kp{color:#999}.kf .kv{overflow:hidden;text-overflow:clip;direction:rtl;text-align:left;unicode-bidi:plaintext}
+.kf .caret{display:inline-block;width:2px;height:20px;background:#222;margin-left:1px;animation:ccblink 1s steps(1) infinite;flex:none}
+@keyframes ccblink{50%{opacity:0}}
+.kblinks{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+.kblinks button{background:none;border:0;color:var(--mut);font:500 12px Rubik;text-decoration:underline;padding:2px}
+.kbd{display:flex;flex-direction:column;gap:6px;background:#0e0b07;border:2px solid var(--gold2);border-radius:16px;padding:8px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.kbd .kr{flex:1;display:flex;gap:5px}
+.kbd .k{flex:1;min-width:0;border:0;border-radius:9px;background:linear-gradient(180deg,#3b3227,#262017);color:#fff;font:600 19px Rubik;box-shadow:0 3px 0 #000;padding:0}
+.kbd .k:active{transform:translateY(2px);box-shadow:0 1px 0 #000;background:#5a4a33}
+.kbd .k.fn{background:linear-gradient(180deg,#2a3a4a,#1a2532);font-size:16px;flex:1.3}
+.kbd .k.fn.on{background:linear-gradient(180deg,#e9bd4a,#a8740f)}
+.kbd .k.sp{flex:3;font-size:14px}
+.kbd .k.ok{flex:2.2;background:linear-gradient(180deg,#34d399,#059669);font:600 17px Oswald}
