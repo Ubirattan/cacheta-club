@@ -13,7 +13,7 @@ create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   nickname    text not null default 'Jogador',
   avatar      text not null default '😎',
-  coins       integer not null default 1000 check (coins >= 0),   -- fichas virtuais, sem valor em dinheiro
+  coins       integer not null default 100 check (coins >= 0),   -- fichas virtuais, sem valor em dinheiro
   games       integer not null default 0,
   wins        integer not null default 0,
   blocked     boolean not null default false,
@@ -261,10 +261,10 @@ create table if not exists public.app_settings (
   value jsonb not null
 );
 insert into public.app_settings(key, value) values
-  ('daily_bonus', '300'),
+  ('daily_bonus', '20'),
   ('ads_enabled', 'false'),
   ('modes_enabled', '["cacheta","dez","pifpaf"]'),
-  ('max_entry', '2000'),
+  ('max_entry', '200'),
   ('motd', '"Bem-vindo ao Cacheta Club!"')
 on conflict (key) do nothing;
 

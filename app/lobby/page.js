@@ -25,7 +25,7 @@ function CreateRoom({ profile, onClose }) {
       <input className="field" placeholder={`Nome da sala (ex.: Mesa de ${profile?.nickname || 'amigos'})`} maxLength={30} value={f.name} onChange={e => set('name', e.target.value)} />
       <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />
       <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />
-      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 6).map(e => [e, e ? fmt(e) : 'Grátis'])} />
+      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).map(e => [e, e ? fmt(e) : 'Grátis'])} />
       <Seg label="Pontos" value={f.points} onChange={v => set('points', v)} options={POINTS.map(p => [p, String(p)])} />
       <Seg label="Tempo por jogada" value={f.turnSeconds} onChange={v => set('turnSeconds', v)} options={TURN_SECONDS.map(t => [t, t + ' s'])} />
       <Seg label="Tipo de sala" value={f.isPrivate} onChange={v => set('isPrivate', v)} options={[[false, '🌐 Pública'], [true, '🔒 Privada']]} />

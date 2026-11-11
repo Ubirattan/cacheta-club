@@ -96,10 +96,10 @@ create table if not exists public.app_settings (
   value jsonb not null
 );
 insert into public.app_settings(key, value) values
-  ('daily_bonus', '300'),
+  ('daily_bonus', '20'),
   ('ads_enabled', 'false'),
   ('modes_enabled', '["cacheta","dez","pifpaf"]'),
-  ('max_entry', '2000'),
+  ('max_entry', '200'),
   ('motd', '"Bem-vindo ao Cacheta Club!"')
 on conflict (key) do nothing;
 

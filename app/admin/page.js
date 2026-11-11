@@ -70,7 +70,7 @@ function Rooms() {
 }
 
 function Tournaments() {
-  const [f, setF] = useState({ name: '', mode: 'cacheta', tableSize: 4, maxPlayers: 36, entry: 100, prize: 1000, points: 3, turnSeconds: 30, startsAt: '' });
+  const [f, setF] = useState({ name: '', mode: 'cacheta', tableSize: 4, maxPlayers: 36, entry: 10, prize: 100, points: 3, turnSeconds: 30, startsAt: '' });
   const [list, setList] = useState([]);
   const set = (k, v) => setF(o => ({ ...o, [k]: v }));
   const load = () => sb().from('tournaments').select('*, tournament_players(count)').order('created_at', { ascending: false }).limit(30).then(({ data }) => setList(data || []));
