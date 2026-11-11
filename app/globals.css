@@ -205,21 +205,23 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 /* paisagem baixa (celular deitado) */
 @media (orientation:landscape) and (max-height:520px){
   .hdr{padding-top:4px}.badge{width:46px;height:46px;font-size:24px}
-  .rail{inset:4px 64px 2px}
-  .ico{width:38px;height:38px;font-size:17px}
-  #mine{display:grid;grid-template-columns:1fr 168px;grid-template-areas:"me bar" "tm bar" "hd bar";column-gap:10px;padding:0 10px 6px}
-  #meRow{grid-area:me;margin:0}#timer{grid-area:tm;margin:3px 0 0;max-width:none}#hand{grid-area:hd;padding-top:16px}
-  #bar{grid-area:bar;display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0;align-content:end}
-  #bar button{padding:8px 4px}
-  #bar .mv:first-child{order:1}#bar .mv:last-child{order:2}#bSort{order:3;grid-column:span 2}#bDisc{order:4;grid-column:span 2}#bBate{order:5;grid-column:span 2}
-  #meRow .av{width:28px;height:28px;font-size:15px}
-  .seat .av{width:40px;height:40px;font-size:21px}
+  .rail{inset:4px 56px 2px}
+  .ico{width:34px;height:34px;font-size:15px;border-width:2px}
+  .gtop{padding:4px 6px}
+  .cpill{display:none}
+  /* botões numa coluna à esquerda; mão e info à direita; nada escondido embaixo */
+  #mine{display:grid;grid-template-columns:132px 1fr;grid-template-areas:"bar me" "bar tm" "bar hd";column-gap:10px;padding:0 8px 4px;align-items:end}
+  #meRow{grid-area:me;margin:0}#timer{grid-area:tm;margin:3px 0 0;max-width:none}#hand{grid-area:hd;padding-top:16px;min-height:0}
+  #bar{grid-area:bar;display:flex;flex-direction:column;gap:5px;margin:0;align-self:end}
+  #bar button{padding:7px 4px;font-size:15px;flex:none!important}
+  #meRow .av{width:26px;height:26px;font-size:14px}
+  #meRow .info{font-size:12px}
+  .seat .av{width:38px;height:38px;font-size:20px}
   .seat .np{padding:1px 6px}.seat .np b{font-size:12px}.seat .np small{font-size:10px}
-  .center{top:50%}
-  #msg{padding:3px 30px;font-size:13px}
-  .wm{top:84%}.wm small{display:none}
-  .cpill{position:fixed;left:10px;top:52px;font-size:13px;padding:4px 10px}
-  .piles{order:1}#msg{order:2}.center{top:56%}
+  #msg{padding:2px 24px;font-size:13px}
+  .wm{top:86%}.wm small{display:none}
+  .piles{order:1}#msg{order:2}.center{top:54%}
+  .corbox small{font-size:9px}
   .seat .bubble{top:2px;left:100%;margin:0 0 0 2px}.seat.rt .bubble{left:auto;right:100%;margin:0 2px 0 0}
 }
 
@@ -361,3 +363,6 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 /* baralho de 4 cores (opcional): ♦ azul, ♣ verde */
 .four .card.s2{color:#1d5fd1}
 .four .card.s3{color:#138a3a}
+
+/* aviso da vez embaixo das cartas da mesa (não cobre os jogadores) */
+.piles{order:1}#msg{order:2}

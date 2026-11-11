@@ -43,7 +43,7 @@ function corTxt(cor) { const c = Engine.corColor(cor); return Engine.RANKS[Engin
 
 function seatPos(k, n, portrait) {
   if (!portrait && n > 4) { const x = 8 + 84 * (k - 1) / (n - 2), dx = (x - 50) / 47; return { x, y: 56 - 46 * Math.sqrt(Math.max(0, 1 - dx * dx)) }; }
-  const [a0, a1] = portrait ? (n <= 4 ? [205, 335] : [165, 375]) : [192, 348];
+  const [a0, a1] = portrait ? (n <= 4 ? [218, 322] : [165, 375]) : [192, 348];
   const t = n === 2 ? 270 : a0 + (a1 - a0) * (k - 1) / (n - 2), rad = t * Math.PI / 180;
   let x = 50 + (portrait ? 44 : 47) * Math.cos(rad); x = Math.max(portrait ? 12 : 6, Math.min(portrait ? 88 : 94, x));
   return { x, y: 50 + (portrait ? 46 : 44) * Math.sin(rad) };
@@ -344,7 +344,7 @@ export default function Sala() {
   const groups = handGroups(myHand, game.cfg.hand), ngap = groups.length - 1;
   const gType = groups.map(g => (g.length >= 3 ? Engine.meldType(g, game.cor, cfgFull) : null));
   const okN = gType.slice(0, 3).filter(Boolean).length, full = groups.length >= 3 && okN === 3;
-  const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 190 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
+  const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 160 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
     : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>'
@@ -427,11 +427,9 @@ export default function Sala() {
             </div>))}
         </div>
         <div id="bar">
-          <button className="mv" onClick={() => move(-1)}>◀</button>
           <button id="bSort" onClick={() => { const m = (sortMode + 1) % 3; setSortMode(m); sortHand(m); toast(['Organizado por jogos', 'Organizado por naipe', 'Organizado por valor'][m]); }}>{['🃏 Jogos', '♠ Naipe', '7 Valor'][sortMode]}</button>
           <button className="disc" id="bDisc" disabled={!canEnd || sel == null || busy} onClick={() => act({ type: 'discard', cardId: sel })}>DESCARTAR</button>
           <button className="bate" id="bBate" disabled={!canEnd || busy} onClick={bater}>BATER</button>
-          <button className="mv" onClick={() => move(1)}>▶</button>
         </div>
       </div>
 
