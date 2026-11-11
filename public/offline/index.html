@@ -686,7 +686,25 @@ let S=Object.assign({bots:2,level:'medio',fichas:5,hand:9,coringa:'viraCor',deck
 let me=Object.assign({nick:'',avatar:'😎',id:String(100000000+Math.floor(Math.random()*899999999))},store.get('me',{}));
 store.set('me',me);
 let stats=store.get('stats',{partidas:0,vitorias:0,rodadas:0,limpas:0});
-let coins=store.get('coins',1000);
+/* No site (Netlify) o modo contra o computador é TREINO: mostra o saldo real da conta,
+   mas não gasta nem ganha fichas. Fichas só comprando com Pix na Loja. */
+const SITE=/netlify\.app$/.test(location.hostname);
+let coins=SITE?0:store.get('coins',1000);
+async function loadReal(){
+  try{
+    let tok=null;
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)){tok=JSON.parse(localStorage.getItem(k));break;}}
+    if(!tok||!tok.access_token||!tok.user) return;
+    const r=await fetch('https://xvozttyypufegzizvpnu.supabase.co/rest/v1/profiles?select=coins,nickname,avatar&id=eq.'+tok.user.id,
+      {headers:{apikey:'sb_publishable_b71pP0nR_yRCv1VTfEuI4A_v1b9xvnz',Authorization:'Bearer '+tok.access_token}});
+    if(r.status===401){location.replace('/login?next='+encodeURIComponent(location.pathname));return;}
+    const [p]=await r.json();
+    if(!p) return;
+    coins=p.coins||0;
+    if(p.nickname) me.nick=p.nickname; if(p.avatar) me.avatar=p.avatar;
+    renderHeader(); renderLobby();
+  }catch(e){}
+}
 let lobbyMode=store.get('lobbyMode','cacheta'); if(!MODES.some(m=>m.id===lobbyMode)) lobbyMode='cacheta';
 let lobbyPlayers=store.get('lobbyPlayers',2);
 let M=null, table=null, sel=null, sortMode=0, hideId=null, newId=null, gen=0, timerInt=null, deadline=0, bubbles={}, dealing=false;
@@ -721,7 +739,7 @@ function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.togg
 function showOv(html){$('#ov').innerHTML=`<div class="overlay"><div class="modal">${html}</div></div>`;}
 function closeOv(){$('#ov').innerHTML='';}
 const fmt=n=>n.toLocaleString('pt-BR');
-function setCoins(n){coins=n;store.set('coins',coins);['#hCoins','#lCoins'].forEach(s=>{const e=$(s);if(e)e.textContent=fmt(coins);});}
+function setCoins(n){coins=n;if(!SITE)store.set('coins',coins);['#hCoins','#lCoins'].forEach(s=>{const e=$(s);if(e)e.textContent=fmt(coins);});}
 
 /* ---- cartas ---- */
 function cardHTML(c,cls=''){
@@ -763,9 +781,9 @@ function renderLobby(){
   const mode={...MODES.find(m=>m.id===lobbyMode),players:lobbyPlayers};
   $('#pcount').innerHTML='<span>Jogadores</span>'+[2,3,4,5,6,7,8,9].map(n=>`<button class="${n===lobbyPlayers?'on':''}" data-act="pc" data-v="${n}">${n}</button>`).join('');
   $('#tables').innerHTML=ENTRIES.map((e,i)=>{
-    const pts=e>=200?7:5, lock=coins<e;
+    const pts=e>=200?7:5, lock=!SITE&&coins<e;
     return `<button class="tbl ${i===2?'hot':''} ${lock?'lock':''}" data-act="sit" data-v="${e}" data-p="${pts}">
-      <div class="val">${fmt(e)}<small>${lock?'🔒 fichas insuficientes':'pote '+fmt(e*mode.players)}</small></div>
+      <div class="val">${fmt(e)}<small>${SITE?'treino · não gasta fichas':lock?'🔒 fichas insuficientes':'pote '+fmt(e*mode.players)}</small></div>
       <div class="row"><span>👥 ${mode.players} jogadores</span><span>Pontos: ${pts}</span></div></button>`;
   }).join('');
   $('#lobfoot').innerHTML=Object.entries(LEVELS).map(([k,v])=>`<button class="chk" data-act="lvl" data-v="${k}"><i>${S.level===k?'✓':''}</i>${v}</button>`).join('');
@@ -809,6 +827,8 @@ function statsModal(){
   <p style="font-size:12px;color:var(--mut)">Ranking geral e histórico online chegam com o cadastro (etapa 2).</p><button class="go" data-act="close">Fechar</button>`);
 }
 function coinsModal(){
+  if(SITE){ showOv(`<h2>Fichas</h2><p>Seu saldo: <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas.</p><p>Contra o computador é <b>treino</b>: não gasta nem ganha fichas. Para jogar valendo fichas, entre nas mesas online.</p>
+  <button class="go" onclick="location.href='/loja#comprar'">💰 Comprar fichas com Pix</button><button class="sec" onclick="location.href='/'">Ir para as mesas online</button><button class="sec" data-act="close">Fechar</button>`); return; }
   const can=coins<100;
   showOv(`<h2>Fichas</h2><p>Você tem <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas virtuais.</p><p>As fichas são só pra jogar: não valem dinheiro, não podem ser sacadas nem trocadas.</p>
   ${can?'<button class="go" data-act="refill">Pegar 1.000 fichas grátis</button>':'<p style="color:var(--mut);font-size:12px">Quando tiver menos de 100 fichas, aparece aqui uma recarga grátis.</p>'}
@@ -819,7 +839,7 @@ function coinsModal(){
 function startMatch(opts){
   gen++;
   table=opts;
-  if(opts.entry){ if(coins<opts.entry){toast('Fichas insuficientes pra essa mesa');return;} setCoins(coins-opts.entry); sfx('coin'); }
+  if(opts.entry&&!SITE){ if(coins<opts.entry){toast('Fichas insuficientes pra essa mesa');return;} setCoins(coins-opts.entry); sfx('coin'); }
   const players=[{name:me.nick||'Você',avatar:me.avatar,human:true}];
   const bots=BOTS.slice().sort(()=>Math.random()-.5);
   for(let i=0;i<opts.players-1;i++) players.push({...bots[i],human:false,level:opts.level});
@@ -935,7 +955,7 @@ function onBater(ev){
   let title=meWon?'Você bateu!':`${w.name} bateu`, extra='', btn='<button class="go" data-act="next">Próxima rodada</button>';
   if(res.matchOver||meOut){
     stats.partidas++;
-    const champ=res.champion, pot=(table.entry||0)*M.players.length;
+    const champ=res.champion, pot=SITE?0:(table.entry||0)*M.players.length;
     if(champ===0){
       stats.vitorias++; title='Você venceu! 🏆';
       extra=pot?`<div class="prize">+ 💰 ${fmt(pot)}</div><p>O pote da mesa é seu.</p>`:'<p>Último na mesa com pontos. Mandou bem!</p>';
@@ -1107,7 +1127,7 @@ document.addEventListener('click',e=>{
     case 'lvl': S.level=el.dataset.v; store.set('settings',S); renderLobby(); break;
     case 'sit': {
       const e=+el.dataset.v, mode={...MODES.find(m=>m.id===lobbyMode),players:lobbyPlayers};
-      if(coins<e){sfx('err');toast('Fichas insuficientes pra essa mesa');break;}
+      if(!SITE&&coins<e){sfx('err');toast('Fichas insuficientes pra essa mesa');break;}
       startMatch({entry:e,fichas:+el.dataset.p,players:mode.players,cfg:{...mode.cfg,maxJ:99,aceHigh:true,limpaDobro:true},level:S.level,modeName:mode.name});
       break; }
     case 'quick': startMatch({entry:0,fichas:3,players:3,cfg:{hand:9,coringa:'viraCor',deck:'completo',maxJ:99,aceHigh:true,limpaDobro:true},level:S.level,modeName:'Partida rápida'}); break;
@@ -1123,7 +1143,7 @@ document.addEventListener('click',e=>{
     case 'saveProfile': me.nick=($('#nickIn').value||'').trim().slice(0,16); store.set('me',me); renderHeader(); closeOv(); break;
     case 'stats': statsModal(); break;
     case 'coins': coinsModal(); break;
-    case 'refill': setCoins(coins+1000); sfx('coin'); renderLobby(); coinsModal(); break;
+    case 'refill': if(SITE) break; setCoins(coins+1000); sfx('coin'); renderLobby(); coinsModal(); break;
     case 'soon3': toast('Torneios chegam na etapa 3, junto com o ranking'); break;
     case 'next': newRound(); break;
     case 'rules': showOv(`<h2>Regras</h2>${RULES()}<button class="go" data-act="close">Entendi</button>`); break;
@@ -1151,7 +1171,7 @@ document.addEventListener('click',e=>{
 });
 document.body.classList.toggle('four',!!S.four);
 renderHomeArt(); renderHeader();
-if(!me.nick) setTimeout(profileModal,300);
+if(SITE) loadReal(); else if(!me.nick) setTimeout(profileModal,300);
 </script>
 </body>
 </html>
