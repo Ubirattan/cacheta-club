@@ -30,6 +30,7 @@ export function memRepo() {
     async deleteUser(uid) { T.profiles = T.profiles.filter(p => p.id !== uid); T.room_players = T.room_players.filter(x => x.user_id !== uid); },
     async del(t, w) { T[t] = T[t].filter(x => !match(x, w)); },
     async count(t, w = {}) { return T[t].filter(x => match(x, w)).length; },
+    async authUser(uid) { const p = T.profiles.find(x => x.id === uid); return p ? { id: uid, email: p.email || null } : null; },
     async searchProfiles(q) { return T.profiles.filter(p => !q || p.nickname.toLowerCase().includes(q.toLowerCase())).map(clone); },
   };
   return repo;

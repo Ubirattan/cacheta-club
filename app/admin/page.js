@@ -1,4 +1,5 @@
 'use client';
+import { PIX_TIPOS, fmtPix } from '../../lib/pix.js';
 // Painel administrativo
 import { useEffect, useState, useCallback } from 'react';
 import Shell from '../../components/Shell.js';
@@ -87,6 +88,12 @@ function Players({ me }) {
     if (!confirm(`Excluir a conta de ${p.nickname}?\n\nIsso apaga o login, as fichas (${fmt(p.coins)}), o histórico e as compras dele. Não dá para desfazer.`)) return;
     try { await adm('deleteUser', { uid: p.id }); toast(`${p.nickname} foi excluído`); load(); } catch (e) { toast(e.message); }
   }
+  const [info, setInfo] = useState({});
+  async function dados(p) {
+    if (info[p.id]) return setInfo(o => ({ ...o, [p.id]: null }));
+    try { const r = await adm('playerData', { uid: p.id }); setInfo(o => ({ ...o, [p.id]: r })); } catch (e) { toast(e.message); }
+  }
+  const copiar = t => { try { navigator.clipboard.writeText(t); toast('Copiado'); } catch { toast(t); } };
   async function coins(p) { try { const r = await adm('coins', { uid: p.id, delta: Number(delta[p.id] || 0) }); toast('Saldo agora: ' + fmt(r.coins)); setDelta(d => ({ ...d, [p.id]: '' })); load(); } catch (e) { toast(e.message); } }
   return <>
     <form className="invite" style={{ marginTop: 0 }} onSubmit={e => { e.preventDefault(); load(); }}><input placeholder="Buscar por apelido" value={q} onChange={e => setQ(e.target.value)} /><button className="pillbtn">Buscar</button></form>
@@ -99,6 +106,14 @@ function Players({ me }) {
         <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={() => coins(p)}>Ajustar</button>
         {p.id !== me && <button className="pillbtn" style={{ padding: '6px 12px', background: p.blocked ? '' : 'linear-gradient(180deg,#ef4444,#991b1b)' }} onClick={() => block(p)}>{p.blocked ? 'Desbloquear' : 'Bloquear'}</button>}
         {p.id !== me && <button className="pillbtn dark" style={{ padding: '6px 12px', color: '#fca5a5' }} onClick={() => excluir(p)}>🗑 Excluir</button>}
+        <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={() => dados(p)}>{info[p.id] ? 'Fechar' : '📋 Dados'}</button>
+        {info[p.id] && <div style={{ flexBasis: '100%', fontSize: 14, lineHeight: 1.7, padding: '6px 4px 2px 44px' }}>
+          <div>E-mail: <b>{info[p.id].email || '—'}</b>{info[p.id].provider === 'google' ? ' (entra com Google)' : ''}</div>
+          <div>Chave Pix: {info[p.id].pixChave
+            ? <><b>{fmtPix(info[p.id].pixTipo, info[p.id].pixChave)}</b> <small>({PIX_TIPOS.find(t => t[0] === info[p.id].pixTipo)?.[1]})</small> <button className="pillbtn dark" style={{ padding: '2px 10px' }} onClick={() => copiar(info[p.id].pixChave)}>Copiar</button></>
+            : <i>não cadastrada</i>}</div>
+          <div>Cadastro: {info[p.id].createdAt ? new Date(info[p.id].createdAt).toLocaleString('pt-BR') : '—'} · Último login: {info[p.id].lastLogin ? new Date(info[p.id].lastLogin).toLocaleString('pt-BR') : '—'}</div>
+        </div>}
       </div>))}</div>
   </>;
 }

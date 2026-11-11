@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { sb } from '../../lib/supabase-browser.js';
+import { PIX_TIPOS, normPix } from '../../lib/pix.js';
 
 // Teclado próprio do jogo: no celular deitado, os campos ficam à esquerda e o teclado à direita.
 const ROWS = ['1234567890', 'qwertyuiop', 'asdfghjkl', ['⇧', ...'zxcvbnm', '⌫'], ['@', '.', '_', '-', '.com', 'espaço', 'OK']];
@@ -25,10 +26,11 @@ function Teclado({ onKey, shift, okLabel }) {
 export default function Login() {
   const router = useRouter();
   const [tab, setTab] = useState('entrar');
-  const [v, setV] = useState({ nick: '', email: '', pass: '', pass2: '' });
+  const [v, setV] = useState({ nick: '', email: '', pass: '', pass2: '', pix: '' });
   const [err, setErr] = useState(''), [ok, setOk] = useState(''), [busy, setBusy] = useState(false);
   const [kbAuto, setKbAuto] = useState(false), [kbOff, setKbOff] = useState(false);
-  const [act, setAct] = useState('email'), [shift, setShift] = useState(false);
+  const [act, setAct] = useState('email'), [shift, setShift] = useState(false), [pixTipo, setPixTipo] = useState('cpf');
+  const pixPh = pixTipo === 'cpf' ? 'Chave Pix: CPF (só números)' : pixTipo === 'email' ? 'Chave Pix: e-mail' : 'Chave Pix: celular com DDD';
   const kb = kbAuto && !kbOff;
 
   const go = (n) => { if (n.endsWith('.html')) location.replace(n); else router.replace(n); };
@@ -40,7 +42,7 @@ export default function Login() {
   }, []);
 
   const fields = tab === 'criar'
-    ? [['nick', 'Apelido', 16], ['email', 'E-mail', 120], ['pass', 'Senha', 72], ['pass2', 'Confirmar senha', 72]]
+    ? [['nick', 'Apelido', 16], ['email', 'E-mail', 120], ['pass', 'Senha', 72], ['pass2', 'Confirmar senha', 72], ['pix', pixPh, 80]]
     : tab === 'esqueci' ? [['email', 'E-mail da sua conta', 120]]
     : [['email', 'E-mail', 120], ['pass', 'Senha', 72]];
   useEffect(() => { setAct(tab === 'criar' ? 'nick' : 'email'); setErr(''); setOk(''); }, [tab]);
@@ -62,11 +64,12 @@ export default function Login() {
       if (v.nick.trim().length < 2) return setErr('Escolha um apelido com pelo menos 2 letras');
       if (pass.length < 6) return setErr('A senha precisa ter pelo menos 6 caracteres');
       if (pass !== v.pass2) return setErr('As senhas não são iguais');
+      try { normPix(pixTipo, v.pix); } catch (e3) { return setErr(e3.message); }
     } else if (!email || !pass) return setErr('Preencha e-mail e senha');
     setBusy(true);
     try {
       if (tab === 'criar') {
-        const r = await fetch('/api/cadastro', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: v.nick, email, pass }) });
+        const r = await fetch('/api/cadastro', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: v.nick, email, pass, pixTipo, pix: v.pix }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || 'Não foi possível criar a conta');
       }
@@ -92,7 +95,7 @@ export default function Login() {
     if (k === '⌫') return set(f[0], cur.slice(0, -1));
     let ch = k === 'espaço' ? ' ' : k;
     if (ch.length === 1 && shift) { ch = ch.toUpperCase(); setShift(false); }
-    if (f[0] === 'email') ch = ch.toLowerCase().replace(' ', '');
+    if (f[0] === 'email' || (f[0] === 'pix' && pixTipo === 'email')) ch = ch.toLowerCase().replace(' ', '');
     if ((cur + ch).length <= f[2]) set(f[0], cur + ch);
   }
   const lastField = act === fields[fields.length - 1][0];
@@ -105,7 +108,12 @@ export default function Login() {
         <button type="button" className={tab === 'entrar' ? 'on' : ''} onClick={() => setTab('entrar')}>Entrar</button>
         <button type="button" className={tab === 'criar' ? 'on' : ''} onClick={() => setTab('criar')}>Criar conta</button>
       </div>
-      {fields.map(([k, ph, max]) => kb
+      {fields.map(([k, ph, max]) => k === 'pix' ? (
+        <div key={k}>
+          <div className="seg pixseg">{PIX_TIPOS.map(([t, l]) => <button key={t} type="button" className={pixTipo === t ? 'on' : ''} onClick={() => { setPixTipo(t); set('pix', ''); setAct('pix'); }}>{l}</button>)}</div>
+          {kb ? <div className={'field kf' + (act === k ? ' act' : '')} onClick={() => setAct(k)}>{v[k] ? <span className="kv">{v[k]}</span> : <span className="kp">{ph}</span>}{act === k && <i className="caret" />}</div>
+            : <input className="field" placeholder={ph} maxLength={max} type={pixTipo === 'email' ? 'email' : 'text'} inputMode={pixTipo === 'email' ? 'email' : 'numeric'} value={v[k]} onChange={e => set(k, e.target.value)} />}
+        </div>) : kb
         ? <div key={k} className={'field kf' + (act === k ? ' act' : '')} onClick={() => setAct(k)}>
             {v[k] ? <span className="kv">{k.startsWith('pass') ? '•'.repeat(v[k].length) : v[k]}</span> : <span className="kp">{ph}</span>}
             {act === k && <i className="caret" />}

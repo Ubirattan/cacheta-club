@@ -422,3 +422,6 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 /* coringa no descarte: ninguém pode pegar */
 .card.lockj{filter:saturate(.6) brightness(.9)}
 .card.lockj::after{content:"🔒";position:absolute;right:-8px;bottom:-8px;font-size:calc(var(--cw)*.32);line-height:1;background:#b91c1c;border:2px solid #fff;border-radius:50%;padding:3px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+
+/* tipo da chave Pix no cadastro */
+.pixseg{margin-top:8px}.pixseg button{padding:5px 2px;font-size:13px}

@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
-import { sb } from '../lib/supabase-browser.js';
+import { useState, useEffect } from 'react';
+import { sb, api } from '../lib/supabase-browser.js';
+import { PIX_TIPOS, normPix, fmtPix } from '../lib/pix.js';
 import { AVATARS } from '../lib/modes.js';
 import { ITEMS } from '../lib/shop-items.js';
 import { Modal, toast } from './ui.js';
@@ -11,7 +12,12 @@ export default function ProfileModal({ profile, onClose, onSaved }) {
   const [av, setAv] = useState(profile?.avatar || '😎');
   const [snd, setSnd] = useState(soundOn());
   const [four, setFour] = useState(() => { try { return localStorage.getItem('cc_four') === '1'; } catch { return false; } });
+  const [pixTipo, setPixTipo] = useState('cpf'), [pix, setPix] = useState(''), [pixOrig, setPixOrig] = useState('');
+  useEffect(() => { api('/api/pix', { op: 'get' }).then(r => { if (r.chave) { setPixTipo(r.tipo); const f = fmtPix(r.tipo, r.chave); setPix(f); setPixOrig(r.tipo + f); } }).catch(() => {}); }, []);
   async function save() {
+    if (pix.trim() && pixTipo + pix !== pixOrig) {
+      try { normPix(pixTipo, pix); await api('/api/pix', { tipo: pixTipo, chave: pix }); } catch (e) { return toast(e.message); }
+    }
     const n = nick.trim().slice(0, 16);
     if (n.length < 2) return toast('O apelido precisa ter pelo menos 2 letras');
     const { error } = await sb().from('profiles').update({ nickname: n, avatar: av }).eq('id', profile.id);
@@ -33,6 +39,9 @@ export default function ProfileModal({ profile, onClose, onSaved }) {
         <div><b>{pct}%</b><small>Aproveit.</small></div>
         <div><b>{(profile?.coins || 0).toLocaleString('pt-BR')}</b><small>Fichas</small></div>
       </div>
+      <div className="opt-row"><label>Chave Pix</label><div className="seg">
+        {PIX_TIPOS.map(([t, l]) => <button key={t} className={pixTipo === t ? 'on' : ''} onClick={() => { setPixTipo(t); setPix(''); }}>{l}</button>)}</div></div>
+      <input className="field" maxLength={80} placeholder={pixTipo === 'cpf' ? 'CPF' : pixTipo === 'email' ? 'E-mail' : 'Celular com DDD'} inputMode={pixTipo === 'email' ? 'email' : 'numeric'} value={pix} onChange={e => setPix(e.target.value)} />
       <div className="opt-row"><label>Sons</label><div className="seg">
         <button className={snd ? 'on' : ''} onClick={() => setSnd(true)}>Ligados</button>
         <button className={!snd ? 'on' : ''} onClick={() => setSnd(false)}>Desligados</button></div></div>
