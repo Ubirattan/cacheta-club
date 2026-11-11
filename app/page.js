@@ -30,6 +30,9 @@ export default function Home() {
       <Header profile={profile} onProfile={() => setModal('perfil')}
         right={<span className="online"><i />{online.length} online</span>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
+        <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
+      </div>
       <div className="modes" style={{ flex: 1, display: 'grid', gap: 'clamp(10px,2vw,22px)', alignContent: 'center', padding: '10px clamp(12px,4vw,48px)' }}>
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#38b6ff,#1565d8 60%,#0a3fa8)' }} onClick={() => router.push('/lobby')}>
           <Art cards={[[0, 1], [0, 0], [0, 3]]} em="🌐" /><h3>Cacheta online</h3></button>

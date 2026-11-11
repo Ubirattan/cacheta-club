@@ -18,6 +18,7 @@ function Body({ profile, reloadProfile, user }) {
   const [buys, setBuys] = useState([]);
   const loadBuys = () => user && sb().from('purchases').select('*').eq('user_id', user.id).not('coins', 'eq', 0).order('created_at', { ascending: false }).limit(10).then(({ data }) => setBuys(data || []));
   useEffect(() => { loadBuys(); }, [user]); // eslint-disable-line
+  useEffect(() => { if (profile && location.hash === '#comprar') setTimeout(() => document.getElementById('comprar')?.scrollIntoView({ behavior: 'smooth' }), 200); }, [!!profile]); // eslint-disable-line
   // voltou do Mercado Pago: confere o pagamento na hora
   useEffect(() => {
     if (!user) return;
@@ -85,6 +86,15 @@ function Body({ profile, reloadProfile, user }) {
       <p style={{ color: 'var(--gold)' }}>⏳ Aguardando pagamento…</p>
       <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
     </Modal>}
+    <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
+      <p className="hint">Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
+      <div className="shopgrid">{PACKS.map(p => (
+        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b>{fmt(p.coins)} fichas</b><span className="hint">R$ {p.brl.toFixed(2).replace('.', ',')}</span>
+          <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay(p)}>Gerar Pix</button></div>))}</div>
+      {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
+        <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>
+          <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div></>}
+    </div>
     <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 40 }}>🎁</span>
       <div style={{ flex: 1, minWidth: 180 }}><h3 style={{ fontSize: 20 }}>Bônus diário</h3><span className="hint">Fichas grátis todo dia{vip ? ' (VIP ganha em dobro)' : ''}.</span></div>
@@ -109,15 +119,6 @@ function Body({ profile, reloadProfile, user }) {
                 : <button className="pillbtn" disabled={busy || profile.coins < it.price} onClick={() => call({ op: 'buy', item: it.id }, 'Comprado e equipado!')}>💰 {fmt(it.price)}</button>}
             </div>);
         })}</div></div>))}
-    <div className="panel"><h3 style={{ fontSize: 20 }}>Pacotes de fichas</h3>
-      <p className="hint">Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
-      <div className="shopgrid">{PACKS.map(p => (
-        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b>{fmt(p.coins)} fichas</b><span className="hint">R$ {p.brl.toFixed(2).replace('.', ',')}</span>
-          <button className="pillbtn blue" disabled={busy} onClick={() => pay(p)}>Comprar com Pix</button></div>))}</div>
-      {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
-        <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>
-          <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div></>}
-    </div>
   </>;
 }
 export default function Loja() { return <Shell title="🛒 Loja">{auth => <Body {...auth} />}</Shell>; }
