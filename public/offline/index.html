@@ -180,7 +180,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 #timer.warn i{background:linear-gradient(90deg,#ef4444,#f97316)}
 #hand{display:flex;justify-content:center;padding-top:20px;min-height:calc(var(--hcw,60px)*1.42 + 24px)}
 #hand .card{--cw:var(--hcw,60px);margin-left:calc(var(--hcw,60px)*-.36);cursor:pointer}
-#hand{gap:calc(var(--hcw,60px)*.14)}
+#hand{gap:calc(var(--hcw,60px)*.2)}
 /* espaço livre no canto de baixo à direita para o selo do Netlify */
 .nfb #hand{padding-right:190px}.nfb .footbar{padding-right:200px}
 
@@ -192,6 +192,9 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 #hand .card.dragging{z-index:30;transition:none;box-shadow:0 12px 24px rgba(0,0,0,.6);opacity:.95}
 #hand .card.insL{box-shadow:-5px 0 0 #38bdf8,0 3px 8px rgba(0,0,0,.4)}
 #hand .card.insR{box-shadow:5px 0 0 #38bdf8,0 3px 8px rgba(0,0,0,.4)}
+#hand .grp.bad{border-color:#f97316;background:rgba(249,115,22,.10)}
+#hand .grp.bad .gtag{background:#ea580c}
+#hand .grp.gapL{box-shadow:-9px 0 0 -5px #38bdf8}#hand .grp.gapR{box-shadow:9px 0 0 -5px #38bdf8}
 .corbox .vcol{display:flex;flex-direction:column;align-items:center;gap:3px}
 .corbox{flex-direction:row!important;gap:10px!important;align-items:flex-end!important}
 .corbox .card.vira{--cw:calc(clamp(46px,11vmin,80px)*.62);margin-left:0}
@@ -532,6 +535,24 @@ const Engine=(()=>{
       M.history.push({pi,t:'draw',from:a.from,card:c});
       return {ok:true,ev:{type:'draw',pi,from:a.from,card:c}};
     }
+    if(a.type==='baterDesc'){
+      // bater pegando a carta do descarte, direto, sem precisar comprar antes
+      if(M.phase!=='draw') return err('Você já comprou: escolha a carta e toque em BATER');
+      if(!M.desc.length) return err('Não tem carta no descarte');
+      if(p.queimado) return err('Você errou uma batida nesta rodada: agora só pode bater comprando do monte');
+      const top=M.desc[M.desc.length-1], all=[...p.hand,top];
+      const b=findBater(M,all,top.id);
+      if(b<0){
+        // batida errada: não leva a carta, perde a vez e fica queimado
+        p.queimado=true; M.history.push({pi,t:'pass',errou:true});
+        M.turn=nextIdx(M,M.turn); M.phase='draw'; M.taken=null;
+        return {ok:true,ev:{type:'bateuErrado',pi,card:null,top}};
+      }
+      const cardId=all[b].id;
+      const r1=act(M,pi,{type:'draw',from:'desc'}); if(!r1.ok) return r1;
+      const r2=act(M,pi,{type:'bater',cardId}); if(!r2.ok) return r2;
+      r2.ev.top=top; return r2;
+    }
     if(a.type==='discard'||a.type==='bater'){
       if(M.phase!=='discard') return err('Compre uma carta primeiro');
       const i=p.hand.findIndex(c=>c.id===a.cardId);
@@ -707,6 +728,7 @@ async function loadReal(){
 }
 let lobbyMode=store.get('lobbyMode','cacheta'); if(!MODES.some(m=>m.id===lobbyMode)) lobbyMode='cacheta';
 let lobbyPlayers=store.get('lobbyPlayers',2);
+let gid=new Map(), gseq=0;
 let M=null, table=null, sel=null, sortMode=0, hideId=null, newId=null, gen=0, timerInt=null, deadline=0, bubbles={}, dealing=false;
 
 /* ---- sons sintetizados ---- */
@@ -856,21 +878,36 @@ function newRound(){
   const g=gen; setTimeout(()=>{if(g===gen)beginTurn();},1100);
 }
 function setMsg(h){M.msg=h;const e=$('#msg');if(e)e.innerHTML='<span>'+h+'</span>';}
-function autoSort(){
-  const p=M.players[0], j=c=>E.isJ(c,M.cor)?1:0;
-  const bySuit=(a,b)=>j(a)-j(b)||a.s-b.s||a.r-b.r, byRank=(a,b)=>j(a)-j(b)||a.r-b.r||a.s-b.s;
-  if(sortMode===0){ // jogos formados primeiro, depois as soltas por naipe
+function setGroups(lists){ gid=new Map(); gseq=0; lists.filter(l=>l.length).forEach(l=>{const g=++gseq; l.forEach(c=>gid.set(c.id,g));}); M.players[0].hand=lists.flat(); }
+function autoSort(){ // monta os grupos da mão: jogos formados / por naipe / por valor
+  const p=M.players[0], j=c=>E.isJ(c,M.cor);
+  const bySuit=(a,b)=>a.s-b.s||a.r-b.r, byRank=(a,b)=>a.r-b.r||a.s-b.s;
+  const jk=p.hand.filter(j), nat=p.hand.filter(c=>!j(c));
+  if(sortMode===0){
     const an=E.analyze(p.hand,M.cor,M.cfg);
     const used=new Set(an.melds.flat().map(c=>c.id));
-    p.hand=[...an.melds.flat(),...p.hand.filter(c=>!used.has(c.id)).sort(bySuit)];
-  } else p.hand.sort(sortMode===1?bySuit:byRank);
+    const loose=p.hand.filter(c=>!used.has(c.id)), m=new Map();
+    loose.filter(c=>!j(c)).sort(bySuit).forEach(c=>{if(!m.has(c.s))m.set(c.s,[]);m.get(c.s).push(c);});
+    setGroups([...an.melds,...m.values(),loose.filter(j)]);  // jogos prontos, depois as soltas por naipe
+  } else {
+    const key=sortMode===1?(c=>c.s):(c=>c.r), m=new Map();
+    nat.slice().sort(sortMode===1?bySuit:byRank).forEach(c=>{if(!m.has(key(c)))m.set(key(c),[]);m.get(key(c)).push(c);});
+    setGroups([...m.values(),jk]);
+  }
+}
+function myGroups(){ // grupos que o jogador montou; carta nova entra num grupo só dela
+  const p=M.players[0], order=[], by=new Map();
+  for(const c of p.hand){ if(!gid.has(c.id)) gid.set(c.id,++gseq); const g=gid.get(c.id); if(!by.has(g)){by.set(g,[]);order.push(g);} by.get(g).push(c); }
+  const out=order.map(g=>({g,cards:by.get(g)}));
+  p.hand=out.flatMap(x=>x.cards);
+  return out;
 }
 function beginTurn(){
   if(M.over) return;
   const p=M.players[M.turn];
   if(p.human){
     M.ready=true; M.msgFull=false; sfx('turn');
-    setMsg('Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>');
+    setMsg('Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele');
     render(); startTimer();
   } else {
     setMsg(`Vez de <b>${p.name}</b>`);
@@ -933,9 +970,21 @@ async function humanEnd(type,cardId){
 }
 function humanBater(){
   if(!M||M.over||M.turn!==0) return;
-  if(M.phase!=='discard') return toast('Compre uma carta primeiro');
-  if(sel==null) return toast('Toque na carta que vai descartar e depois em BATER');
-  humanEnd('bater',sel);
+  if(M.phase==='draw') return humanBaterDesc();
+  let id=sel;
+  if(id==null){ const p=M.players[0], b=(p.queimado&&M.taken!=null)?-1:E.findBater(M,p.hand,M.taken); if(b>=0) id=p.hand[b].id; }
+  if(id==null) return toast('Toque na carta que vai descartar e depois em BATER');
+  humanEnd('bater',id);
+}
+function humanBaterDesc(){ // bater direto com a carta do descarte do adversário
+  if(!M.ready) return;
+  const r=E.act(M,0,{type:'baterDesc'});
+  if(!r.ok){sfx('err');return toast(r.err);}
+  stopTimer(); sel=null; newId=null;
+  if(r.ev.type==='bater'){ render(); return onBater(r.ev); }
+  sfx('err'); render();
+  showOv(`<h2>Batida errada!</h2><p>Com o <b>${E.name(r.ev.top)}</b> do descarte suas cartas não fecham. Você perdeu a vez.</p><p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button class="go" data-act="closeGo">Continuar</button>`);
+  M.pendingTurn=true;
 }
 function onEmpate(){
   stopTimer(); render();
@@ -996,18 +1045,16 @@ async function autoPlay(){
 
 /* ---- texto do coringa, grupos da mão e arrastar cartas ---- */
 function corTxt(){ const c=E.corColor(M.cor); return E.RANKS[E.corRank(M.cor)]+(c<0?' (todos)':c===1?' ♥♦':' ♠♣'); }
-function handGroups(h,size){ // 9 cartas: 3+3+3 · 10 cartas: 3+3+4 · a carta comprada fica num grupo à parte
-  const sizes=size===10?[3,3,4]:[3,3,3], out=[]; let i=0;
-  for(const n of sizes){ if(i>=h.length) break; out.push(h.slice(i,i+n)); i+=n; }
-  if(i<h.length) out.push(h.slice(i));
-  return out;
-}
 let drag=null, suppressClick=false, pendingRender=false;
-function dropIndex(x,id){
-  const cs=[...document.querySelectorAll('#hand .card')].filter(c=>+c.dataset.id!==id);
-  let idx=0; for(const c of cs){const r=c.getBoundingClientRect(); if(x>r.left+r.width/2) idx++;}
-  return {idx,cs};
+function dropTarget(x,id){ // solta em cima de um grupo = entra nele; no espaço entre grupos = grupo novo
+  const info=[...document.querySelectorAll('#hand .grp')].map(g=>{const r=g.getBoundingClientRect();return {el:g,g:+g.dataset.g,l:r.left,r:r.right,cs:[...g.querySelectorAll('.card')].filter(c=>+c.dataset.id!==id)};});
+  for(const it of info){
+    if(it.cs.length&&x>=it.l+8&&x<=it.r-8){ let idx=0; for(const c of it.cs){const r=c.getBoundingClientRect(); if(x>r.left+r.width/2) idx++;} return {kind:'join',it,idx,info}; }
+  }
+  let pos=0; for(const it of info) if(x>(it.l+it.r)/2) pos++;
+  return {kind:'new',pos,info};
 }
+function clearDropMarks(){ document.querySelectorAll('#hand .insL,#hand .insR,#hand .gapL,#hand .gapR').forEach(e=>e.classList.remove('insL','insR','gapL','gapR')); }
 document.addEventListener('pointerdown',e=>{
   const el=e.target.closest('#hand .card'); if(!el||!M) return;
   drag={id:+el.dataset.id,el,x:e.clientX,y:e.clientY,on:false,pid:e.pointerId};
@@ -1019,17 +1066,32 @@ document.addEventListener('pointermove',e=>{
   if(!drag.on) return;
   e.preventDefault();
   drag.el.style.transform=`translate(${dx}px,${dy}px) scale(1.06)`;
-  const {idx,cs}=dropIndex(e.clientX,drag.id);
-  cs.forEach(c=>c.classList.remove('insL','insR'));
-  if(cs[idx]) cs[idx].classList.add('insL'); else if(cs.length) cs[cs.length-1].classList.add('insR');
+  const t=dropTarget(e.clientX,drag.id); clearDropMarks();
+  if(t.kind==='join'){ if(t.it.cs[t.idx]) t.it.cs[t.idx].classList.add('insL'); else t.it.cs[t.it.cs.length-1].classList.add('insR'); }
+  else if(t.info[t.pos]) t.info[t.pos].el.classList.add('gapL'); else if(t.info.length) t.info[t.info.length-1].el.classList.add('gapR');
 },{passive:false});
 function endDrag(e,cancel){
   if(!drag) return; const d=drag; drag=null;
   if(!d.on) return;
   suppressClick=true; setTimeout(()=>{suppressClick=false;},60);
   if(!cancel&&M){
-    const {idx}=dropIndex(e.clientX,d.id), h=M.players[0].hand, from=h.findIndex(c=>c.id===d.id);
-    if(from>=0){ const [c]=h.splice(from,1); h.splice(idx,0,c); sfx('card'); }
+    const t=dropTarget(e.clientX,d.id), h=M.players[0].hand, from=h.findIndex(c=>c.id===d.id);
+    if(from>=0){
+      const [c]=h.splice(from,1);
+      if(t.kind==='join'){
+        gid.set(c.id,t.it.g);
+        const ref=t.it.cs[t.idx]?+t.it.cs[t.idx].dataset.id:null;
+        let at=ref!=null?h.findIndex(x=>x.id===ref):-1;
+        if(at<0){ const lastId=+t.it.cs[t.it.cs.length-1].dataset.id; at=h.findIndex(x=>x.id===lastId)+1; }
+        h.splice(at,0,c);
+      } else {
+        gid.set(c.id,++gseq);
+        const nxt=t.info[t.pos], firstId=nxt?+(nxt.cs[0]||{dataset:{id:-1}}).dataset.id:null;
+        let at=firstId!=null?h.findIndex(x=>x.id===firstId):-1; if(at<0) at=h.length;
+        h.splice(at,0,c);
+      }
+      sfx('card');
+    }
   }
   pendingRender=false; render();
 }
@@ -1075,24 +1137,26 @@ function render(){
   const inM=new Set(an.melds.flat().map(c=>c.id));
   const loose=meP.hand.length-an.cov;
   $('#meRow').className=M.turn===0&&!M.over?'turn':'';
-  $('#meRow').innerHTML=`<div class="av">${meP.avatar}</div><div class="info"><b>${meP.name}</b>${meP.fichas} pts <small>· ${(()=>{const g=handGroups(meP.hand,M.cfg.hand).slice(0,3);const n=g.filter(x=>x.length>=3&&E.meldType(x,M.cor,M.cfg)).length;return n+' de 3 jogos montados';})()}</small>${meP.queimado?'<span class="burn">🔥 só bate comprando do monte</span>':''}</div>`;
+  $('#meRow').innerHTML=`<div class="av">${meP.avatar}</div><div class="info"><b>${meP.name}</b>${meP.fichas} pts <small>· ${(()=>{const n=myGroups().filter(x=>x.cards.length>=3&&E.meldType(x.cards,M.cor,M.cfg)).length;return n+(n===1?' jogo montado':' jogos montados');})()}</small>${meP.queimado?'<span class="burn">🔥 só bate comprando do monte</span>':''}</div>`;
   const short=innerHeight<520&&innerWidth>innerHeight;
   const nh=meP.hand.length, W=Math.min(innerWidth-(short?160:0)-(document.body.classList.contains('nfb')?190:0),900)-20;
   const maxH=innerHeight<520?innerHeight*0.19:96;
-  const groups=handGroups(meP.hand,M.cfg.hand), ng=groups.length-1;
+  const groups=myGroups(), ng=groups.length-1;
   const hcw=Math.max(28,Math.min(84,maxH/1.42,(W-(ng+1)*12)/(1+(nh-1)*0.64+ng*0.55)));
   const hand=$('#hand'); hand.style.setProperty('--hcw',hcw+'px'); hand.classList.toggle('deal',dealing); hand.classList.toggle('nohint',!S.hints);
   let okN=0, k=0;
-  if(!(drag&&drag.on)) hand.innerHTML=groups.map(g=>{
-    const t=g.length>=3?E.meldType(g,M.cor,M.cfg):null; if(t) okN++;
-    return `<div class="grp ${t?'ok':''}">${t?`<span class="gtag">✓ ${t==='trinca'?'Trinca':'Sequência'}</span>`:''}${g.map(c=>{const i=k++;return cardHTML(c,[sel===c.id?'sel':'',newId===c.id?'new':'',inM.has(c.id)?'inm':'',hideId===c.id?'hid':''].join(' ')).replace('class="card','style="animation-delay:'+(i*55)+'ms" class="card');}).join('')}</div>`;
+  let okCards=0;
+  if(!(drag&&drag.on)) hand.innerHTML=groups.map(({g:gi,cards:g})=>{
+    const t=g.length>=3?E.meldType(g,M.cor,M.cfg):null; if(t){okN++;okCards+=g.length;}
+    const tag=g.length<3?'':t?`<span class="gtag">✓ ${t==='trinca'?'Trinca':'Sequência'}</span>`:'<span class="gtag">Inválido</span>';
+    return `<div class="grp ${t?'ok':g.length>=3?'bad':''}" data-g="${gi}">${tag}${g.map(c=>{const i=k++;return cardHTML(c,[sel===c.id?'sel':'',newId===c.id?'new':'',inM.has(c.id)?'inm':'',hideId===c.id?'hid':''].join(' ')).replace('class="card','style="animation-delay:'+(i*55)+'ms" class="card');}).join('')}</div>`;
   }).join('');
   else pendingRender=true;
-  const full=groups.slice(0,3).every(g=>g.length>=3&&E.meldType(g,M.cor,M.cfg));
+  const full=groups.reduce((n,x)=>n+(x.cards.length>=3&&E.meldType(x.cards,M.cor,M.cfg)?x.cards.length:0),0)>=M.cfg.hand;
   if(full&&M.turn===0&&M.phase==='discard'&&!M.over&&nh===M.cfg.hand+1&&!M.msgFull){M.msgFull=true;setMsg('✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER');}
   const canEnd=M.phase==='discard'&&M.turn===0&&!M.over;
   $('#bDisc').disabled=!(canEnd&&sel!=null);
-  $('#bBate').disabled=!canEnd;
+  $('#bBate').disabled=!(canEnd||(M.phase==='draw'&&M.turn===0&&!M.over&&M.ready&&M.desc.length&&!meP.queimado));
   $('#bSort').textContent=['🃏 Jogos','♠ Naipe','7 Valor'][sortMode];
 }
 window.addEventListener('resize',()=>{if(M&&$('#game').classList.contains('on'))render();});
@@ -1101,8 +1165,8 @@ const RULES=()=>`<ol class="rules">
 <li>Dois baralhos completos, de Á a K (três baralhos com 6 a 9 jogadores). Na mesa personalizada dá pra tirar os 8, 9 e 10. Cada jogador recebe 9 cartas (10 na Cacheta 10 cartas).</li>
 <li>Uma carta é virada: a <b>vira</b>. O coringa é a carta seguinte a ela, <b>da mesma cor da vira</b>: vira 9♥ → coringas 10♥ e 10♦; vira K♠ → Á♠ e Á♣. Ele vale por qualquer carta. Na mesa personalizada dá pra usar coringa em todos os naipes. No Pif Paf não tem coringa.</li>
 <li>Na sua vez, compre do <b>monte</b> ou pegue a carta de cima do <b>descarte</b>, depois descarte uma. Não vale descartar a carta que acabou de pegar do descarte.</li>
-<li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem). <b>Arraste as cartas</b> pra montar seus jogos nos grupos de 3: o grupo fica verde quando o jogo é válido.</li>
-<li>Quem fechar todas as cartas em jogos <b>bate</b>: escolha a carta do descarte e toque em BATER. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
+<li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem). <b>Arraste as cartas</b> pra montar seus grupos, do tamanho que quiser (2, 3, 4, 5…). Solte em cima de um grupo pra juntar, ou no espaço entre os grupos pra separar. Com 3 ou mais cartas o grupo mostra <b>Trinca</b> ou <b>Sequência</b> em verde, ou <b>Inválido</b>.</li>
+<li>Quem fechar todas as cartas em jogos <b>bate</b>: toque em BATER. Dá pra bater na hora com a carta que o adversário descartou, sem comprar. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
 <li><b>Batida errada:</b> se as cartas não fecharem, a carta vai pro descarte, você perde a vez e, até o fim da rodada, só pode bater com carta comprada do monte.</li>
 <li>Quem zera os pontos sai. O último na mesa vence e leva o pote de fichas.</li></ol>`;
 

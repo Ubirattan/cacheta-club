@@ -32,13 +32,16 @@ function fly(fromSel, toSel, html) {
 
 const name = c => Engine.RANKS[c.r] + Engine.SUITS[c.s];
 
-// 9 cartas: 3+3+3 · 10 cartas: 3+3+4 · a carta comprada fica num grupo à parte
-function handGroups(h, size) {
-  const sizes = size === 10 ? [3, 3, 4] : [3, 3, 3], out = []; let i = 0;
-  for (const n of sizes) { if (i >= h.length) break; out.push(h.slice(i, i + n)); i += n; }
-  if (i < h.length) out.push(h.slice(i));
-  return out;
+// onde soltar a carta arrastada: em cima de um grupo = entra nele; no espaço entre grupos = grupo novo
+function dropTarget(x, id) {
+  const info = [...document.querySelectorAll('#hand .grp')].map(g => { const r = g.getBoundingClientRect(); return { el: g, gi: +g.dataset.gi, l: r.left, r: r.right, cs: [...g.querySelectorAll('.card')].filter(c => +c.dataset.id !== id) }; });
+  for (const it of info) {
+    if (it.cs.length && x >= it.l + 8 && x <= it.r - 8) { let idx = 0; for (const c of it.cs) { const r = c.getBoundingClientRect(); if (x > r.left + r.width / 2) idx++; } return { kind: 'join', it, idx, info }; }
+  }
+  let pos = 0; for (const it of info) if (x > (it.l + it.r) / 2) pos++;
+  return { kind: 'new', pos, info };
 }
+const clearMarks = () => document.querySelectorAll('#hand .insL,#hand .insR,#hand .gapL,#hand .gapR').forEach(e => e.classList.remove('insL', 'insR', 'gapL', 'gapR'));
 function corTxt(cor) { const c = Engine.corColor(cor); return Engine.RANKS[Engine.corRank(cor)] + (c < 0 ? ' (todos)' : c === 1 ? ' ♥♦' : ' ♠♣'); }
 
 function seatPos(k, n, portrait) {
@@ -83,7 +86,7 @@ export default function Sala() {
   const [players, setPlayers] = useState([]);
   const [game, setGame] = useState(null);
   const [hand, setHand] = useState([]);
-  const [order, setOrder] = useState([]);
+  const [grp, setGrp] = useState([]); // grupos da mão, montados pelo jogador (listas de ids)
   const [msgs, setMsgs] = useState([]);
   const [sel, setSel] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -100,11 +103,6 @@ export default function Sala() {
   const dragRef = useRef(null), suppressRef = useRef(false);
   // arrastar cartas da mão com o dedo/mouse para montar os jogos
   useEffect(() => {
-    const dropIdx = (x, id) => {
-      const cs = [...document.querySelectorAll('#hand .card')].filter(c => +c.dataset.id !== id);
-      let i = 0; for (const c of cs) { const r = c.getBoundingClientRect(); if (x > r.left + r.width / 2) i++; }
-      return { i, cs };
-    };
     const mv = e => {
       const d = dragRef.current; if (!d) return;
       const dx = e.clientX - d.x, dy = e.clientY - d.y;
@@ -112,19 +110,29 @@ export default function Sala() {
       if (!d.on) return;
       e.preventDefault();
       d.el.style.transform = `translate(${dx}px,${dy}px) scale(1.06)`;
-      const { i, cs } = dropIdx(e.clientX, d.id);
-      cs.forEach(c => c.classList.remove('insL', 'insR'));
-      if (cs[i]) cs[i].classList.add('insL'); else if (cs.length) cs[cs.length - 1].classList.add('insR');
+      const t = dropTarget(e.clientX, d.id); clearMarks();
+      if (t.kind === 'join') { if (t.it.cs[t.idx]) t.it.cs[t.idx].classList.add('insL'); else t.it.cs[t.it.cs.length - 1].classList.add('insR'); }
+      else if (t.info[t.pos]) t.info[t.pos].el.classList.add('gapL'); else if (t.info.length) t.info[t.info.length - 1].el.classList.add('gapR');
     };
     const up = (e, cancel) => {
       const d = dragRef.current; dragRef.current = null;
       if (!d || !d.on) return;
       d.el.style.transform = ''; d.el.classList.remove('dragging');
-      document.querySelectorAll('#hand .card').forEach(c => c.classList.remove('insL', 'insR'));
+      clearMarks();
       suppressRef.current = true; setTimeout(() => { suppressRef.current = false; }, 60);
       if (cancel) return;
-      const { i } = dropIdx(e.clientX, d.id);
-      setOrder(o => { const n = o.filter(x => x !== d.id); n.splice(i, 0, d.id); return n; });
+      const t = dropTarget(e.clientX, d.id);
+      setGrp(G => {
+        const n = G.map(g => g.filter(x => x !== d.id));
+        if (t.kind === 'join') {
+          const g = n[t.it.gi]; if (!g) return G;
+          const ref = t.it.cs[t.idx] ? +t.it.cs[t.idx].dataset.id : null;
+          const at = ref != null ? g.indexOf(ref) : -1; g.splice(at < 0 ? g.length : at, 0, d.id);
+        } else {
+          const nxt = t.info[t.pos]; n.splice(nxt ? nxt.gi : n.length, 0, [d.id]);
+        }
+        return n.filter(g => g.length);
+      });
       sfx('card');
     };
     const u = e => up(e, false), c = e => up(e, true);
@@ -192,14 +200,16 @@ export default function Sala() {
 
   // ordem das cartas na mão (cada um organiza do seu jeito)
   useEffect(() => {
-    setOrder(o => {
-      if (!o.length || dealRef.current) { dealRef.current = false; return sortedIds(hand, sortMode); }
-      const ids = hand.map(c => c.id); const keep = o.filter(x => ids.includes(x));
-      return [...keep, ...ids.filter(x => !keep.includes(x))];
+    setGrp(G => {
+      if (!G.length || dealRef.current) { dealRef.current = false; return groupsFor(hand, sortMode); }
+      const ids = new Set(hand.map(c => c.id));
+      const kept = G.map(g => g.filter(x => ids.has(x))).filter(g => g.length), seen = new Set(kept.flat());
+      return [...kept, ...hand.filter(c => !seen.has(c.id)).map(c => [c.id])]; // carta nova: grupo só dela
     });
     if (sel != null && !hand.some(c => c.id === sel)) setSel(null);
   }, [hand]); // eslint-disable-line
-  const myHand = useMemo(() => order.map(i => hand.find(c => c.id === i)).filter(Boolean), [order, hand]);
+  const myGroups = useMemo(() => grp.map((ids, gi) => ({ gi, cards: ids.map(i => hand.find(c => c.id === i)).filter(Boolean) })).filter(x => x.cards.length), [grp, hand]);
+  const myHand = useMemo(() => myGroups.flatMap(x => x.cards), [myGroups]);
 
   // sons e avisos quando algo acontece na mesa
   const myIdx = game && user ? game.players.findIndex(p => p.uid === user.id) : -1;
@@ -218,27 +228,28 @@ export default function Sala() {
     }
     if (game.over && game.result && !game.result.empate) sfx(game.result.winner === myIdx ? 'win' : 'lose');
     else if (!game.over && game.turn === myIdx && game.phase === 'draw') sfx('turn');
-    if (game.last?.t === 'bateuErrado' && game.last.pi === myIdx) setModal('errou');
+    if (game.last?.t === 'bateuErrado' && game.last.pi === myIdx) setModal(game.last.card ? 'errou' : 'errouDesc');
     if (game.last?.t === 'deal') { dealRef.current = true; setTimeout(() => { dealRef.current = false; }, 3000); sortHand(sortMode); }
     if (game.over && game.result?.matchOver) reloadProfile();
   }, [game]); // eslint-disable-line
 
-  // 0 = jogos formados primeiro, 1 = naipe, 2 = valor
-  function sortedIds(cards, mode) {
-    const cor = game ? game.cor : -1, j = c => (Engine.isJ(c, cor) ? 1 : 0);
-    const bySuit = (a, b) => j(a) - j(b) || a.s - b.s || a.r - b.r, byRank = (a, b) => j(a) - j(b) || a.r - b.r || a.s - b.s;
+  // 0 = jogos formados + soltas por naipe, 1 = naipe, 2 = valor
+  function groupsFor(cards, mode) {
+    const cor = game ? game.cor : -1, j = c => Engine.isJ(c, cor);
+    const bySuit = (a, b) => a.s - b.s || a.r - b.r, byRank = (a, b) => a.r - b.r || a.s - b.s;
+    const split = (list, key) => { const m = new Map(); list.forEach(c => { if (!m.has(key(c))) m.set(key(c), []); m.get(key(c)).push(c); }); return [...m.values()]; };
+    let lists;
     if (mode === 0 && game) {
       const an = Engine.analyze(cards, cor, { ...game.cfg, maxJ: 99, aceHigh: true });
-      const used = new Set(an.melds.flat().map(c => c.id));
-      return [...an.melds.flat(), ...cards.filter(c => !used.has(c.id)).sort(bySuit)].map(c => c.id);
+      const used = new Set(an.melds.flat().map(c => c.id)), loose = cards.filter(c => !used.has(c.id));
+      lists = [...an.melds, ...split(loose.filter(c => !j(c)).sort(bySuit), c => c.s), loose.filter(j)];
+    } else {
+      const nat = cards.filter(c => !j(c)).sort(mode === 1 ? bySuit : byRank);
+      lists = [...split(nat, mode === 1 ? (c => c.s) : (c => c.r)), cards.filter(j)];
     }
-    return [...cards].sort(mode === 1 ? bySuit : byRank).map(c => c.id);
+    return lists.filter(l => l.length).map(l => l.map(c => c.id));
   }
-  function sortHand(mode) { setOrder(sortedIds(hand, mode)); }
-  function move(dir) {
-    if (sel == null) return;
-    setOrder(o => { const i = o.indexOf(sel), k = i + dir; if (k < 0 || k >= o.length) return o; const n = [...o]; [n[i], n[k]] = [n[k], n[i]]; return n; });
-  }
+  function sortHand(mode) { setGrp(groupsFor(hand, mode)); }
 
   async function act(body) {
     if (busy) return; setBusy(true);
@@ -341,13 +352,13 @@ export default function Sala() {
   const pct = game.cfg.turn ? Math.min(100, left / (game.cfg.turn * 1000) * 100) : 0;
   const W = Math.min(typeof innerWidth !== 'undefined' ? innerWidth : 400, 900) - 20;
   const short = typeof innerHeight !== 'undefined' && innerHeight < 520 && !portrait;
-  const groups = handGroups(myHand, game.cfg.hand), ngap = groups.length - 1;
-  const gType = groups.map(g => (g.length >= 3 ? Engine.meldType(g, game.cor, cfgFull) : null));
-  const okN = gType.slice(0, 3).filter(Boolean).length, full = groups.length >= 3 && okN === 3;
+  const groups = myGroups, ngap = groups.length - 1;
+  const gType = groups.map(x => (x.cards.length >= 3 ? Engine.meldType(x.cards, game.cor, cfgFull) : null));
+  const okN = gType.filter(Boolean).length, full = groups.reduce((n, x, i) => n + (gType[i] ? x.cards.length : 0), 0) >= game.cfg.hand;
   const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 160 : 0) - (typeof document !== 'undefined' && document.body.classList.contains('nfb') ? 190 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
-    : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>'
+    : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele'
       : full && myHand.length === game.cfg.hand + 1 ? '✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER'
       : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
     : `Vez de <b>${turnName}</b>`;
@@ -359,10 +370,14 @@ export default function Sala() {
     if (sel === c.id && canEnd) return act({ type: 'discard', cardId: c.id });
     setSel(sel === c.id ? null : c.id);
   }
+  const canBaterDesc = canDraw && !!game.descTop && !me.queimado;
   function bater() {
+    if (canBaterDesc) return act({ type: 'baterDesc' }); // bate na hora com a carta que o adversário descartou
     if (!canEnd) return toast('Compre uma carta primeiro');
-    if (sel == null) return toast('Toque na carta que vai descartar e depois em BATER');
-    act({ type: 'bater', cardId: sel });
+    let id = sel;
+    if (id == null) { const b = (me.queimado && game.taken != null) ? -1 : Engine.findBater({ ...game, cfg: cfgFull }, myHand, game.taken); if (b >= 0) id = myHand[b].id; }
+    if (id == null) return toast('Toque na carta que vai descartar e depois em BATER');
+    act({ type: 'bater', cardId: id });
   }
 
   const res = game.result;
@@ -412,16 +427,16 @@ export default function Sala() {
       </div>
       <div id="mine">
         <div id="meRow" className={myTurn ? 'turn' : ''}><div className="av">{me.avatar}</div>
-          <div className="info"><b>{me.name}</b>{me.fichas} pts <small>· {okN} de 3 jogos montados</small>
+          <div className="info"><b>{me.name}</b>{me.fichas} pts <small>· {okN} {okN === 1 ? 'jogo montado' : 'jogos montados'}</small>
             {me.queimado && <span className="burn">🔥 só bate comprando do monte</span>}</div></div>
         <div id="timer" className={left < 6000 ? 'warn' : ''} style={{ visibility: myTurn ? 'visible' : 'hidden' }}><i style={{ width: pct + '%' }} /></div>
         <div id="hand" style={{ '--hcw': hcw + 'px' }} onPointerDown={e => {
           const el = e.target.closest('.card'); if (!el) return;
           dragRef.current = { id: +el.dataset.id, el, x: e.clientX, y: e.clientY, on: false };
         }}>
-          {groups.map((g, gi) => (
-            <div key={gi} className={`grp ${gType[gi] ? 'ok' : ''}`}>
-              {gType[gi] && <span className="gtag">✓ {gType[gi] === 'trinca' ? 'Trinca' : 'Sequência'}</span>}
+          {groups.map(({ gi, cards: g }, k) => (
+            <div key={gi + ':' + g[0].id} data-gi={gi} className={`grp ${gType[k] ? 'ok' : g.length >= 3 ? 'bad' : ''}`}>
+              {g.length >= 3 && <span className="gtag">{gType[k] ? `✓ ${gType[k] === 'trinca' ? 'Trinca' : 'Sequência'}` : 'Inválido'}</span>}
               {g.map(c => <Card key={c.id} c={c} cor={game.cor} onClick={() => tapHand(c)}
                 cls={[sel === c.id ? 'sel' : '', inM.has(c.id) ? 'inm' : '', game.last?.t === 'draw' && game.last.pi === myIdx && hand[hand.length - 1]?.id === c.id ? 'new' : ''].join(' ')} />)}
             </div>))}
@@ -429,7 +444,7 @@ export default function Sala() {
         <div id="bar">
           <button id="bSort" onClick={() => { const m = (sortMode + 1) % 3; setSortMode(m); sortHand(m); toast(['Organizado por jogos', 'Organizado por naipe', 'Organizado por valor'][m]); }}>{['🃏 Jogos', '♠ Naipe', '7 Valor'][sortMode]}</button>
           <button className="disc" id="bDisc" disabled={!canEnd || sel == null || busy} onClick={() => act({ type: 'discard', cardId: sel })}>DESCARTAR</button>
-          <button className="bate" id="bBate" disabled={!canEnd || busy} onClick={bater}>BATER</button>
+          <button className="bate" id="bBate" disabled={!(canEnd || canBaterDesc) || busy} onClick={bater}>BATER</button>
         </div>
       </div>
 
@@ -441,7 +456,7 @@ export default function Sala() {
       {modal === 'sair' && <Modal onClose={() => setModal(null)}><h2>Sair da mesa?</h2>
         <p>{room.status === 'playing' ? `A partida não acabou. Saindo agora você é eliminado${game.cfg.entry ? ` e perde a entrada de 💰 ${fmt(game.cfg.entry)}` : ''}.` : 'Você vai voltar para a lista de salas.'}</p>
         <button className="go" onClick={leave}>Sair</button><button className="sec" onClick={() => setModal(null)}>Continuar jogando</button></Modal>}
-      {modal === 'errou' && <Modal><h2>Batida errada!</h2><p>Suas cartas não fechavam. A carta foi pro descarte e você perdeu a vez.</p>
+      {(modal === 'errou' || modal === 'errouDesc') && <Modal><h2>Batida errada!</h2><p>{modal === 'errou' ? 'Suas cartas não fechavam. A carta foi pro descarte e você perdeu a vez.' : 'Com a carta do descarte suas cartas não fecham. Você perdeu a vez.'}</p>
         <p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button className="go" onClick={() => setModal(null)}>Continuar</button></Modal>}
 
       {game.over && res && (
