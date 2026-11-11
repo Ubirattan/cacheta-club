@@ -248,8 +248,8 @@ function Sales({ onSeen }) {
     <div className="panel" style={{ marginBottom: 10 }}>Últimas 24h: <b>{hoje.length}</b> vendas · <b>R$ {fmt(hoje.reduce((s, x) => s + (x.brl || 0), 0))}</b> em Pix · <b>{fmt(hoje.reduce((s, x) => s + x.coins, 0))}</b> fichas gastas na loja</div>
     <div className="rows">{list.map(x => (
       <div key={x.id} className="rowi" style={x.isNew ? { border: '2px solid #4ade80', background: 'rgba(74,222,128,.10)' } : {}}>
-        <span className="av">{x.brl != null ? '💰' : '🛍'}</span>
-        <div className="grow"><b>{x.isNew ? '🆕 ' : ''}{x.who} comprou {x.item}</b>
+        <span className="av">{x.brl != null ? '💰' : x.resgate ? '🏆' : '🛍'}</span>
+        <div className="grow"><b>{x.isNew ? '🆕 ' : ''}{x.who} {x.resgate ? 'resgatou' : 'comprou'} {x.item}</b>
           <small>{new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {x.brl != null ? `R$ ${x.brl.toFixed(2).replace('.', ',')} → ${fmt(x.got)} fichas` : `${fmt(x.coins)} fichas`}</small></div>
       </div>))}</div>
   </>;

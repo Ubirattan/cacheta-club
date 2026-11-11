@@ -129,3 +129,15 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   assert.equal((await R.getProfile('u1')).coins, 1000, 'inscrição devolvida');
   console.log('OK — torneio sem jogadores suficientes é cancelado e devolve as fichas');
 }
+
+// resgate de fichas por troféu: não troca o avatar e vira "resgate" no painel
+{
+  const R = memRepo(); const U = addUsers(R, 2, 120);
+  const av0 = (await R.getProfile('u1')).avatar;
+  await buy(R, U[1], 'tr-prata');
+  const p = await R.getProfile('u1');
+  assert.equal(p.coins, 20); assert.ok(p.owned.includes('tr-prata')); assert.equal(p.avatar, av0, 'troféu não troca o avatar');
+  await assert.rejects(buy(R, U[1], 'tr-prata'), /já tem/);
+  await assert.rejects(buy(R, U[1], 'tr-ouro'), /insuficientes/);
+  console.log('OK — resgate de fichas por troféu de coleção');
+}

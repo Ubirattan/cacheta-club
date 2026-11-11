@@ -31,6 +31,7 @@ export default function Home() {
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
+        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas <small>troque por troféus</small></button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking')}>🏆 Ranking <small>da semana</small></button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#c084fc,#7e22ce)' }} onClick={() => router.push('/loja#itens')}>✨ Loja <small>baralhos e avatares</small></button>
       </div>

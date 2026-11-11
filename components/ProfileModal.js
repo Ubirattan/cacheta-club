@@ -39,6 +39,8 @@ export default function ProfileModal({ profile, onClose, onSaved }) {
         <div><b>{pct}%</b><small>Aproveit.</small></div>
         <div><b>{(profile?.coins || 0).toLocaleString('pt-BR')}</b><small>Fichas</small></div>
       </div>
+      {ITEMS.some(i => i.slot === 'trofeu' && (profile?.owned || []).includes(i.id)) && <div className="opt-row"><label>Troféus</label>
+        <span style={{ fontSize: 26 }}>{ITEMS.filter(i => i.slot === 'trofeu' && (profile?.owned || []).includes(i.id)).map(i => <span key={i.id} title={i.name}>{i.em} </span>)}</span></div>}
       <div className="opt-row"><label>Chave Pix</label><div className="seg">
         {PIX_TIPOS.map(([t, l]) => <button key={t} className={pixTipo === t ? 'on' : ''} onClick={() => { setPixTipo(t); setPix(''); }}>{l}</button>)}</div></div>
       <input className="field" maxLength={80} placeholder={pixTipo === 'cpf' ? 'CPF' : pixTipo === 'email' ? 'E-mail' : 'Celular com DDD'} inputMode={pixTipo === 'email' ? 'email' : 'numeric'} value={pix} onChange={e => setPix(e.target.value)} />
