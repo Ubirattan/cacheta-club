@@ -12,7 +12,7 @@ import { looks } from '../../../lib/shop-items.js';
 
 // animação de carta voando (mesmo efeito do modo offline)
 function cardStr(c, cor) {
-  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s], jk = cor >= 0 && c.r === cor;
+  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s], jk = Engine.isJ(c, cor);
   const mid = c.r >= 7 ? `<div class="face"><b>${r}</b><i>${s}</i></div>` : `<div class="ctr">${s}</div>`;
   return `<div class="card ${red ? 'red' : ''} ${jk ? 'joker' : ''}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div></div>`;
 }
@@ -180,9 +180,16 @@ export default function Sala() {
     if (game.over && game.result?.matchOver) reloadProfile();
   }, [game]); // eslint-disable-line
 
+  // 0 = jogos formados primeiro, 1 = naipe, 2 = valor
   function sortedIds(cards, mode) {
-    const j = c => (game && c.r === game.cor ? 1 : 0);
-    return [...cards].sort(mode === 0 ? (a, b) => j(a) - j(b) || a.s - b.s || a.r - b.r : (a, b) => j(a) - j(b) || a.r - b.r || a.s - b.s).map(c => c.id);
+    const cor = game ? game.cor : -1, j = c => (Engine.isJ(c, cor) ? 1 : 0);
+    const bySuit = (a, b) => j(a) - j(b) || a.s - b.s || a.r - b.r, byRank = (a, b) => j(a) - j(b) || a.r - b.r || a.s - b.s;
+    if (mode === 0 && game) {
+      const an = Engine.analyze(cards, cor, { ...game.cfg, maxJ: 99, aceHigh: true });
+      const used = new Set(an.melds.flat().map(c => c.id));
+      return [...an.melds.flat(), ...cards.filter(c => !used.has(c.id)).sort(bySuit)].map(c => c.id);
+    }
+    return [...cards].sort(mode === 1 ? bySuit : byRank).map(c => c.id);
   }
   function sortHand(mode) { setOrder(sortedIds(hand, mode)); }
   function move(dir) {
@@ -291,7 +298,8 @@ export default function Sala() {
   const pct = game.cfg.turn ? Math.min(100, left / (game.cfg.turn * 1000) * 100) : 0;
   const W = Math.min(typeof innerWidth !== 'undefined' ? innerWidth : 400, 900) - 20;
   const short = typeof innerHeight !== 'undefined' && innerHeight < 520 && !portrait;
-  const hcw = Math.max(32, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 190 : 0)) / (1 + (myHand.length - 1) * .64)));
+  const ngap = Math.max(0, Math.ceil(myHand.length / 3) - 1);
+  const hcw = Math.max(30, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 190 : 0)) / (1 + (myHand.length - 1) * .64 + ngap * .52)));
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
     : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>' : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
@@ -319,7 +327,7 @@ export default function Sala() {
         <div className="l">
           <button className="ico" onClick={() => setModal('placar')}>👥</button>
           <button className="ico" onClick={() => { setChatOpen(o => !o); setUnread(0); }}>💬{unread > 0 && <span className="badge-n">{unread}</span>}</button>
-          <div className="cpill">{game.cor >= 0 ? <>Coringa <b>{Engine.RANKS[game.cor]}</b> ★</> : 'Sem coringa'}</div>
+          <div className="cpill">{game.cor >= 0 ? <>Coringa <b>{Engine.RANKS[Engine.corRank(game.cor)]}{game.cor >= 10 ? (game.cor >= 20 ? ' ♥♦' : ' ♠♣') : ''}</b> ★</> : 'Sem coringa'}</div>
         </div>
         <button className="mesas" onClick={() => setModal('sair')}><i>🃏</i><span>Sair</span></button>
       </div>
@@ -331,6 +339,9 @@ export default function Sala() {
             <div className="piles">
               <div className="pile"><div id="viraBox">{game.vira && <Card c={game.vira} cor={game.cor} />}</div>
                 <div id="monte" onClick={() => canDraw && act({ type: 'draw', from: 'monte' })}><div className={`back ${canDraw ? 'glow' : ''}`} style={{ background: backBg, borderColor: lk.back.gold ? '#f2c94c' : '#fff' }}><b>{game.monte}</b></div></div></div>
+              <div className="pile"><div className="corbox">{game.cor >= 0
+                ? <><small>Coringas</small><div className="cc">{Engine.corSuits(game.cor).map(s => <Card key={s} c={{ id: -10 - s, r: Engine.corRank(game.cor), s }} cor={game.cor} />)}</div></>
+                : <small>Sem<br />coringa</small>}</div></div>
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
                 {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={canDraw ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
             </div>
@@ -355,12 +366,12 @@ export default function Sala() {
             {me.queimado && <span className="burn">🔥 só bate comprando do monte</span>}</div></div>
         <div id="timer" className={left < 6000 ? 'warn' : ''} style={{ visibility: myTurn ? 'visible' : 'hidden' }}><i style={{ width: pct + '%' }} /></div>
         <div id="hand" style={{ '--hcw': hcw + 'px' }}>
-          {myHand.map(c => <Card key={c.id} c={c} cor={game.cor} onClick={() => tapHand(c)}
-            cls={[sel === c.id ? 'sel' : '', inM.has(c.id) ? 'inm' : '', game.last?.t === 'draw' && game.last.pi === myIdx && hand[hand.length - 1]?.id === c.id ? 'new' : ''].join(' ')} />)}
+          {myHand.map((c, i) => <Card key={c.id} c={c} cor={game.cor} onClick={() => tapHand(c)}
+            cls={[i > 0 && i % 3 === 0 ? 'gap' : '', sel === c.id ? 'sel' : '', inM.has(c.id) ? 'inm' : '', game.last?.t === 'draw' && game.last.pi === myIdx && hand[hand.length - 1]?.id === c.id ? 'new' : ''].join(' ')} />)}
         </div>
         <div id="bar">
           <button className="mv" onClick={() => move(-1)}>◀</button>
-          <button id="bSort" onClick={() => { const m = 1 - sortMode; setSortMode(m); sortHand(m); }}>{sortMode === 0 ? '♠ Naipe' : '7 Valor'}</button>
+          <button id="bSort" onClick={() => { const m = (sortMode + 1) % 3; setSortMode(m); sortHand(m); toast(['Organizado por jogos', 'Organizado por naipe', 'Organizado por valor'][m]); }}>{['🃏 Jogos', '♠ Naipe', '7 Valor'][sortMode]}</button>
           <button className="disc" id="bDisc" disabled={!canEnd || sel == null || busy} onClick={() => act({ type: 'discard', cardId: sel })}>DESCARTAR</button>
           <button className="bate" id="bBate" disabled={!canEnd || busy} onClick={bater}>BATER</button>
           <button className="mv" onClick={() => move(1)}>▶</button>

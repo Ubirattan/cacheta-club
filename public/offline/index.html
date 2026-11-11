@@ -142,6 +142,11 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 #hand{display:flex;justify-content:center;padding-top:20px;min-height:calc(var(--hcw,60px)*1.42 + 24px)}
 #hand .card{--cw:var(--hcw,60px);margin-left:calc(var(--hcw,60px)*-.36);cursor:pointer}
 #hand .card:first-child{margin-left:0}
+#hand .card.gap{margin-left:calc(var(--hcw,60px)*.16)}
+.corbox{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(0,0,0,.14);border-radius:10px;padding:5px 7px}
+.corbox small{font:500 10px Oswald;color:rgba(0,0,0,.5);text-transform:uppercase;letter-spacing:1px;text-align:center}
+.corbox .cc{display:flex}.corbox .card{--cw:calc(clamp(46px,11vmin,80px)*.48);margin-left:-6px;box-shadow:0 1px 3px rgba(0,0,0,.35)}.corbox .card:first-child{margin-left:0}
+.corbox .card .ctr{font-size:calc(var(--cw)*.5)}
 #hand .card.sel{transform:translateY(-18px);box-shadow:0 0 0 3px #38bdf8,0 8px 14px rgba(0,0,0,.5)}
 #hand .card.new:not(.sel){transform:translateY(-6px)}
 #hand .card.inm::after{content:"";position:absolute;bottom:-9px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80}
@@ -293,6 +298,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
         <div id="msg"></div>
         <div class="piles">
           <div class="pile"><div id="viraBox"></div><div id="monte" data-act="monte"></div></div>
+          <div class="pile" id="corBox"></div>
           <div class="pile"><div id="desc" data-act="desc"></div></div>
         </div>
       </div>
@@ -318,6 +324,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 <script>
 
 
+
 /* =====================================================================
    MOTOR DA CACHETA — funções puras, sem DOM.
    Toda jogada passa por Engine.act(), que valida e devolve um evento.
@@ -329,7 +336,11 @@ const Engine=(()=>{
   const DEFAULT={hand:9,coringa:'vira',maxJ:99,aceHigh:true,limpaDobro:true,fichas:5};
   const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
   const name=c=>RANKS[c.r]+SUITS[c.s];
-  const isJ=(c,cor)=>cor>=0&&c.r===cor;
+  // coringa: cor = valor (0-9) vale todos os naipes; cor = valor + 10*(1+cor do naipe) vale só a mesma cor da vira
+  const colorOf=s=>(s===1||s===2)?1:0;            // 0 = preto (♠♣), 1 = vermelho (♥♦)
+  const isJ=(c,cor)=>cor>=0&&c.r===cor%10&&(cor<10||colorOf(c.s)===Math.floor(cor/10)-1);
+  const corRank=cor=>cor<0?-1:cor%10;
+  const corSuits=cor=>cor<0?[]:cor<10?[0,1,2,3]:[0,1,2,3].filter(s=>colorOf(s)===Math.floor(cor/10)-1);
 
   // Melhor organização das cartas em jogos. Devolve {cov, melds, dead}.
   function analyze(cards,cor,cfg){
@@ -406,7 +417,8 @@ const Engine=(()=>{
     M.players.forEach(p=>{p.hand=[];p.queimado=false;});
     for(let n=0;n<M.cfg.hand;n++) M.players.forEach(p=>{if(p.fichas>0)p.hand.push(deck.pop());});
     M.vira=deck.pop();
-    M.cor=M.cfg.coringa==='vira'?(M.vira.r+1)%10:-1;
+    const nx=(M.vira.r+1)%10;
+    M.cor=M.cfg.coringa==='vira'?nx:M.cfg.coringa==='viraCor'?nx+10*(1+colorOf(M.vira.s)):-1;
     M.monte=deck; M.desc=[]; M.taken=null; M.phase='draw'; M.over=false; M.result=null;
     M.history=[]; M.round++; M.turn=nextIdx(M,M.dealer);
   }
@@ -474,7 +486,7 @@ const Engine=(()=>{
     }
     return err('Ação desconhecida');
   }
-  return {RANKS,SUITS,DEFAULT,analyze,newMatch,startRound,act,findBater,isJ,name,nextIdx,alive};
+  return {RANKS,SUITS,DEFAULT,analyze,newMatch,startRound,act,findBater,isJ,corRank,corSuits,name,nextIdx,alive};
 })();
 
 /* =====================================================================
@@ -575,13 +587,13 @@ const AVATARS=['😎','🤠','🦊','🐯','🦁','🐼','🐸','🦅','👑','�
 const BOTS=[{name:'Zé Baralho',avatar:'🤠'},{name:'Dona Cida',avatar:'👵'},{name:'Tonhão',avatar:'🧔'},{name:'Neide',avatar:'👩‍🦱'},{name:'Marcão',avatar:'🧢'},{name:'Seu Juca',avatar:'👴'},{name:'Lurdinha',avatar:'👩‍🦳'},{name:'Bigode',avatar:'🥸'}];
 const LEVELS={facil:'Fácil',medio:'Médio',dificil:'Difícil'};
 const MODES=[
-  {id:'cacheta',name:'Cacheta',cfg:{hand:9,coringa:'vira'}},
-  {id:'dez',name:'Cacheta 10 cartas',cfg:{hand:10,coringa:'vira'}},
+  {id:'cacheta',name:'Cacheta',cfg:{hand:9,coringa:'viraCor'}},
+  {id:'dez',name:'Cacheta 10 cartas',cfg:{hand:10,coringa:'viraCor'}},
   {id:'pifpaf',name:'Pif Paf',cfg:{hand:9,coringa:'sem'}},
 ];
 const ENTRIES=[10,20,40,100,200,500,1000,2000];
 const store={get(k,d){try{const v=localStorage.getItem('cc_'+k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem('cc_'+k,JSON.stringify(v));}catch(e){}}};
-let S=Object.assign({bots:2,level:'medio',fichas:5,hand:9,coringa:'vira',maxJ:99,aceHigh:true,limpaDobro:true,timer:30,sound:true,hints:true},store.get('settings',{}));
+let S=Object.assign({bots:2,level:'medio',fichas:5,hand:9,coringa:'viraCor',maxJ:99,aceHigh:true,limpaDobro:true,timer:30,sound:true,hints:true},store.get('settings',{}));
 let me=Object.assign({nick:'',avatar:'😎',id:String(100000000+Math.floor(Math.random()*899999999))},store.get('me',{}));
 store.set('me',me);
 let stats=store.get('stats',{partidas:0,vitorias:0,rodadas:0,limpas:0});
@@ -681,8 +693,8 @@ function customModal(){
     seg('level',{...c,label:'Dificuldade',v:[['facil','Fácil'],['medio','Médio'],['dificil','Difícil']]})+
     seg('fichas',{...c,label:'Pontos (fichas na mesa)',v:[[3,'3'],[5,'5'],[7,'7'],[10,'10']]})+
     seg('hand',{...c,label:'Cartas na mão',v:[[9,'9 cartas'],[10,'10 cartas']]})+
-    seg('coringa',{...c,label:'Coringa',v:[['vira','Pela vira'],['sem','Sem coringa']]})+
-    (S.coringa==='vira'?seg('maxJ',{...c,label:'Coringas por jogo',v:[[99,'Livre'],[1,'Só 1']]})+
+    seg('coringa',{...c,label:'Coringa',v:[['viraCor','Mesma cor da vira'],['vira','Todos os naipes'],['sem','Sem coringa']]},'O coringa é a carta seguinte à vira. "Mesma cor": só os 2 naipes da cor da vira (ex.: vira Á♠ → coringas 2♠ e 2♣).')+
+    (S.coringa!=='sem'?seg('maxJ',{...c,label:'Coringas por jogo',v:[[99,'Livre'],[1,'Só 1']]})+
      seg('limpaDobro',{...c,label:'Batida limpa (sem coringa)',v:[[true,'Vale 2 pontos'],[false,'Vale 1']]}):'')+
     seg('aceHigh',{...c,label:'Ás depois do Rei (Q-K-A)',v:[[true,'Vale'],[false,'Não vale']]})+
     `<button class="go" data-act="startCustom">Sentar na mesa</button><button class="sec" data-act="close">Cancelar</button>`);
@@ -729,13 +741,18 @@ function newRound(){
   sel=null; newId=null; hideId=null; bubbles={};
   autoSort(); dealing=true; sfx('card');
   render(); setTimeout(()=>{dealing=false;$('#hand').classList.remove('deal');},900);
-  setMsg(M.cor>=0?`Vira ${E.name(M.vira)} · coringa: <b>${E.RANKS[M.cor]}</b>`:'Rodada sem coringa');
+  setMsg(M.cor>=0?`Vira ${E.name(M.vira)} · coringa: <b>${E.RANKS[E.corRank(M.cor)]}${M.cor>=10?(M.cor>=20?' vermelho':' preto'):''}</b>`:'Rodada sem coringa');
   const g=gen; setTimeout(()=>{if(g===gen)beginTurn();},1100);
 }
 function setMsg(h){M.msg=h;const e=$('#msg');if(e)e.innerHTML='<span>'+h+'</span>';}
 function autoSort(){
-  const h=M.players[0].hand, j=c=>E.isJ(c,M.cor)?1:0;
-  h.sort(sortMode===0?(a,b)=>j(a)-j(b)||a.s-b.s||a.r-b.r:(a,b)=>j(a)-j(b)||a.r-b.r||a.s-b.s);
+  const p=M.players[0], j=c=>E.isJ(c,M.cor)?1:0;
+  const bySuit=(a,b)=>j(a)-j(b)||a.s-b.s||a.r-b.r, byRank=(a,b)=>j(a)-j(b)||a.r-b.r||a.s-b.s;
+  if(sortMode===0){ // jogos formados primeiro, depois as soltas por naipe
+    const an=E.analyze(p.hand,M.cor,M.cfg);
+    const used=new Set(an.melds.flat().map(c=>c.id));
+    p.hand=[...an.melds.flat(),...p.hand.filter(c=>!used.has(c.id)).sort(bySuit)];
+  } else p.hand.sort(sortMode===1?bySuit:byRank);
 }
 function beginTurn(){
   if(M.over) return;
@@ -893,7 +910,8 @@ function render(){
       ${bubbles[i]&&p.fichas>0?`<div class="bubble">${bubbles[i]}</div>`:''}</div>`;
   }).join('');
   $('#viraBox').innerHTML=cardHTML(M.vira);
-  $('#corPill').innerHTML=M.cor>=0?`Coringa <b>${E.RANKS[M.cor]}</b> ★`:'Sem coringa';
+  $('#corPill').innerHTML=M.cor>=0?`Coringa <b>${E.RANKS[E.corRank(M.cor)]}${M.cor>=10?(M.cor>=20?' ♥♦':' ♠♣'):''}</b> ★`:'Sem coringa';
+  $('#corBox').innerHTML=M.cor>=0?`<div class="corbox"><small>Coringas</small><div class="cc">${E.corSuits(M.cor).map(s=>cardHTML({id:-10-s,r:E.corRank(M.cor),s})).join('')}</div></div>`:'<div class="corbox"><small>Sem<br>coringa</small></div>';
   const myDraw=M.phase==='draw'&&M.turn===0&&!M.over;
   $('#monte').innerHTML=`<div class="back ${myDraw?'glow':''}"><b>${M.monte.length}</b></div>`;
   const top=M.desc[M.desc.length-1];
@@ -907,19 +925,20 @@ function render(){
   const short=innerHeight<520&&innerWidth>innerHeight;
   const nh=meP.hand.length, W=Math.min(innerWidth-(short?190:0),900)-20;
   const maxH=innerHeight<520?innerHeight*0.2:96;
-  const hcw=Math.max(32,Math.min(84,maxH/1.42,W/(1+(nh-1)*0.64)));
+  const ng=Math.max(0,Math.ceil(nh/3)-1);
+  const hcw=Math.max(30,Math.min(84,maxH/1.42,W/(1+(nh-1)*0.64+ng*0.52)));
   const hand=$('#hand'); hand.style.setProperty('--hcw',hcw+'px'); hand.classList.toggle('deal',dealing); hand.classList.toggle('nohint',!S.hints);
-  hand.innerHTML=meP.hand.map((c,i)=>cardHTML(c,[sel===c.id?'sel':'',newId===c.id?'new':'',inM.has(c.id)?'inm':'',hideId===c.id?'hid':''].join(' ')).replace('class="card','style="animation-delay:'+(i*55)+'ms" class="card')).join('');
+  hand.innerHTML=meP.hand.map((c,i)=>cardHTML(c,[sel===c.id?'sel':'',newId===c.id?'new':'',inM.has(c.id)?'inm':'',hideId===c.id?'hid':'',i>0&&i%3===0?'gap':''].join(' ')).replace('class="card','style="animation-delay:'+(i*55)+'ms" class="card')).join('');
   const canEnd=M.phase==='discard'&&M.turn===0&&!M.over;
   $('#bDisc').disabled=!(canEnd&&sel!=null);
   $('#bBate').disabled=!canEnd;
-  $('#bSort').textContent=sortMode===0?'♠ Naipe':'7 Valor';
+  $('#bSort').textContent=['🃏 Jogos','♠ Naipe','7 Valor'][sortMode];
 }
 window.addEventListener('resize',()=>{if(M&&$('#game').classList.contains('on'))render();});
 
 const RULES=()=>`<ol class="rules">
 <li>Dois baralhos sem 8, 9 e 10 (três baralhos com 6 a 9 jogadores). Cada jogador recebe 9 cartas (10 na Cacheta 10 cartas).</li>
-<li>Uma carta é virada: a <b>vira</b>. O coringa é a carta seguinte a ela (A·2·3·4·5·6·7·J·Q·K·A) e vale por qualquer carta. No Pif Paf não tem coringa.</li>
+<li>Uma carta é virada: a <b>vira</b>. O coringa é a carta seguinte a ela (A·2·3·4·5·6·7·J·Q·K·A), <b>da mesma cor da vira</b>: vira Á♠ → coringas 2♠ e 2♣. Ele vale por qualquer carta. Na mesa personalizada dá pra usar coringa em todos os naipes. No Pif Paf não tem coringa.</li>
 <li>Na sua vez, compre do <b>monte</b> ou pegue a carta de cima do <b>descarte</b>, depois descarte uma. Não vale descartar a carta que acabou de pegar do descarte.</li>
 <li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem; 7-J é seguido).</li>
 <li>Quem fechar todas as cartas em jogos <b>bate</b>: escolha a carta do descarte e toque em BATER. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
@@ -981,7 +1000,7 @@ document.addEventListener('click',e=>{
       if(M&&M.phase==='discard'&&M.turn===0&&sel!=null) humanEnd('discard',sel); else humanDraw('desc'); break;
     case 'discard': humanEnd('discard',sel); break;
     case 'bater': humanBater(); break;
-    case 'sort': if(!M)break; sortMode=1-sortMode; autoSort(); render(); break;
+    case 'sort': if(!M)break; sortMode=(sortMode+1)%3; autoSort(); render(); toast(['Organizado por jogos','Organizado por naipe','Organizado por valor'][sortMode]); break;
     case 'left': case 'right': {
       if(!M||sel==null) break; const h=M.players[0].hand, i=h.findIndex(c=>c.id===sel), j=i+(act==='left'?-1:1);
       if(j<0||j>=h.length) break; [h[i],h[j]]=[h[j],h[i]]; render(); break; }

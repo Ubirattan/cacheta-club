@@ -321,3 +321,10 @@ a{color:inherit;text-decoration:none}
 .closedbox{text-align:center}
 .vip{color:var(--gold)}
 @media (max-width:520px){.footbar .ver{display:none}.footbar{justify-content:space-between}}
+
+/* mão separada de 3 em 3 + caixa de coringas */
+#hand .card.gap{margin-left:calc(var(--hcw,60px)*.16)}
+.corbox{display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(0,0,0,.14);border-radius:10px;padding:5px 7px}
+.corbox small{font:500 10px Oswald;color:rgba(0,0,0,.5);text-transform:uppercase;letter-spacing:1px;text-align:center}
+.corbox .cc{display:flex}.corbox .card{--cw:calc(clamp(46px,11vmin,80px)*.48);margin-left:-6px;box-shadow:0 1px 3px rgba(0,0,0,.35)}.corbox .card:first-child{margin-left:0}
+.corbox .card .ctr{font-size:calc(var(--cw)*.5)}

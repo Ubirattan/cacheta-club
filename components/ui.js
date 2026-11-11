@@ -10,7 +10,7 @@ export function toast(t) {
 }
 
 export function Card({ c, cor = -1, cls = '', onClick, style }) {
-  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s], jk = cor >= 0 && c.r === cor;
+  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s], jk = Engine.isJ(c, cor);
   return (
     <div className={`card ${red ? 'red' : ''} ${jk ? 'joker' : ''} ${cls}`} onClick={onClick} style={style} data-id={c.id}>
       <div className="ix"><b>{r}</b><i>{s}</i></div>
