@@ -364,7 +364,7 @@ export default function Sala() {
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : game.result?.semJogo ? 'Rodada sem jogo' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
     : me && me.out ? 'Você correu desta rodada. Assista o jogo'
-    : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele'
+    : myTurn ? (game.phase === 'draw' ? (me.queimado ? 'Sua vez: 🔥 você errou uma batida, só pode comprar do <b>monte</b>' : 'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele')
       : full && myHand.length === game.cfg.hand + 1 ? '✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER'
       : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
     : `Vez de <b>${turnName}</b>`;
@@ -424,7 +424,7 @@ export default function Sala() {
                   ? <div className="vcol"><small>Coringas</small><div className="cc">{Engine.corSuits(game.cor).map(s => <Card key={s} c={{ id: -10 - s, r: Engine.corRank(game.cor), s }} cor={game.cor} />)}</div></div>
                   : <div className="vcol"><small>Sem<br />coringa</small></div>}</div></div>
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
-                {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={canDraw ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
+                {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={canDraw && !me.queimado ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
             </div>
           </div>
           <div id="seats" className={n >= 8 ? 'many' : ''}>
@@ -446,7 +446,7 @@ export default function Sala() {
       <div id="mine">
         <div id="meRow" className={myTurn ? 'turn' : ''}><div className="av">{me.avatar}</div>
           <div className="info"><b>{me.name}</b>{me.fichas} pts <small>· {okN} {okN === 1 ? 'jogo montado' : 'jogos montados'}</small>
-            {me.queimado && <span className="burn">🔥 só bate comprando do monte</span>}</div></div>
+            {me.queimado && <span className="burn">🔥 só compra do monte</span>}</div></div>
         <div id="timer" className={left < 6000 ? 'warn' : ''} style={{ visibility: myTurn ? 'visible' : 'hidden' }}><i style={{ width: pct + '%' }} /></div>
         <div id="hand" className={me.out ? 'outr' : ''} style={{ '--hcw': hcw + 'px' }} onPointerDown={e => {
           const el = e.target.closest('.card'); if (!el) return;
@@ -475,7 +475,7 @@ export default function Sala() {
         <p>{room.status === 'playing' ? `A partida não acabou. Saindo agora você é eliminado${game.cfg.entry ? ` e perde a entrada de 💰 ${fmt(game.cfg.entry)}` : ''}.` : 'Você vai voltar para a lista de salas.'}</p>
         <button className="go" onClick={leave}>Sair</button><button className="sec" onClick={() => setModal(null)}>Continuar jogando</button></Modal>}
       {(modal === 'errou' || modal === 'errouDesc' || modal === 'errouFora') && <Modal><h2>Batida errada!</h2><p>{modal === 'errou' ? 'Suas cartas não fechavam. A carta foi pro descarte e você perdeu a vez.' : modal === 'errouFora' ? 'Com a carta do descarte suas cartas não fecham.' : 'Com a carta do descarte suas cartas não fecham. Você perdeu a vez.'}</p>
-        <p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button className="go" onClick={() => setModal(null)}>Continuar</button></Modal>}
+        <p>🔥 Até o fim da rodada você <b>só pode comprar do monte</b>: o descarte fica bloqueado pra você.</p><button className="go" onClick={() => setModal(null)}>Continuar</button></Modal>}
 
       {game.over && res && (
         <Modal>

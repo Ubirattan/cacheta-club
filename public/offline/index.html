@@ -597,6 +597,7 @@ const Engine=(()=>{
     if(a.type==='draw'){
       if(M.phase!=='draw') return err('Você já comprou nesta vez');
       let c;
+      if(a.from==='desc'&&p.queimado) return err('Você errou uma batida: até o fim da rodada só pode comprar do monte');
       if(a.from==='desc'){ if(!M.desc.length) return err('O descarte está vazio'); c=M.desc.pop(); M.taken=c.id; }
       else { c=drawMonte(M); M.taken=null;
         if(!c){ M.over=true; M.result={empate:true}; M.dealer=nextAlive(M,M.dealer); return {ok:true,ev:{type:'empate'}}; } }
@@ -720,7 +721,7 @@ const AI=(()=>{
   }
   function chooseDraw(M,pi,level){
     const p=M.players[pi], top=M.desc[M.desc.length-1];
-    if(!top) return 'monte';
+    if(!top||p.queimado) return 'monte';
     if(E.isJ(top,M.cor)) return level==='facil'&&Math.random()<0.5?'monte':'desc';
     const withTop=[...p.hand,top];
     if(level!=='facil'&&E.findBater(M,withTop,top.id)>=0) return 'desc';
@@ -863,9 +864,9 @@ function renderLobby(){
   const mode={...MODES.find(m=>m.id===lobbyMode),players:lobbyPlayers};
   $('#pcount').innerHTML='<span>Jogadores</span>'+[2,3,4,5,6,7,8,9].map(n=>`<button class="${n===lobbyPlayers?'on':''}" data-act="pc" data-v="${n}">${n}</button>`).join('');
   $('#tables').innerHTML=ENTRIES.map((e,i)=>{
-    const pts=e>=200?7:5, lock=!SITE&&coins<e;
+    const pts=e>=200?7:5, lock=coins<e;
     return `<button class="tbl ${i===2?'hot':''} ${lock?'lock':''}" data-act="sit" data-v="${e}" data-p="${pts}">
-      <div class="val">${fmt(e)}<small>${SITE?'treino · não gasta fichas':lock?'🔒 fichas insuficientes':'pote '+fmt(e*mode.players)}</small></div>
+      <div class="val">${fmt(e)}<small>${lock?'🔒 fichas insuficientes':SITE?'precisa de '+fmt(e)+' fichas':'pote '+fmt(e*mode.players)}</small></div>
       <div class="row"><span>👥 ${mode.players} jogadores</span><span>Pontos: ${pts}</span></div></button>`;
   }).join('');
   $('#lobfoot').innerHTML=Object.entries(LEVELS).map(([k,v])=>`<button class="chk" data-act="lvl" data-v="${k}"><i>${S.level===k?'✓':''}</i>${v}</button>`).join('');
@@ -910,7 +911,7 @@ function statsModal(){
   <p style="font-size:12px;color:var(--mut)">Ranking geral e histórico online chegam com o cadastro (etapa 2).</p><button class="go" data-act="close">Fechar</button>`);
 }
 function coinsModal(){
-  if(SITE){ showOv(`<h2>Fichas</h2><p>Seu saldo: <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas.</p><p>Contra o computador é <b>treino</b>: não gasta nem ganha fichas. Para jogar valendo fichas, entre nas mesas online.</p>
+  if(SITE){ showOv(`<h2>Fichas</h2><p>Seu saldo: <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas.</p><p>Para jogar, inclusive contra o computador, é preciso ter fichas no saldo. Contra o computador as fichas não são gastas; para jogar valendo fichas, entre nas mesas online.</p>
   <button class="go" onclick="location.href='/loja#comprar'">💰 Comprar fichas com Pix</button><button class="sec" onclick="location.href='/'">Ir para as mesas online</button><button class="sec" data-act="close">Fechar</button>`); return; }
   const can=coins<100;
   showOv(`<h2>Fichas</h2><p>Você tem <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas virtuais.</p><p>As fichas são só pra jogar: não valem dinheiro, não podem ser sacadas nem trocadas.</p>
@@ -920,6 +921,8 @@ function coinsModal(){
 
 /* ---- PARTIDA ---- */
 function startMatch(opts){
+  if(SITE){ const need=Math.max(1,opts.entry||0);
+    if(coins<need){ sfx('err'); showOv(`<h2>Sem fichas</h2><p>Para jogar você precisa ter <b>💰 ${fmt(need)}</b> ${need>1?'fichas':'ficha'} no saldo. Seu saldo: <b>💰 ${fmt(coins)}</b>.</p><button class="go" onclick="location.href='/loja#comprar'">💰 Comprar fichas com Pix</button><button class="sec" data-act="close">Fechar</button>`); return; } }
   gen++;
   table=opts;
   if(opts.entry&&!SITE){ if(coins<opts.entry){toast('Fichas insuficientes pra essa mesa');return;} setCoins(coins-opts.entry); sfx('coin'); }
@@ -1009,16 +1012,16 @@ function myGroups(){ // grupos que o jogador montou; carta nova entra num grupo 
 }
 function beginTurn(){
   if(M.over) return;
-  if(M.desc.length){ const g0=gen, top=M.desc[M.desc.length-1].id; setTimeout(()=>{ if(g0===gen&&M&&!M.over&&M.phase==='draw'&&M.desc.length&&M.desc[M.desc.length-1].id===top) botSnipe(); },900); }
+  if(M.desc.length){ const g0=gen, top=M.desc[M.desc.length-1].id; setTimeout(()=>{ if(g0===gen&&M&&!M.over&&M.phase==='draw'&&M.desc.length&&M.desc[M.desc.length-1].id===top) botSnipe(); },1600); }
   const p=M.players[M.turn];
   if(p.human){
     M.ready=true; M.msgFull=false; sfx('turn');
-    setMsg('Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele');
+    setMsg(p.queimado?'Sua vez: 🔥 você errou uma batida, só pode comprar do <b>monte</b>':'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele');
     render(); startTimer();
   } else {
     setMsg(`Vez de <b>${p.name}</b>`);
     render();
-    const g=gen; setTimeout(()=>{if(g===gen)botPlay();},M.players.length>6?800:M.players.length>4?1000:1400);
+    const g=gen; setTimeout(()=>{if(g===gen)botPlay();},M.players.length>6?1800:M.players.length>4?2300:2800);
   }
 }
 async function botPlay(){
@@ -1032,7 +1035,7 @@ async function botPlay(){
   bubbles={}; bubbles[pi]=from==='desc'?`pegou ${E.name(r.ev.card)}`:'comprou do monte';
   render(); sfx('card');
   await fly(src,R('#opp'+pi+' .av'),from==='desc'?cardHTML(r.ev.card):backHTML());
-  await wait(M.players.length>6?700:M.players.length>4?850:1100); if(g!==gen) return;
+  await wait(M.players.length>6?1500:M.players.length>4?1900:2400); if(g!==gen) return;
   const a=AI.chooseEnd(M,pi,p.level);
   const from2=R('#opp'+pi+' .av');
   const r2=E.act(M,pi,a); if(!r2.ok) return;
@@ -1068,7 +1071,7 @@ async function humanEnd(type,cardId){
   if(r.ev.type==='bater') return onBater(r.ev);
   if(r.ev.type==='bateuErrado'){
     sfx('err'); render();
-    showOv(`<h2>Batida errada!</h2><p>Suas cartas não fechavam. Você descartou <b>${E.name(r.ev.card)}</b> e perdeu a vez.</p><p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>. Batida com carta do descarte não vale mais.</p><button class="go" data-act="closeGo">Continuar</button>`);
+    showOv(`<h2>Batida errada!</h2><p>Suas cartas não fechavam. Você descartou <b>${E.name(r.ev.card)}</b> e perdeu a vez.</p><p>🔥 Até o fim da rodada você <b>só pode comprar do monte</b>: o descarte fica bloqueado pra você.</p><button class="go" data-act="closeGo">Continuar</button>`);
     M.pendingTurn=true; return;
   }
   setMsg(`Você descartou ${E.name(r.ev.card)}`);
@@ -1096,9 +1099,9 @@ function humanBaterDesc(){ // bater direto com a carta do descarte do adversári
   sel=null; newId=null;
   if(r.ev.type==='bater'){ gen++; stopTimer(); render(); return onBater(r.ev); }
   sfx('err'); render();
-  if(r.ev.fora){ toast(`Batida errada com ${E.name(r.ev.top)}! 🔥 Agora você só bate comprando do monte`); return; }
+  if(r.ev.fora){ toast(`Batida errada com ${E.name(r.ev.top)}! 🔥 Agora você só compra do monte`); return; }
   stopTimer();
-  showOv(`<h2>Batida errada!</h2><p>Com o <b>${E.name(r.ev.top)}</b> do descarte suas cartas não fecham. Você perdeu a vez.</p><p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button class="go" data-act="closeGo">Continuar</button>`);
+  showOv(`<h2>Batida errada!</h2><p>Com o <b>${E.name(r.ev.top)}</b> do descarte suas cartas não fecham. Você perdeu a vez.</p><p>🔥 Até o fim da rodada você <b>só pode comprar do monte</b>: o descarte fica bloqueado pra você.</p><button class="go" data-act="closeGo">Continuar</button>`);
   M.pendingTurn=true;
 }
 function botSnipe(){ // os robôs (médio e difícil) também batem com o descarte fora da vez
@@ -1266,13 +1269,13 @@ function render(){
   const myDraw=M.phase==='draw'&&M.turn===0&&!M.over;
   $('#monte').innerHTML=`<div class="back ${myDraw?'glow':''}"><b>${M.monte.length}</b></div>`;
   const top=M.desc[M.desc.length-1];
-  $('#desc').innerHTML=top?cardHTML(top,(myDraw?'glow ':'')+(hideId===top.id?'hid':'')):'<div class="slot">🗑</div>';
+  $('#desc').innerHTML=top?cardHTML(top,(myDraw&&!M.players[0].queimado?'glow ':'')+(hideId===top.id?'hid':'')):'<div class="slot">🗑</div>';
   $('#msg').innerHTML='<span>'+(M.msg||'')+'</span>';
   const an=E.analyze(meP.hand,M.cor,M.cfg);
   const inM=new Set(an.melds.flat().map(c=>c.id));
   const loose=meP.hand.length-an.cov;
   $('#meRow').className=M.turn===0&&!M.over?'turn':'';
-  $('#meRow').innerHTML=`<div class="av">${meP.avatar}</div><div class="info"><b>${meP.name}</b>${meP.fichas} pts <small>· ${(()=>{const n=myGroups().filter(x=>x.cards.length>=3&&E.meldType(x.cards,M.cor,M.cfg)).length;return n+(n===1?' jogo montado':' jogos montados');})()}</small>${meP.queimado?'<span class="burn">🔥 só bate comprando do monte</span>':''}</div>`;
+  $('#meRow').innerHTML=`<div class="av">${meP.avatar}</div><div class="info"><b>${meP.name}</b>${meP.fichas} pts <small>· ${(()=>{const n=myGroups().filter(x=>x.cards.length>=3&&E.meldType(x.cards,M.cor,M.cfg)).length;return n+(n===1?' jogo montado':' jogos montados');})()}</small>${meP.queimado?'<span class="burn">🔥 só compra do monte</span>':''}</div>`;
   const short=innerHeight<520&&innerWidth>innerHeight;
   const nh=meP.hand.length, W=Math.min(innerWidth-(short?160:0)-(document.body.classList.contains('nfb')?190:0),900)-20;
   const maxH=innerHeight<520?innerHeight*0.19:96;
@@ -1302,7 +1305,7 @@ const RULES=()=>`<ol class="rules">
 <li>Na sua vez, compre do <b>monte</b> ou pegue a carta de cima do <b>descarte</b>, depois descarte uma. Não vale descartar a carta que acabou de pegar do descarte.</li>
 <li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem). <b>Arraste as cartas</b> pra montar seus grupos, do tamanho que quiser (2, 3, 4, 5…). Solte em cima de um grupo pra juntar, ou no espaço entre os grupos pra separar. Com 3 ou mais cartas o grupo mostra <b>Trinca</b> ou <b>Sequência</b> em verde, ou <b>Inválido</b>.</li>
 <li>Quem fechar todas as cartas em jogos <b>bate</b>: toque em BATER. O botão fica sempre ativo: dá pra bater na hora com a carta que um adversário acabou de descartar, sem comprar, <b>mesmo fora da sua vez</b>. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
-<li><b>Batida errada:</b> se as cartas não fecharem, você fica impedido de bater com o descarte: até o fim da rodada, só pode bater com carta comprada do monte. Se era a sua vez, também perde a vez.</li>
+<li><b>Batida errada:</b> se as cartas não fecharem, até o fim da rodada você <b>só pode comprar do monte</b> (não pega nem bate com o descarte). Se era a sua vez, também perde a vez.</li>
 <li><b>Ir ou correr</b> (cacheta de pontos): com as cartas na mão, cada um decide se vai jogar. Quem <b>corre perde 1 ponto</b> e assiste a rodada. Quem <b>joga e perde, perde 2 pontos</b>; quem bate não perde nada. Se só um for jogar, ele ganha a rodada sem jogo. Com 1 ponto não dá pra correr.</li>
 <li>Quem zera os pontos sai. O último na mesa vence e leva o pote de fichas.</li></ol>`;
 

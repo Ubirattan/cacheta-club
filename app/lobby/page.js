@@ -11,7 +11,7 @@ import { MODES, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
 
 function CreateRoom({ profile, onClose }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: '', mode: 'cacheta', maxPlayers: 4, points: 5, entry: 0, turnSeconds: 30, isPrivate: false, password: '' });
+  const [f, setF] = useState({ name: '', mode: 'cacheta', maxPlayers: 4, points: 5, entry: 1, turnSeconds: 30, isPrivate: false, password: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   const set = (k, v) => setF(o => ({ ...o, [k]: v }));
   async function create() {
@@ -25,7 +25,7 @@ function CreateRoom({ profile, onClose }) {
       <input className="field" placeholder={`Nome da sala (ex.: Mesa de ${profile?.nickname || 'amigos'})`} maxLength={30} value={f.name} onChange={e => set('name', e.target.value)} />
       <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />
       <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />
-      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).map(e => [e, e ? fmt(e) : 'Grátis'])} />
+      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).map(e => [e, fmt(e)])} />
       <Seg label="Pontos" value={f.points} onChange={v => set('points', v)} options={POINTS.map(p => [p, String(p)])} />
       <Seg label="Tempo por jogada" value={f.turnSeconds} onChange={v => set('turnSeconds', v)} options={TURN_SECONDS.map(t => [t, t + ' s'])} />
       <Seg label="Tipo de sala" value={f.isPrivate} onChange={v => set('isPrivate', v)} options={[[false, '🌐 Pública'], [true, '🔒 Privada']]} />
@@ -75,7 +75,7 @@ export default function Lobby() {
   async function quick() {
     const r = (rooms || []).find(x => x.status === 'waiting' && !x.is_private && !x.vip_only && !x.tournament_id && x.n < x.max_players && x.entry <= (profile?.coins || 0));
     if (r) return sit(r);
-    try { const c = await api('/api/rooms', { mode: 'cacheta', maxPlayers: 4, points: 5, entry: 0, turnSeconds: 30 }); router.push('/sala/' + c.id); }
+    try { const c = await api('/api/rooms', { mode: 'cacheta', maxPlayers: 4, points: 5, entry: 1, turnSeconds: 30 }); router.push('/sala/' + c.id); }
     catch (e) { toast(e.message); }
   }
   return (
@@ -99,7 +99,7 @@ export default function Lobby() {
           <button key={r.id} className={`tbl ${r.status === 'playing' ? 'lock' : ''} ${r.entry >= 100 ? 'hot' : ''}`} onClick={() => sit(r)}>
             <span className={`st ${r.status === 'playing' ? 'play' : ''}`}>{r.status === 'playing' ? 'Jogando' : 'Aguardando'}</span>
             {(r.is_private || r.vip_only) && <span className="lk">{r.vip_only ? '👑' : ''}{r.is_private ? '🔒' : ''}</span>}
-            <div className="val">{r.entry ? fmt(r.entry) : 'Grátis'}<small>{MODES[r.mode]?.name}</small></div>
+            <div className="val">{fmt(r.entry)}<small>{MODES[r.mode]?.name}</small></div>
             <div className="nm">{r.name}</div>
             <div className="row"><span>👥 {r.n}/{r.max_players}</span><span>Pontos: {r.points}</span></div>
           </button>

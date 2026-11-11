@@ -88,7 +88,7 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   let p = await R.getProfile('u1'); assert.equal(p.coins, 300); assert.equal(p.equipped.back, 'back-roxo');
   await assert.rejects(equip(R, U[1], 'felt-azul'), /Compre/);
   await assert.rejects(equip(R, U[1], 'felt-noite'), /VIP/);
-  await assert.rejects(S.createRoom(R, U[1], { mode: 'cacheta', maxPlayers: 2, points: 3, entry: 0, vipOnly: true }), /VIP/);
+  await assert.rejects(S.createRoom(R, U[1], { mode: 'cacheta', maxPlayers: 2, points: 3, entry: 1, vipOnly: true }), /VIP/);
   await buy(R, U[1], 'vip-30');
   p = await R.getProfile('u1'); assert.equal(p.coins, 0); assert.ok(new Date(p.vip_until) > new Date());
   await equip(R, U[1], 'felt-noite');
@@ -97,7 +97,7 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   R.T.app_settings.push({ key: 'daily_bonus', value: '20' });
   const b = await dailyBonus(R, U[1]); assert.equal(b.amount, 40, 'VIP ganha bônus em dobro');
   await assert.rejects(dailyBonus(R, U[1]), /já pegou/);
-  const vr = await S.createRoom(R, U[1], { mode: 'cacheta', maxPlayers: 2, points: 3, entry: 0, vipOnly: true });
+  const vr = await S.createRoom(R, U[1], { mode: 'cacheta', maxPlayers: 2, points: 3, entry: 1, vipOnly: true });
   await assert.rejects(S.joinRoom(R, U[2], { id: vr.id }), /VIP/);
   // admin
   const st = await adminOp(R, U[0], { op: 'stats' }); assert.equal(st.users, 3);

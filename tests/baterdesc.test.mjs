@@ -42,4 +42,8 @@ assert.equal(Engine.act(M, 0, { type: 'baterDesc' }).ok, false);
 // enquanto o outro está descartando (já comprou), não dá
 M = mesa3(); M.desc.push(mk(9,0,10)); M.phase = 'discard';
 assert.equal(Engine.act(M, 0, { type: 'baterDesc' }).ok, false);
-console.log('OK — bater com a carta do descarte: na vez ou fora dela; errou fica queimado; não vale o próprio descarte');
+// quem errou a batida só compra do monte
+M = mesa(); M.players[0].queimado = true; M.desc.push(mk(9,0,10));
+assert.equal(Engine.act(M, 0, { type: 'draw', from: 'desc' }).ok, false);
+assert.equal(Engine.act(M, 0, { type: 'draw', from: 'monte' }).ok, true);
+console.log('OK — quem errou a batida só compra do monte; bater com a carta do descarte: na vez ou fora dela; errou fica queimado; não vale o próprio descarte');
