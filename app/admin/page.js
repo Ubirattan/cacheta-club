@@ -83,6 +83,10 @@ function Players({ me }) {
   const load = useCallback(() => adm('players', { q }).then(r => setList(r.players)).catch(e => toast(e.message)), [q]);
   useEffect(() => { load(); }, []); // eslint-disable-line
   async function block(p) { try { await adm('block', { uid: p.id, blocked: !p.blocked }); toast(p.blocked ? 'Desbloqueado' : 'Bloqueado'); load(); } catch (e) { toast(e.message); } }
+  async function excluir(p) {
+    if (!confirm(`Excluir a conta de ${p.nickname}?\n\nIsso apaga o login, as fichas (${fmt(p.coins)}), o histórico e as compras dele. Não dá para desfazer.`)) return;
+    try { await adm('deleteUser', { uid: p.id }); toast(`${p.nickname} foi excluído`); load(); } catch (e) { toast(e.message); }
+  }
   async function coins(p) { try { const r = await adm('coins', { uid: p.id, delta: Number(delta[p.id] || 0) }); toast('Saldo agora: ' + fmt(r.coins)); setDelta(d => ({ ...d, [p.id]: '' })); load(); } catch (e) { toast(e.message); } }
   return <>
     <form className="invite" style={{ marginTop: 0 }} onSubmit={e => { e.preventDefault(); load(); }}><input placeholder="Buscar por apelido" value={q} onChange={e => setQ(e.target.value)} /><button className="pillbtn">Buscar</button></form>
@@ -94,6 +98,7 @@ function Players({ me }) {
         <input className="mini-in" type="number" placeholder="± fichas" value={delta[p.id] || ''} onChange={e => setDelta(d => ({ ...d, [p.id]: e.target.value }))} />
         <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={() => coins(p)}>Ajustar</button>
         {p.id !== me && <button className="pillbtn" style={{ padding: '6px 12px', background: p.blocked ? '' : 'linear-gradient(180deg,#ef4444,#991b1b)' }} onClick={() => block(p)}>{p.blocked ? 'Desbloquear' : 'Bloquear'}</button>}
+        {p.id !== me && <button className="pillbtn dark" style={{ padding: '6px 12px', color: '#fca5a5' }} onClick={() => excluir(p)}>🗑 Excluir</button>}
       </div>))}</div>
   </>;
 }

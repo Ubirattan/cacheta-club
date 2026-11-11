@@ -26,4 +26,12 @@ await assert.rejects(adminOp(R, U[0], { op: 'changePass', adminToken: t2, curren
 const t3 = (await adminOp(R, U[0], { op: 'changePass', adminToken: t2, current: 'senha-forte-1', password: 'nova-senha-22' })).token;
 await assert.rejects(adminOp(R, U[0], { op: 'stats', adminToken: t2 }), /PAINEL_LOGIN/);
 assert.equal((await adminOp(R, U[0], { op: 'stats', adminToken: t3 })).users, 2);
-console.log('OK — login do painel: criar, entrar, trava após 5 erros, token assinado, troca de senha derruba sessão antiga');
+// excluir jogador: só com login do painel, nunca a si mesmo, nunca no meio de uma partida
+await assert.rejects(adminOp(R, U[0], { op: 'deleteUser', uid: 'u1' }), /PAINEL_LOGIN/);
+await assert.rejects(adminOp(R, U[0], { op: 'deleteUser', adminToken: t3, uid: 'u0' }), /a si mesmo/);
+R.T.rooms.push({ id: 'r1', status: 'playing' }); R.T.room_players.push({ room_id: 'r1', user_id: 'u1' });
+await assert.rejects(adminOp(R, U[0], { op: 'deleteUser', adminToken: t3, uid: 'u1' }), /numa partida/);
+R.T.rooms[0].status = 'waiting';
+await adminOp(R, U[0], { op: 'deleteUser', adminToken: t3, uid: 'u1' });
+assert.equal(R.T.profiles.length, 1); assert.equal(R.T.room_players.length, 0);
+console.log('OK — login do painel: criar, entrar, trava após 5 erros, token assinado, troca de senha derruba sessão antiga, excluir jogador');
