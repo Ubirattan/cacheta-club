@@ -30,4 +30,14 @@ const r2 = await createGerapixCharge(R, U[1], { pack: 'custom', valor: '37,50', 
 assert.equal(sent.body.valor, '37.50'); assert.equal(r2.pix.coins, 375);
 await assert.rejects(createGerapixCharge(R, U[1], { pack: 'custom', valor: '9.99', nome: 'Bira Silva', cpf: '52998224725' }, fake), /Valor inválido/);
 await assert.rejects(createGerapixCharge(R, U[1], { pack: 'custom', valor: '5000', nome: 'Bira Silva', cpf: '52998224725' }, fake), /Valor inválido/);
-console.log('OK — GeraPix: R$ 1 = 10 fichas, valor livre, token/transação conferidos, CPF não guardado, crédito único');
+// pacote de boas-vindas: R$ 5 = 80 fichas + avatar 🌟, só para quem nunca comprou
+await assert.rejects(createGerapixCharge(R, U[1], { pack: 'pack-boasvindas', nome: 'Bira Silva', cpf: '52998224725' }, fake), /primeira compra/);
+const U2 = { id: 'u0', email: 'novo@exemplo.com' };
+await createGerapixCharge(R, U2, { pack: 'pack-boasvindas', nome: 'Novo Jogador', cpf: '52998224725' }, fake);
+assert.equal(sent.body.valor, '5.00');
+const c0 = (await R.getProfile('u0')).coins;
+assert.equal((await gerapixWebhook(R, 'Bearer segredo-teste', { status: 'Aprovado', id_transacao: 'TX9', external_reference: sent.body.external_reference })).credited, 80);
+const p0 = await R.getProfile('u0');
+assert.equal(p0.coins, c0 + 80); assert.equal(p0.avatar, '🌟'); assert.ok(p0.owned.includes('av-estrela'));
+await assert.rejects(createGerapixCharge(R, U2, { pack: 'pack-boasvindas', nome: 'Novo Jogador', cpf: '52998224725' }, fake), /primeira compra/);
+console.log('OK — pacote de boas-vindas só na primeira compra, com avatar exclusivo; GeraPix: R$ 1 = 10 fichas, valor livre, token/transação conferidos, CPF não guardado, crédito único');

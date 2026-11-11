@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabase-browser.js';
 import Shell from '../../components/Shell.js';
 import { api } from '../../lib/supabase-browser.js';
-import { ITEMS, PACKS, VIP_PERKS, FICHAS_POR_REAL, RECARGA_MIN, RECARGA_MAX } from '../../lib/shop-items.js';
+import { ITEMS, PACKS, VIP_PERKS, FICHAS_POR_REAL, RECARGA_MIN, RECARGA_MAX, WELCOME } from '../../lib/shop-items.js';
 import { fmt } from '../../lib/modes.js';
 import { toast, Modal } from '../../components/ui.js';
 import { sfx } from '../../lib/sfx.js';
@@ -19,6 +19,7 @@ function Body({ profile, reloadProfile, user }) {
   const [buys, setBuys] = useState([]);
   const loadBuys = () => user && sb().from('purchases').select('*').eq('user_id', user.id).not('coins', 'eq', 0).order('created_at', { ascending: false }).limit(10).then(({ data }) => setBuys(data || []));
   useEffect(() => { loadBuys(); }, [user]); // eslint-disable-line
+  const welcome = !buys.some(b => b.status === 'done' && (b.coins || 0) > 0);
   useEffect(() => { if (profile && location.hash === '#comprar') setTimeout(() => document.getElementById('comprar')?.scrollIntoView({ behavior: 'smooth' }), 200); }, [!!profile]); // eslint-disable-line
   // voltou do Mercado Pago: confere o pagamento na hora
   useEffect(() => {
@@ -88,6 +89,12 @@ function Body({ profile, reloadProfile, user }) {
     </Modal>}
     <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
       <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} fichas</b>, e os pacotes maiores vêm com <b>bônus</b>. Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
+      {welcome && <div className="item" style={{ border: '2px solid #f2c94c', background: 'linear-gradient(135deg,#3a2a08,#120e08)', flexDirection: 'row', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+        <span style={{ fontSize: 44 }}>🎁</span>
+        <div style={{ textAlign: 'left' }}><b style={{ fontSize: 18, color: 'var(--gold)' }}>Pacote de boas-vindas</b><br />
+          <span>R$ 5,00 → <b>{fmt(WELCOME.coins)} fichas</b> + avatar exclusivo 🌟 Estrela</span><br /><small className="hint">Só na sua primeira compra</small></div>
+        <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay({ id: WELCOME.id, brl: WELCOME.brl, coins: WELCOME.coins })}>Gerar Pix</button>
+      </div>}
       <div className="shopgrid">{PACKS.map(p => (
         <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b style={{ fontSize: 20 }}>R$ {p.brl.toFixed(2).replace('.', ',')}</b><span style={{ color: 'var(--gold)', font: '600 16px Oswald' }}>{fmt(p.coins)} fichas</span>
           {p.bonus > 0 && <span style={{ background: '#16a34a', color: '#fff', borderRadius: 10, padding: '1px 8px', font: '600 12px Rubik' }}>+{p.pct}% bônus · +{fmt(p.bonus)}</span>}
@@ -109,7 +116,7 @@ function Body({ profile, reloadProfile, user }) {
     </div>
     {['avatar', 'back', 'felt'].map(slot => (
       <div key={slot} id={slot === 'avatar' ? 'itens' : undefined} className="panel"><h3 style={{ fontSize: 20 }}>{slot === 'avatar' ? '✨ Avatares especiais' : slot === 'back' ? '🂠 Baralhos' : '🟩 Mesas'}</h3>
-        <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot).map(it => {
+        <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot && (!i.exclusive || owned.includes(i.id))).map(it => {
           const isEq = slot === 'avatar' ? profile.avatar === it.em : (eq[slot] || (slot === 'back' ? 'back-azul' : 'felt-verde')) === it.id;
           const has = it.price === 0 && !it.vipOnly || owned.includes(it.id) || (it.vipOnly && vip);
           return (
