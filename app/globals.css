@@ -413,3 +413,12 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 
 .forgot{display:block;margin:10px auto 0;background:none;border:0;color:var(--gold);font:500 14px Rubik;text-decoration:underline;cursor:pointer}
 .authkb .forgot{margin-top:6px;font-size:12px}
+
+/* cartas do meio da mesa (monte, vira, coringas e descarte) maiores */
+.center{--pcw:clamp(56px,13.5vmin,98px)}
+.center .piles{--cw:var(--pcw);gap:clamp(22px,7vmin,72px)}
+.center .corbox .card{--cw:calc(var(--pcw)*.56)}
+.center .corbox small{font-size:11px}
+/* coringa no descarte: ninguém pode pegar */
+.card.lockj{filter:saturate(.6) brightness(.9)}
+.card.lockj::after{content:"🔒";position:absolute;right:-8px;bottom:-8px;font-size:calc(var(--cw)*.32);line-height:1;background:#b91c1c;border:2px solid #fff;border-radius:50%;padding:3px;box-shadow:0 2px 6px rgba(0,0,0,.5)}

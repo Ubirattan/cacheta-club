@@ -324,6 +324,14 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 
 /* aviso da vez embaixo das cartas da mesa (não cobre os jogadores) */
 .piles{order:1}#msg{order:2}
+/* cartas do meio da mesa (monte, vira, coringas e descarte) maiores */
+.center{--pcw:clamp(56px,13.5vmin,98px)}
+.center .piles{--cw:var(--pcw);gap:clamp(22px,7vmin,72px)}
+.center .corbox .card{--cw:calc(var(--pcw)*.56)}
+.center .corbox small{font-size:11px}
+/* coringa no descarte: ninguém pode pegar */
+.card.lockj{filter:saturate(.6) brightness(.9)}
+.card.lockj::after{content:"🔒";position:absolute;right:-8px;bottom:-8px;font-size:calc(var(--cw)*.32);line-height:1;background:#b91c1c;border:2px solid #fff;border-radius:50%;padding:3px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
@@ -583,7 +591,9 @@ const Engine=(()=>{
       if(p.queimado) return err('Você errou uma batida nesta rodada: agora só pode bater comprando do monte');
       const lastD=[...M.history].reverse().find(h=>h.t==='discard');
       if(lastD&&lastD.pi===pi) return err('Não dá pra bater com a carta que você mesmo descartou');
-      const top=M.desc[M.desc.length-1], all=[...p.hand,top];
+      const top=M.desc[M.desc.length-1];
+      if(isJ(top,M.cor)) return err('Coringa descartado não pode ser pego: compre do monte');
+      const all=[...p.hand,top];
       const b=findBater(M,all,top.id);
       if(b<0){
         // batida errada: não leva a carta e fica queimado; se era a vez dele, perde a vez
@@ -603,6 +613,7 @@ const Engine=(()=>{
       if(M.phase!=='draw') return err('Você já comprou nesta vez');
       let c;
       if(a.from==='desc'&&p.queimado) return err('Você errou uma batida: até o fim da rodada só pode comprar do monte');
+      if(a.from==='desc'&&M.desc.length&&isJ(M.desc[M.desc.length-1],M.cor)) return err('Coringa descartado não pode ser pego: compre do monte');
       if(a.from==='desc'){ if(!M.desc.length) return err('O descarte está vazio'); c=M.desc.pop(); M.taken=c.id; }
       else { c=drawMonte(M); M.taken=null;
         if(!c){ M.over=true; M.result={empate:true}; M.dealer=nextAlive(M,M.dealer); return {ok:true,ev:{type:'empate'}}; } }
@@ -727,7 +738,7 @@ const AI=(()=>{
   function chooseDraw(M,pi,level){
     const p=M.players[pi], top=M.desc[M.desc.length-1];
     if(!top||p.queimado) return 'monte';
-    if(E.isJ(top,M.cor)) return level==='facil'&&Math.random()<0.5?'monte':'desc';
+    if(E.isJ(top,M.cor)) return 'monte';   // coringa descartado não pode ser pego
     const withTop=[...p.hand,top];
     if(level!=='facil'&&E.findBater(M,withTop,top.id)>=0) return 'desc';
     if(level==='facil'){
@@ -1116,6 +1127,7 @@ function humanBaterDesc(){ // bater direto com a carta do descarte do adversári
 function botSnipe(){ // os robôs (médio e difícil) também batem com o descarte fora da vez
   if(!M||M.over||M.phase!=='draw'||!M.desc.length) return false;
   const top=M.desc[M.desc.length-1];
+  if(E.isJ(top,M.cor)) return false;
   for(let k=1;k<M.players.length;k++){
     const p=M.players[k];
     if(k===M.turn||p.fichas<=0||p.queimado||p.level==='facil') continue;
@@ -1278,7 +1290,7 @@ function render(){
   const myDraw=M.phase==='draw'&&M.turn===0&&!M.over;
   $('#monte').innerHTML=`<div class="back ${myDraw?'glow':''}"><b>${M.monte.length}</b></div>`;
   const top=M.desc[M.desc.length-1];
-  $('#desc').innerHTML=top?cardHTML(top,(myDraw&&!M.players[0].queimado?'glow ':'')+(hideId===top.id?'hid':'')):'<div class="slot">🗑</div>';
+  $('#desc').innerHTML=top?cardHTML(top,(myDraw&&!M.players[0].queimado&&!E.isJ(top,M.cor)?'glow ':'')+(E.isJ(top,M.cor)?'lockj ':'')+(hideId===top.id?'hid':'')):'<div class="slot">🗑</div>';
   $('#msg').innerHTML='<span>'+(M.msg||'')+'</span>';
   const an=E.analyze(meP.hand,M.cor,M.cfg);
   const inM=new Set(an.melds.flat().map(c=>c.id));
@@ -1314,6 +1326,7 @@ const RULES=()=>`<ol class="rules">
 <li>Na sua vez, compre do <b>monte</b> ou pegue a carta de cima do <b>descarte</b>, depois descarte uma. Não vale descartar a carta que acabou de pegar do descarte.</li>
 <li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem). <b>Arraste as cartas</b> pra montar seus grupos, do tamanho que quiser (2, 3, 4, 5…). Solte em cima de um grupo pra juntar, ou no espaço entre os grupos pra separar. Com 3 ou mais cartas o grupo mostra <b>Trinca</b> ou <b>Sequência</b> em verde, ou <b>Inválido</b>.</li>
 <li>Quem fechar todas as cartas em jogos <b>bate</b>: toque em BATER. O botão fica sempre ativo: dá pra bater na hora com a carta que um adversário acabou de descartar, sem comprar, <b>mesmo fora da sua vez</b>. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
+<li><b>Coringa no descarte:</b> se alguém descartar um coringa, o próximo jogador <b>não pode pegar</b> essa carta (nem bater com ela): tem que comprar do monte.</li>
 <li><b>Batida errada:</b> se as cartas não fecharem, até o fim da rodada você <b>só pode comprar do monte</b> (não pega nem bate com o descarte). Se era a sua vez, também perde a vez.</li>
 <li><b>Ir ou correr</b> (cacheta de pontos): com as cartas na mão, cada um decide se vai jogar. Quem <b>corre perde 1 ponto</b> e assiste a rodada. Quem <b>joga e perde, perde 2 pontos</b>; quem bate não perde nada. Se só um for jogar, ele ganha a rodada sem jogo. Com 1 ponto não dá pra correr.</li>
 <li>Quem zera os pontos sai. O último na mesa vence e leva o pote de fichas.</li></ol>`;
