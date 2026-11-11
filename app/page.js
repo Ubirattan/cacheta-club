@@ -24,7 +24,6 @@ export default function Home() {
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');
   useEffect(() => { if (user) sb().from('app_settings').select('value').eq('key', 'motd').maybeSingle().then(({ data }) => setMotd(data ? data.value : '')); }, [user]);
-  const bonusOk = profile && (!profile.last_bonus || Date.now() - new Date(profile.last_bonus).getTime() > 20 * 3600 * 1000);
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
@@ -49,7 +48,7 @@ export default function Home() {
         <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
         {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
         <div className="ver">Cacheta Club · v3.0 beta</div>
-        <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>{bonusOk ? '🎁' : '🛒'}</i>Loja{bonusOk && <span className="badge-n" style={{ top: -6, right: -10 }}>1</span>}</button>
+        <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>
       </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       {modal === 'codigo' && <JoinCode onClose={() => setModal(null)} />}

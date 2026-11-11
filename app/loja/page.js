@@ -58,8 +58,6 @@ function Body({ profile, reloadProfile, user }) {
   if (!profile) return <div className="empty">Carregando…</div>;
   const vip = profile.vip_until && new Date(profile.vip_until) > new Date();
   const owned = profile.owned || [], eq = profile.equipped || {};
-  const last = profile.last_bonus ? new Date(profile.last_bonus).getTime() : 0;
-  const bonusOk = Date.now() - last > 20 * 3600 * 1000;
   async function call(body, okMsg) {
     setBusy(true);
     try { const r = await api('/api/shop', body); sfx('coin'); toast(typeof okMsg === 'function' ? okMsg(r) : okMsg); reloadProfile(); }
@@ -101,11 +99,6 @@ function Body({ profile, reloadProfile, user }) {
       {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
         <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>
           <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div></>}
-    </div>
-    <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-      <span style={{ fontSize: 40 }}>🎁</span>
-      <div style={{ flex: 1, minWidth: 180 }}><h3 style={{ fontSize: 20 }}>Bônus diário</h3><span className="hint">Fichas grátis todo dia{vip ? ' (VIP ganha em dobro)' : ''}.</span></div>
-      <button className="pillbtn" disabled={busy || !bonusOk} onClick={() => call({ op: 'bonus' }, r => `+ 💰 ${fmt(r.amount)} no seu saldo!`)}>{bonusOk ? 'Pegar bônus' : 'Volte amanhã'}</button>
     </div>
     <div className="vipbox">
       <h3 style={{ margin: 0, font: '700 24px Oswald', color: 'var(--gold)' }}>👑 VIP {vip && <small style={{ fontSize: 14, color: '#fff' }}>ativo até {new Date(profile.vip_until).toLocaleDateString('pt-BR')}</small>}</h3>

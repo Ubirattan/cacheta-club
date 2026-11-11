@@ -9,7 +9,7 @@ create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   nickname    text not null default 'Jogador',
   avatar      text not null default '😎',
-  coins       integer not null default 100 check (coins >= 0),   -- fichas virtuais, sem valor em dinheiro
+  coins       integer not null default 0 check (coins >= 0),   -- fichas virtuais, sem valor em dinheiro
   games       integer not null default 0,
   wins        integer not null default 0,
   blocked     boolean not null default false,

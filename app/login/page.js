@@ -9,7 +9,8 @@ export default function Login() {
   const [nick, setNick] = useState(''), [email, setEmail] = useState(''), [pass, setPass] = useState(''), [pass2, setPass2] = useState('');
   const [err, setErr] = useState(''), [ok, setOk] = useState(''), [busy, setBusy] = useState(false);
 
-  useEffect(() => { sb().auth.getSession().then(({ data }) => { if (data.session) router.replace(next()); }); }, [router]);
+  useEffect(() => { sb().auth.getSession().then(({ data }) => { if (data.session) go(next()); }); }, [router]);
+  const go = (n) => { if (n.endsWith('.html')) location.replace(n); else router.replace(n); };
   const next = () => { try { return new URLSearchParams(location.search).get('next') || '/'; } catch { return '/'; } };
 
   async function submit(e) {
@@ -24,11 +25,11 @@ export default function Login() {
       if (tab === 'entrar') {
         const { error } = await sb().auth.signInWithPassword({ email, password: pass });
         if (error) throw new Error(error.message.includes('Invalid') ? 'E-mail ou senha errados' : error.message.includes('confirm') ? 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada)' : error.message);
-        router.replace(next());
+        go(next());
       } else {
         const { data, error } = await sb().auth.signUp({ email, password: pass, options: { data: { nickname: nick.trim().slice(0, 16) }, emailRedirectTo: location.origin } });
         if (error) throw new Error(error.message.includes('registered') ? 'Esse e-mail já tem conta. Use "Entrar".' : error.message);
-        if (data.session) router.replace(next());
+        if (data.session) go(next());
         else setOk('Conta criada! Enviamos um link de confirmação pro seu e-mail.');
       }
     } catch (e2) { setErr(e2.message); }

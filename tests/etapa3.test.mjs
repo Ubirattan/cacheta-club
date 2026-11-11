@@ -89,6 +89,8 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   p = await R.getProfile('u1'); assert.equal(p.coins, 0); assert.ok(new Date(p.vip_until) > new Date());
   await equip(R, U[1], 'felt-noite');
   await assert.rejects(buy(R, U[1], 'felt-azul'), /insuficientes/);
+  await assert.rejects(dailyBonus(R, U[1]), /Não há bônus/, 'sem bônus grátis por padrão');
+  R.T.app_settings.push({ key: 'daily_bonus', value: '20' });
   const b = await dailyBonus(R, U[1]); assert.equal(b.amount, 40, 'VIP ganha bônus em dobro');
   await assert.rejects(dailyBonus(R, U[1]), /já pegou/);
   const vr = await S.createRoom(R, U[1], { mode: 'cacheta', maxPlayers: 2, points: 3, entry: 0, vipOnly: true });
