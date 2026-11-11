@@ -23,10 +23,10 @@ payments['222'] = { id: 222, status: 'approved', transaction_amount: 0.01, curre
 assert.equal((await processPayment(R, '222', fakeMP)).reason, 'valor diferente');
 assert.equal((await R.getProfile('u1')).coins, 1000);
 payments['111'].status = 'approved';
-assert.equal((await processPayment(R, '111', fakeMP)).credited, 220); // R$ 20 = 200 fichas + 10% de bônus
+assert.equal((await processPayment(R, '111', fakeMP)).credited, 20); // R$ 20 = 20 fichas
 assert.equal((await processPayment(R, '111', fakeMP)).already, true, 'aviso repetido não credita de novo');
 await Promise.all([processPayment(R, '111', fakeMP), processPayment(R, '111', fakeMP)]);
-assert.equal((await R.getProfile('u1')).coins, 1220, 'creditado exatamente uma vez');
+assert.equal((await R.getProfile('u1')).coins, 1020, 'creditado exatamente uma vez');
 assert.equal((await processPayment(R, 'abc;drop', fakeMP)).ok, false);
 await assert.rejects(createCheckout(R, U[1], 'pack-falso', fakeMP), /inválido/);
 delete process.env.MP_ACCESS_TOKEN;

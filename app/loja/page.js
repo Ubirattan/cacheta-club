@@ -88,11 +88,11 @@ function Body({ profile, reloadProfile, user }) {
       <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
     </Modal>}
     <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
-      <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} fichas</b>, e os pacotes maiores vêm com <b>bônus</b>. Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
+      <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} ficha</b>: o valor do Pix vira a mesma quantidade de fichas. Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
       {welcome && <div className="item" style={{ border: '2px solid #f2c94c', background: 'linear-gradient(135deg,#3a2a08,#120e08)', flexDirection: 'row', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
         <span style={{ fontSize: 44 }}>🎁</span>
         <div style={{ textAlign: 'left' }}><b style={{ fontSize: 18, color: 'var(--gold)' }}>Pacote de boas-vindas</b><br />
-          <span>R$ 5,00 → <b>{fmt(WELCOME.coins)} fichas</b> + avatar exclusivo 🌟 Estrela</span><br /><small className="hint">Só na sua primeira compra</small></div>
+          <span>R$ {WELCOME.brl.toFixed(2).replace('.', ',')} → <b>{fmt(WELCOME.coins)} fichas</b> + avatar exclusivo 🌟 Estrela</span><br /><small className="hint">Só na sua primeira compra</small></div>
         <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay({ id: WELCOME.id, brl: WELCOME.brl, coins: WELCOME.coins })}>Gerar Pix</button>
       </div>}
       <div className="shopgrid">{PACKS.map(p => (
