@@ -1,0 +1,3 @@
+# O Netlify reconhece o Next.js sozinho; aqui só fixamos o comando de build.
+[build]
+  command = "npm run build"
