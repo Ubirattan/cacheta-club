@@ -426,9 +426,10 @@ export default function Sala() {
           <div className="wm"><b>CACHETA CLUB</b><small>{MODES[room.mode]?.name} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
           <div className="center">
             {game.phase === 'decide' && !game.over && myIdx >= 0 && me.fichas > 0
-              ? <div id="msg"><span>{me.dec ? 'Aguardando os outros decidirem…' : me.fichas <= 1 ? 'Você tem 1 ponto e precisa jogar' : 'Vai jogar esta rodada?'}</span>
+              ? <div id="msg"><span>{me.dec ? 'Aguardando os outros decidirem…' : me.fichas <= 1 ? 'Com 1 ponto não dá pra correr:' : 'Vai jogar esta rodada?'}</span>
                   {!me.dec && <button className="dbtn dgo" disabled={busy} onClick={() => act({ type: 'decide', go: true })}>JOGAR</button>}
                   {!me.dec && me.fichas > 1 && <button className="dbtn drun" disabled={busy} onClick={() => act({ type: 'decide', go: false })}>CORRER (−1)</button>}
+                  {!me.dec && me.fichas <= 1 && <button className="dbtn drun" disabled={busy} onClick={() => { if (confirm('Desistir e sair desta partida?')) act({ type: 'decide', go: false, desistir: true }); }}>DESISTIR</button>}
                   <small style={{ marginLeft: 8, opacity: .8 }}>{Math.ceil(left / 1000)}s</small></div>
               : <div id="msg"><span dangerouslySetInnerHTML={{ __html: msg }} /></div>}
             <div className="piles">
@@ -451,7 +452,7 @@ export default function Sala() {
                   <div className="av">{p.avatar}{p.fichas > 0 && <span className="cnt">🂠{p.count}</span>}</div>
                   <div className="np"><b>{p.name}</b><small>{p.left ? 'saiu' : p.fichas > 0 ? `${p.fichas} pts${turn && game.phase !== 'decide' ? ` · ${Math.ceil(left / 1000)}s` : ''}` : 'eliminado'}</small></div>
                   {game.phase === 'decide' && p.fichas > 0 ? <div className="bubble">{p.dec ? '✓ decidiu' : 'decidindo…'}</div>
-                    : game.last?.t === 'decidido' && p.dec ? <div className="bubble">{p.dec === 'go' ? 'vai jogar' : 'correu (−1)'}</div>
+                    : game.last?.t === 'decidido' && p.dec ? <div className="bubble">{p.dec === 'go' ? 'vai jogar' : p.dec === 'quit' ? 'desistiu' : 'correu (−1)'}</div>
                     : game.last?.pi === pi && lastTxt(game.last) && <div className="bubble">{lastTxt(game.last)}{game.last.timeout ? ' ⏱' : ''}</div>}
                 </div>
               );

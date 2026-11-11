@@ -515,7 +515,7 @@ const Engine=(()=>{
     const ORD=order(M.cfg);
     for(let k=0;k<decks;k++)for(let s=0;s<4;s++)for(const r of ORD)deck.push({id:id++,r,s});
     shuffle(deck);
-    M.players.forEach(p=>{p.hand=[];p.queimado=false;p.out=false;p.dec=null;});
+    M.players.forEach(p=>{p.hand=[];p.queimado=false;p.out=false;p.dec=null;p.desistiu=false;});
     M.start=M.players.map(p=>p.fichas);
     for(let n=0;n<M.cfg.hand;n++) M.players.forEach(p=>{if(p.fichas>0)p.hand.push(deck.pop());});
     M.vira=deck.pop();
@@ -528,7 +528,12 @@ const Engine=(()=>{
   }
   // todos decidiram: quem correu perde 1 ponto e fica de fora da rodada
   function resolveDecide(M){
-    M.players.forEach(x=>{ if(x.fichas>0&&x.dec==='run'){ x.fichas=Math.max(0,x.fichas-1); x.out=true; } });
+    M.players.forEach(x=>{
+      if(x.fichas>0&&x.dec==='run'){ x.fichas=Math.max(0,x.fichas-1); x.out=true; }
+      else if(x.fichas>0&&x.dec==='quit'){ x.fichas=0; x.out=true; x.desistiu=true; }   // desistiu: sai da partida
+    });
+    // se todo mundo sairia, quem desistiu volta e joga (alguém precisa ficar na mesa)
+    if(!alive(M).length) M.players.forEach(x=>{ if(x.desistiu){ x.fichas=1; x.out=false; x.desistiu=false; x.dec='go'; } });
     const goers=M.players.map((_,i)=>i).filter(i=>M.players[i].fichas>0&&M.players[i].dec==='go');
     const al=alive(M);
     if(goers.length<=1||al.length<=1){
@@ -564,8 +569,8 @@ const Engine=(()=>{
       if(M.phase!=='decide') return err('Não é hora de decidir');
       if(!p||p.fichas<=0) return err('Você não está na rodada');
       if(p.dec) return err('Você já decidiu');
-      if(!a.go&&p.fichas<=1) return err('Com 1 ponto não dá pra correr: você precisa jogar');
-      p.dec=a.go?'go':'run';
+      if(!a.go&&!a.desistir&&p.fichas<=1) return err('Com 1 ponto não dá pra correr: jogue ou desista');
+      p.dec=a.go?'go':a.desistir?'quit':'run';
       if(M.players.some(x=>x.fichas>0&&!x.dec)) return {ok:true,ev:{type:'decide',pi,wait:true}};
       return resolveDecide(M);
     }
@@ -948,18 +953,22 @@ function beginDecide(){
   if(p.fichas<=0) return humanDecide(true);
   sfx('turn');
   setMsg(p.fichas<=1
-    ? `Você tem 1 ponto e precisa jogar <button class="dbtn dgo" data-act="decGo">JOGAR</button>`
+    ? `Com 1 ponto não dá pra correr: <button class="dbtn dgo" data-act="decGo">JOGAR</button><button class="dbtn drun" data-act="decQuit">DESISTIR (sai da partida)</button>`
     : `Vai jogar esta rodada? <button class="dbtn dgo" data-act="decGo">JOGAR</button><button class="dbtn drun" data-act="decRun">CORRER (−1)</button>`);
 }
-function humanDecide(go){
+function humanDecide(go,desistir){
   if(!M||M.phase!=='decide') return;
   let r=null;
-  if(M.players[0].fichas>0){ r=E.act(M,0,{type:'decide',go}); if(!r.ok){sfx('err');return toast(r.err);} }
+  if(M.players[0].fichas>0){ r=E.act(M,0,{type:'decide',go,desistir:!!desistir}); if(!r.ok){sfx('err');return toast(r.err);} }
   for(let k=1;k<M.players.length&&M.phase==='decide';k++){
     const b=M.players[k]; if(b.fichas<=0||b.dec) continue;
     r=E.act(M,k,{type:'decide',go:AI.chooseGo(M,k,b.level)});
   }
-  bubbles={}; M.players.forEach((x,k)=>{ if(k&&x.dec) bubbles[k]=x.dec==='go'?'vai jogar':'correu (−1)'; });
+  bubbles={}; M.players.forEach((x,k)=>{ if(k&&x.dec) bubbles[k]=x.dec==='go'?'vai jogar':x.dec==='quit'?'desistiu':'correu (−1)'; });
+  if(desistir&&M.players[0].fichas<=0){ // desistiu: sai da partida
+    gen++; stopTimer(); render(); stats.partidas++; store.set('stats',stats); M.finished=true;
+    showOv(`<h2>Você desistiu</h2><p>Você saiu desta partida.</p><button class="go" data-act="again">Jogar de novo</button><button class="sec" data-act="${table.entry?'toLobby':'home'}">${table.entry?'Voltar às mesas':'Início'}</button>`);
+    return; }
   if(r&&r.ev.type==='semJogo') return onSemJogo(r.ev);
   sfx(go?'card':'err');
   setMsg(go?'Você vai jogar! Boa sorte':'Você correu e perdeu 1 ponto. Assista a rodada');
@@ -1368,6 +1377,7 @@ document.addEventListener('click',e=>{
     case 'bater': humanBater(); break;
     case 'decGo': humanDecide(true); break;
     case 'decRun': humanDecide(false); break;
+    case 'decQuit': humanDecide(false,true); break;
     case 'sort': if(!M)break; sortMode=(sortMode+1)%3; autoSort(); render(); toast(['Organizado por jogos','Organizado por naipe','Organizado por valor'][sortMode]); break;
     case 'left': case 'right': {
       if(!M||sel==null) break; const h=M.players[0].hand, i=h.findIndex(c=>c.id===sel), j=i+(act==='left'?-1:1);

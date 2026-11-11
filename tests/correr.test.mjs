@@ -36,4 +36,13 @@ assert.equal(AI.chooseGo(M, 0, 'medio'), true);
 // sem a regra, a rodada começa direto na compra
 M = Engine.newMatch({ ...cfg, correr: false }, [{ name: 'a' }, { name: 'b' }]); Engine.startRound(M);
 assert.equal(M.phase, 'draw');
-console.log('OK — ir ou correr: correu perde 1, jogou e perdeu perde 2, vencedor não perde, só um jogador ganha sem jogo');
+// com 1 ponto: não corre, mas pode desistir (sai da partida)
+M = mesa(3); M.players[0].fichas = 1;
+assert.equal(Engine.act(M, 0, { type: 'decide', go: false, desistir: true }).ok, true);
+Engine.act(M, 1, { type: 'decide', go: true }); r = Engine.act(M, 2, { type: 'decide', go: true });
+assert.equal(r.ev.type, 'decidido'); assert.equal(M.players[0].fichas, 0); assert.ok(M.players[0].out);
+// se todos sairiam, quem desistiu volta a jogar
+M = mesa(2); M.players[0].fichas = 1; M.players[1].fichas = 1;
+Engine.act(M, 0, { type: 'decide', go: false, desistir: true }); r = Engine.act(M, 1, { type: 'decide', go: false, desistir: true });
+assert.ok(M.players.every(p => p.fichas === 1));
+console.log('OK — com 1 ponto pode desistir; ir ou correr: correu perde 1, jogou e perdeu perde 2, vencedor não perde, só um jogador ganha sem jogo');
