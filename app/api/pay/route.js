@@ -9,7 +9,7 @@ export const POST = route(async ({ user, body, repo }) => {
       if (!body.cpf) return { needDoc: true }; // o GeraPix exige nome e CPF de quem paga
       return createGerapixCharge(repo, user, body);
     }
-    return createCheckout(repo, user, body.pack);
+    return createCheckout(repo, user, body.pack, fetch, body.valor);
   }
   const r = await processPayment(repo, body.paymentId);
   return { ok: r.ok, credited: r.credited || 0, already: !!r.already, status: r.status || null };

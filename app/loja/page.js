@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabase-browser.js';
 import Shell from '../../components/Shell.js';
 import { api } from '../../lib/supabase-browser.js';
-import { ITEMS, PACKS, VIP_PERKS } from '../../lib/shop-items.js';
+import { ITEMS, PACKS, VIP_PERKS, FICHAS_POR_REAL, RECARGA_MIN, RECARGA_MAX } from '../../lib/shop-items.js';
 import { fmt } from '../../lib/modes.js';
 import { toast, Modal } from '../../components/ui.js';
 import { sfx } from '../../lib/sfx.js';
@@ -35,11 +35,12 @@ function Body({ profile, reloadProfile, user }) {
     }).catch(e => toast(e.message));
   }, [user]); // eslint-disable-line
   const [doc, setDoc] = useState(null);     // pede nome e CPF (GeraPix)
+  const [livre, setLivre] = useState('');
   const [pix, setPix] = useState(null);     // QR Code + copia e cola esperando pagamento
   async function pay(pack, extra = {}) {
     setBusy(true);
     try {
-      const r = await api('/api/pay', { op: 'create', pack: pack.id, ...extra });
+      const r = await api('/api/pay', { op: 'create', pack: pack.id, valor: pack.brl, ...extra });
       if (r.needDoc) { setDoc({ pack, nome: '', cpf: '' }); setBusy(false); return; }
       if (r.pix) { setDoc(null); setPix({ ...r.pix, purchaseId: r.purchaseId }); setBusy(false); loadBuys(); return; }
       location.href = r.url;
@@ -87,10 +88,16 @@ function Body({ profile, reloadProfile, user }) {
       <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
     </Modal>}
     <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
-      <p className="hint">Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
+      <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} fichas.</b> Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
       <div className="shopgrid">{PACKS.map(p => (
-        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b>{fmt(p.coins)} fichas</b><span className="hint">R$ {p.brl.toFixed(2).replace('.', ',')}</span>
-          <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay(p)}>Gerar Pix</button></div>))}</div>
+        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b style={{ fontSize: 20 }}>R$ {p.brl.toFixed(2).replace('.', ',')}</b><span style={{ color: 'var(--gold)', font: '600 16px Oswald' }}>{fmt(p.coins)} fichas</span>
+          <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay(p)}>Gerar Pix</button></div>))}
+        <div className="item"><span style={{ fontSize: 36 }}>✏️</span><b>Outro valor</b>
+          <input className="mini-in" style={{ width: 110, textAlign: 'center', fontSize: 16 }} inputMode="decimal" placeholder="R$" value={livre} onChange={e => setLivre(e.target.value.replace(/[^0-9,.]/g, ''))} />
+          <span style={{ color: 'var(--gold)', font: '600 15px Oswald' }}>{(() => { const v = Number(livre.replace(',', '.')); return v >= RECARGA_MIN && v <= RECARGA_MAX ? `${fmt(Math.floor(v * FICHAS_POR_REAL))} fichas` : `de R$ ${RECARGA_MIN} a R$ ${fmt(RECARGA_MAX)}`; })()}</span>
+          <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy || !(Number(livre.replace(',', '.')) >= RECARGA_MIN && Number(livre.replace(',', '.')) <= RECARGA_MAX)}
+            onClick={() => { const v = Math.round(Number(livre.replace(',', '.')) * 100) / 100; pay({ id: 'custom', brl: v, coins: Math.floor(v * FICHAS_POR_REAL) }); }}>Gerar Pix</button></div>
+      </div>
       {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
         <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>
           <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div></>}
