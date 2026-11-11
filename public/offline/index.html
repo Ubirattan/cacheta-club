@@ -139,8 +139,8 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .piles{display:flex;gap:clamp(18px,6vmin,60px);align-items:center}
 .pile{position:relative;display:flex;flex-direction:column;align-items:center}
 .slot{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:8px;background:rgba(0,0,0,.12);box-shadow:inset 0 0 0 2px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.4);color:rgba(0,0,0,.22)}
-#viraBox{position:absolute;left:calc(var(--cw)*-.8);top:50%;transform:translateY(-50%) rotate(90deg);z-index:0}
-#viraBox .card{--cw:calc(var(--cw)*.9)}
+#viraBox{position:absolute;left:calc(var(--cw)*-.5);top:calc(var(--cw)*.12);transform:rotate(-9deg);transform-origin:bottom right;z-index:0}
+#viraBox .card{box-shadow:0 2px 6px rgba(0,0,0,.4)}
 #monte{position:relative;z-index:1}
 .back,.ghost .bk{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:8px;border:3px solid #fff;position:relative;
   background:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 3px,transparent 3px 7px),linear-gradient(135deg,#1f4fbf,#0d2a78);
@@ -194,6 +194,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 #hand .card.insR{box-shadow:5px 0 0 #38bdf8,0 3px 8px rgba(0,0,0,.4)}
 #hand .grp.bad{border-color:#f97316;background:rgba(249,115,22,.10)}
 #hand .grp.bad .gtag{background:#ea580c}
+#desc.droptgt{outline:3px dashed #38bdf8;outline-offset:6px;border-radius:10px}
 #hand .grp.gapL{box-shadow:-9px 0 0 -5px #38bdf8}#hand .grp.gapR{box-shadow:9px 0 0 -5px #38bdf8}
 .corbox .vcol{display:flex;flex-direction:column;align-items:center;gap:3px}
 .corbox{flex-direction:row!important;gap:10px!important;align-items:flex-end!important}
@@ -1054,7 +1055,8 @@ function dropTarget(x,id){ // solta em cima de um grupo = entra nele; no espaço
   let pos=0; for(const it of info) if(x>(it.l+it.r)/2) pos++;
   return {kind:'new',pos,info};
 }
-function clearDropMarks(){ document.querySelectorAll('#hand .insL,#hand .insR,#hand .gapL,#hand .gapR').forEach(e=>e.classList.remove('insL','insR','gapL','gapR')); }
+function overDesc(x,y){ const e=$('#desc'); if(!e) return false; const r=e.getBoundingClientRect(); return x>r.left-24&&x<r.right+24&&y>r.top-24&&y<r.bottom+24; }
+function clearDropMarks(){ const d=$('#desc'); if(d) d.classList.remove('droptgt'); document.querySelectorAll('#hand .insL,#hand .insR,#hand .gapL,#hand .gapR').forEach(e=>e.classList.remove('insL','insR','gapL','gapR')); }
 document.addEventListener('pointerdown',e=>{
   const el=e.target.closest('#hand .card'); if(!el||!M) return;
   drag={id:+el.dataset.id,el,x:e.clientX,y:e.clientY,on:false,pid:e.pointerId};
@@ -1066,7 +1068,9 @@ document.addEventListener('pointermove',e=>{
   if(!drag.on) return;
   e.preventDefault();
   drag.el.style.transform=`translate(${dx}px,${dy}px) scale(1.06)`;
-  const t=dropTarget(e.clientX,drag.id); clearDropMarks();
+  clearDropMarks();
+  if(overDesc(e.clientX,e.clientY)){ if(M&&M.turn===0&&M.phase==='discard'&&!M.over) $('#desc').classList.add('droptgt'); return; }
+  const t=dropTarget(e.clientX,drag.id);
   if(t.kind==='join'){ if(t.it.cs[t.idx]) t.it.cs[t.idx].classList.add('insL'); else t.it.cs[t.it.cs.length-1].classList.add('insR'); }
   else if(t.info[t.pos]) t.info[t.pos].el.classList.add('gapL'); else if(t.info.length) t.info[t.info.length-1].el.classList.add('gapR');
 },{passive:false});
@@ -1075,6 +1079,11 @@ function endDrag(e,cancel){
   if(!d.on) return;
   suppressClick=true; setTimeout(()=>{suppressClick=false;},60);
   if(!cancel&&M){
+    if(overDesc(e.clientX,e.clientY)){ // arrastou até o descarte: descarta essa carta
+      clearDropMarks(); pendingRender=false;
+      if(M.turn===0&&M.phase==='discard'&&!M.over){ d.el.style.transform=''; d.el.classList.remove('dragging'); humanEnd('discard',d.id).then(()=>{ if(M&&M.players[0].hand.some(c=>c.id===d.id)) render(); }); return; }
+      render(); return;
+    }
     const t=dropTarget(e.clientX,d.id), h=M.players[0].hand, from=h.findIndex(c=>c.id===d.id);
     if(from>=0){
       const [c]=h.splice(from,1);
@@ -1124,9 +1133,9 @@ function render(){
       <div class="np"><b>${p.name}</b><small>${p.fichas>0?p.fichas+' pts · '+LEVELS[p.level]:'eliminado'}</small></div>
       ${bubbles[i]&&p.fichas>0?`<div class="bubble">${bubbles[i]}</div>`:''}</div>`;
   }).join('');
-  $('#viraBox').innerHTML='';
+  $('#viraBox').innerHTML=M.vira?cardHTML(M.vira,'vira'):'';
   $('#corPill').innerHTML=M.cor>=0?`Coringa <b>${corTxt()}</b> ★`:'Sem coringa';
-  $('#corBox').innerHTML=`<div class="corbox"><div class="vcol"><small>Vira</small>${cardHTML(M.vira,'vira')}</div>`+
+  $('#corBox').innerHTML=`<div class="corbox">`+
     (M.cor>=0?`<div class="vcol"><small>Coringas</small><div class="cc">${E.corSuits(M.cor).map(s=>cardHTML({id:-10-s,r:E.corRank(M.cor),s})).join('')}</div></div>`:'<div class="vcol"><small>Sem<br>coringa</small></div>')+`</div>`;
   const myDraw=M.phase==='draw'&&M.turn===0&&!M.over;
   $('#monte').innerHTML=`<div class="back ${myDraw?'glow':''}"><b>${M.monte.length}</b></div>`;

@@ -41,7 +41,8 @@ function dropTarget(x, id) {
   let pos = 0; for (const it of info) if (x > (it.l + it.r) / 2) pos++;
   return { kind: 'new', pos, info };
 }
-const clearMarks = () => document.querySelectorAll('#hand .insL,#hand .insR,#hand .gapL,#hand .gapR').forEach(e => e.classList.remove('insL', 'insR', 'gapL', 'gapR'));
+const clearMarks = () => { document.querySelectorAll('#hand .insL,#hand .insR,#hand .gapL,#hand .gapR').forEach(e => e.classList.remove('insL', 'insR', 'gapL', 'gapR')); document.getElementById('desc')?.classList.remove('droptgt'); };
+function overDesc(x, y) { const e = document.getElementById('desc'); if (!e) return false; const r = e.getBoundingClientRect(); return x > r.left - 24 && x < r.right + 24 && y > r.top - 24 && y < r.bottom + 24; }
 function corTxt(cor) { const c = Engine.corColor(cor); return Engine.RANKS[Engine.corRank(cor)] + (c < 0 ? ' (todos)' : c === 1 ? ' ♥♦' : ' ♠♣'); }
 
 function seatPos(k, n, portrait) {
@@ -100,7 +101,7 @@ export default function Sala() {
   const [portrait, setPortrait] = useState(true);
   const [sortMode, setSortMode] = useState(0);
   const lastRef = useRef(null), chatOpenRef = useRef(false), dealRef = useRef(false);
-  const dragRef = useRef(null), suppressRef = useRef(false);
+  const dragRef = useRef(null), suppressRef = useRef(false), canDiscardRef = useRef(false), discardRef = useRef(() => {});
   // arrastar cartas da mão com o dedo/mouse para montar os jogos
   useEffect(() => {
     const mv = e => {
@@ -110,7 +111,9 @@ export default function Sala() {
       if (!d.on) return;
       e.preventDefault();
       d.el.style.transform = `translate(${dx}px,${dy}px) scale(1.06)`;
-      const t = dropTarget(e.clientX, d.id); clearMarks();
+      clearMarks();
+      if (overDesc(e.clientX, e.clientY)) { if (canDiscardRef.current) document.getElementById('desc')?.classList.add('droptgt'); return; }
+      const t = dropTarget(e.clientX, d.id);
       if (t.kind === 'join') { if (t.it.cs[t.idx]) t.it.cs[t.idx].classList.add('insL'); else t.it.cs[t.it.cs.length - 1].classList.add('insR'); }
       else if (t.info[t.pos]) t.info[t.pos].el.classList.add('gapL'); else if (t.info.length) t.info[t.info.length - 1].el.classList.add('gapR');
     };
@@ -121,6 +124,7 @@ export default function Sala() {
       clearMarks();
       suppressRef.current = true; setTimeout(() => { suppressRef.current = false; }, 60);
       if (cancel) return;
+      if (overDesc(e.clientX, e.clientY)) { if (canDiscardRef.current) discardRef.current(d.id); return; } // arrastou até o descarte
       const t = dropTarget(e.clientX, d.id);
       setGrp(G => {
         const n = G.map(g => g.filter(x => x !== d.id));
@@ -347,6 +351,7 @@ export default function Sala() {
   const myTurn = !game.over && game.turn === myIdx;
   const canDraw = myTurn && game.phase === 'draw';
   const canEnd = myTurn && game.phase === 'discard';
+  canDiscardRef.current = canEnd; discardRef.current = cid => act({ type: 'discard', cardId: cid });
   const turnName = game.players[game.turn]?.name;
   const left = game.deadline ? Math.max(0, game.deadline - now) : 0;
   const pct = game.cfg.turn ? Math.min(100, left / (game.cfg.turn * 1000) * 100) : 0;
@@ -401,9 +406,9 @@ export default function Sala() {
             <div id="msg"><span dangerouslySetInnerHTML={{ __html: msg }} /></div>
             <div className="piles">
               <div className="pile">
+                <div id="viraBox">{game.vira && <Card c={game.vira} cor={game.cor} cls="vira" />}</div>
                 <div id="monte" onClick={() => canDraw && act({ type: 'draw', from: 'monte' })}><div className={`back ${canDraw ? 'glow' : ''}`} style={{ background: backBg, borderColor: lk.back.gold ? '#f2c94c' : '#fff' }}><b>{game.monte}</b></div></div></div>
               <div className="pile"><div className="corbox">
-                {game.vira && <div className="vcol"><small>Vira</small><Card c={game.vira} cor={game.cor} cls="vira" /></div>}
                 {game.cor >= 0
                   ? <div className="vcol"><small>Coringas</small><div className="cc">{Engine.corSuits(game.cor).map(s => <Card key={s} c={{ id: -10 - s, r: Engine.corRank(game.cor), s }} cor={game.cor} />)}</div></div>
                   : <div className="vcol"><small>Sem<br />coringa</small></div>}</div></div>

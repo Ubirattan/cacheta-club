@@ -91,8 +91,8 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .piles{display:flex;gap:clamp(18px,6vmin,60px);align-items:center}
 .pile{position:relative;display:flex;flex-direction:column;align-items:center}
 .slot{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:8px;background:rgba(0,0,0,.12);box-shadow:inset 0 0 0 2px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.4);color:rgba(0,0,0,.22)}
-#viraBox{position:absolute;left:calc(var(--cw)*-.8);top:50%;transform:translateY(-50%) rotate(90deg);z-index:0}
-#viraBox .card{--cw:calc(var(--cw)*.9)}
+#viraBox{position:absolute;left:calc(var(--cw)*-.5);top:calc(var(--cw)*.12);transform:rotate(-9deg);transform-origin:bottom right;z-index:0}
+#viraBox .card{box-shadow:0 2px 6px rgba(0,0,0,.4)}
 #monte{position:relative;z-index:1}
 .back,.ghost .bk{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:8px;border:3px solid #fff;position:relative;
   background:repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 3px,transparent 3px 7px),linear-gradient(135deg,#1f4fbf,#0d2a78);
@@ -343,6 +343,7 @@ a{color:inherit;text-decoration:none}
 #hand .card.insR{box-shadow:5px 0 0 #38bdf8,0 3px 8px rgba(0,0,0,.4)}
 #hand .grp.bad{border-color:#f97316;background:rgba(249,115,22,.10)}
 #hand .grp.bad .gtag{background:#ea580c}
+#desc.droptgt{outline:3px dashed #38bdf8;outline-offset:6px;border-radius:10px}
 #hand .grp.gapL{box-shadow:-9px 0 0 -5px #38bdf8}#hand .grp.gapR{box-shadow:9px 0 0 -5px #38bdf8}
 .corbox{flex-direction:row!important;gap:10px!important;align-items:flex-end!important}
 .corbox .vcol{display:flex;flex-direction:column;align-items:center;gap:3px}
