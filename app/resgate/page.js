@@ -22,11 +22,9 @@ function Body({ profile, reloadProfile, user }) {
     catch (e) { toast(e.message); }
     setBusy(null);
   }
-  const tenho = TROFEUS.filter(t => owned.includes(t.id));
   return <>
-    <div className="panel" style={{ marginBottom: 12 }}>
-      <p className="hint" style={{ margin: 0 }}>Troque suas fichas por <b>troféus</b>. Seu prêmio será liberado em alguns minutos.</p>
-      <p style={{ margin: '8px 0 0' }}>Sua coleção: {tenho.length ? <span style={{ fontSize: 26 }}>{tenho.map(t => t.em).join(' ')}</span> : <i style={{ color: 'var(--mut)' }}>nenhum troféu ainda</i>}</p>
+    <div className="panel" style={{ marginBottom: 12, textAlign: 'center' }}>
+      <p style={{ margin: 0, font: '600 18px Oswald', color: 'var(--gold)' }}>🏆 Você receberá seu troféu em instantes</p>
     </div>
     <div className="shopgrid">{TROFEUS.map(t => {
       const has = owned.includes(t.id), wait = pend.includes(t.id), falta = profile.coins < t.price;
