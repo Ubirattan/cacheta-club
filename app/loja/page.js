@@ -5,7 +5,7 @@ import Shell from '../../components/Shell.js';
 import { api } from '../../lib/supabase-browser.js';
 import { ITEMS, PACKS, VIP_PERKS } from '../../lib/shop-items.js';
 import { fmt } from '../../lib/modes.js';
-import { toast } from '../../components/ui.js';
+import { toast, Modal } from '../../components/ui.js';
 import { sfx } from '../../lib/sfx.js';
 
 function Swatch({ it }) {
@@ -33,11 +33,26 @@ function Body({ profile, reloadProfile, user }) {
       reloadProfile(); loadBuys();
     }).catch(e => toast(e.message));
   }, [user]); // eslint-disable-line
-  async function pay(pack) {
+  const [doc, setDoc] = useState(null);     // pede nome e CPF (GeraPix)
+  const [pix, setPix] = useState(null);     // QR Code + copia e cola esperando pagamento
+  async function pay(pack, extra = {}) {
     setBusy(true);
-    try { const r = await api('/api/pay', { op: 'create', pack: pack.id }); location.href = r.url; }
-    catch (e) { toast(e.message); setBusy(false); }
+    try {
+      const r = await api('/api/pay', { op: 'create', pack: pack.id, ...extra });
+      if (r.needDoc) { setDoc({ pack, nome: '', cpf: '' }); setBusy(false); return; }
+      if (r.pix) { setDoc(null); setPix({ ...r.pix, purchaseId: r.purchaseId }); setBusy(false); loadBuys(); return; }
+      location.href = r.url;
+    } catch (e) { toast(e.message); setBusy(false); }
   }
+  // enquanto o QR está aberto, confere a cada 3 s se o pagamento caiu
+  useEffect(() => {
+    if (!pix) return;
+    const t = setInterval(async () => {
+      const { data } = await sb().from('purchases').select('status').eq('id', pix.purchaseId).maybeSingle();
+      if (data && data.status === 'done') { clearInterval(t); setPix(null); sfx('coin'); toast(`Pagamento confirmado! + 💰 ${fmt(pix.coins)}`); reloadProfile(); loadBuys(); }
+    }, 3000);
+    return () => clearInterval(t);
+  }, [pix]); // eslint-disable-line
   if (!profile) return <div className="empty">Carregando…</div>;
   const vip = profile.vip_until && new Date(profile.vip_until) > new Date();
   const owned = profile.owned || [], eq = profile.equipped || {};
@@ -51,6 +66,25 @@ function Body({ profile, reloadProfile, user }) {
   }
   const vipItem = ITEMS.find(i => i.slot === 'vip');
   return <>
+    {doc && <Modal onClose={() => setDoc(null)}>
+      <h2>Pagar com Pix</h2>
+      <p>{fmt(doc.pack.coins)} fichas por <b>R$ {doc.pack.brl.toFixed(2).replace('.', ',')}</b>. O banco do Pix pede o nome e o CPF de quem paga.</p>
+      <input className="field" placeholder="Nome e sobrenome" value={doc.nome} onChange={e => setDoc({ ...doc, nome: e.target.value })} />
+      <input className="field" placeholder="CPF (só números)" inputMode="numeric" maxLength={14} value={doc.cpf} onChange={e => setDoc({ ...doc, cpf: e.target.value })} />
+      <p className="hint">Seu CPF vai só para o gerador do Pix e não fica guardado no Cacheta Club.</p>
+      <button className="go" disabled={busy} onClick={() => pay(doc.pack, { nome: doc.nome, cpf: doc.cpf })}>{busy ? 'Gerando Pix…' : 'Gerar Pix'}</button>
+      <button className="sec" onClick={() => setDoc(null)}>Cancelar</button>
+    </Modal>}
+    {pix && <Modal>
+      <h2>Pix gerado</h2>
+      <p>Pague <b>R$ {pix.valor.toFixed(2).replace('.', ',')}</b> no app do seu banco. As <b>{fmt(pix.coins)} fichas</b> entram sozinhas assim que o pagamento cair.</p>
+      {pix.imagem && <img src={pix.imagem} alt="QR Code Pix" style={{ width: 220, height: 220, background: '#fff', borderRadius: 12, padding: 8 }} />}
+      <p className="hint">Ou use o Pix copia e cola:</p>
+      <textarea readOnly value={pix.copiaCola} onFocus={e => e.target.select()} style={{ width: '100%', height: 70, borderRadius: 10, padding: 8, fontSize: 12, userSelect: 'text' }} />
+      <button className="go" onClick={async () => { try { await navigator.clipboard.writeText(pix.copiaCola); toast('Código Pix copiado'); } catch { toast('Selecione e copie o código acima'); } }}>Copiar código Pix</button>
+      <p style={{ color: 'var(--gold)' }}>⏳ Aguardando pagamento…</p>
+      <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
+    </Modal>}
     <div className="panel" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
       <span style={{ fontSize: 40 }}>🎁</span>
       <div style={{ flex: 1, minWidth: 180 }}><h3 style={{ fontSize: 20 }}>Bônus diário</h3><span className="hint">Fichas grátis todo dia{vip ? ' (VIP ganha em dobro)' : ''}.</span></div>
@@ -76,7 +110,7 @@ function Body({ profile, reloadProfile, user }) {
             </div>);
         })}</div></div>))}
     <div className="panel"><h3 style={{ fontSize: 20 }}>Pacotes de fichas</h3>
-      <p className="hint">Pague com <b>Pix</b> ou cartão pelo Mercado Pago. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
+      <p className="hint">Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
       <div className="shopgrid">{PACKS.map(p => (
         <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b>{fmt(p.coins)} fichas</b><span className="hint">R$ {p.brl.toFixed(2).replace('.', ',')}</span>
           <button className="pillbtn blue" disabled={busy} onClick={() => pay(p)}>Comprar com Pix</button></div>))}</div>

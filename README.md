@@ -84,6 +84,14 @@ Como funciona: o jogador é levado pro Mercado Pago, paga com Pix ou cartão e v
 
 Pra testar sem dinheiro de verdade, use primeiro as **credenciais de teste** (`TEST-...`) e os usuários de teste do próprio Mercado Pago.
 
+### 3c. Pix pelo GeraPix (opcional, no lugar do Mercado Pago)
+Se a variável `GERAPIX_SECRET` existir, o site usa o GeraPix: o jogador informa nome e CPF, recebe o QR Code e o "copia e cola" na própria Loja, e as fichas entram sozinhas quando o Pix cai.
+1. No app/painel do **GeraPix**, copie o **token secreto** da API.
+2. No Netlify, cadastre `GERAPIX_SECRET` (marque **Contains secret values**) e `SITE_URL` = `https://cacheta-club.netlify.app`.
+3. Faça um novo deploy.
+
+O GeraPix avisa o site em `/api/pay/gerapix`, e o site confere o token antes de creditar. O valor mínimo do GeraPix é R$ 10, por isso os pacotes são de R$ 10, R$ 25 e R$ 50. O CPF vai só pro GeraPix e não fica guardado no banco. Saque de fichas não existe.
+
 ### 4. Avisar o Supabase do seu endereço
 No Supabase, em **Authentication → URL Configuration**:
 - **Site URL**: o seu endereço do Netlify.
