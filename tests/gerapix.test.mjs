@@ -22,9 +22,9 @@ assert.equal((await gerapixWebhook(R, 'Bearer errado', { status: 'Aprovado', id_
 assert.equal((await gerapixWebhook(R, 'Bearer segredo-teste', { status: 'Aprovado', id_transacao: 'OUTRA', external_reference: ref })).reason, 'transação não confere');
 assert.equal((await gerapixWebhook(R, 'Bearer segredo-teste', { status: 'pendente', id_transacao: 'TX9', external_reference: ref })).ignored, 'pendente');
 assert.equal((await R.getProfile('u1')).coins, 1000);
-assert.equal((await gerapixWebhook(R, 'Bearer segredo-teste', { status: 'Aprovado', id_transacao: 'TX9', external_reference: ref })).credited, 200);
+assert.equal((await gerapixWebhook(R, 'Bearer segredo-teste', { status: 'Aprovado', id_transacao: 'TX9', external_reference: ref })).credited, 220); // R$ 20 = 200 fichas + 10% de bônus
 assert.equal((await gerapixWebhook(R, 'Bearer segredo-teste', { status: 'Aprovado', id_transacao: 'TX9', external_reference: ref })).already, true);
-assert.equal((await R.getProfile('u1')).coins, 1200, 'creditado uma vez só');
+assert.equal((await R.getProfile('u1')).coins, 1220, 'creditado uma vez só');
 // valor livre: R$ 37,50 = 375 fichas; abaixo de R$ 10 é recusado
 const r2 = await createGerapixCharge(R, U[1], { pack: 'custom', valor: '37,50', nome: 'Bira Silva', cpf: '52998224725' }, fake);
 assert.equal(sent.body.valor, '37.50'); assert.equal(r2.pix.coins, 375);

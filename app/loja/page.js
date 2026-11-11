@@ -86,9 +86,10 @@ function Body({ profile, reloadProfile, user }) {
       <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
     </Modal>}
     <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
-      <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} fichas.</b> Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
+      <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} fichas</b>, e os pacotes maiores vêm com <b>bônus</b>. Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
       <div className="shopgrid">{PACKS.map(p => (
         <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b style={{ fontSize: 20 }}>R$ {p.brl.toFixed(2).replace('.', ',')}</b><span style={{ color: 'var(--gold)', font: '600 16px Oswald' }}>{fmt(p.coins)} fichas</span>
+          {p.bonus > 0 && <span style={{ background: '#16a34a', color: '#fff', borderRadius: 10, padding: '1px 8px', font: '600 12px Rubik' }}>+{p.pct}% bônus · +{fmt(p.bonus)}</span>}
           <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay(p)}>Gerar Pix</button></div>))}
         <div className="item"><span style={{ fontSize: 36 }}>✏️</span><b>Outro valor</b>
           <input className="mini-in" style={{ width: 110, textAlign: 'center', fontSize: 16 }} inputMode="decimal" placeholder="R$" value={livre} onChange={e => setLivre(e.target.value.replace(/[^0-9,.]/g, ''))} />
