@@ -344,7 +344,7 @@ export default function Sala() {
   const groups = handGroups(myHand, game.cfg.hand), ngap = groups.length - 1;
   const gType = groups.map(g => (g.length >= 3 ? Engine.meldType(g, game.cor, cfgFull) : null));
   const okN = gType.slice(0, 3).filter(Boolean).length, full = groups.length >= 3 && okN === 3;
-  const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 160 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
+  const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 160 : 0) - (typeof document !== 'undefined' && document.body.classList.contains('nfb') ? 190 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
     : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>'

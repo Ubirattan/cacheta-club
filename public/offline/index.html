@@ -181,6 +181,9 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 #hand{display:flex;justify-content:center;padding-top:20px;min-height:calc(var(--hcw,60px)*1.42 + 24px)}
 #hand .card{--cw:var(--hcw,60px);margin-left:calc(var(--hcw,60px)*-.36);cursor:pointer}
 #hand{gap:calc(var(--hcw,60px)*.14)}
+/* espaço livre no canto de baixo à direita para o selo do Netlify */
+.nfb #hand{padding-right:190px}.nfb .footbar{padding-right:200px}
+
 #hand .grp{display:flex;position:relative;border-radius:11px;padding:3px;border:2px solid transparent;transition:.2s}
 #hand .grp.ok{border-color:#4ade80;background:rgba(74,222,128,.13);box-shadow:0 0 14px rgba(74,222,128,.45)}
 #hand .grp > .card:first-of-type{margin-left:0}
@@ -306,6 +309,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 </style>
 </head>
 <body>
+<script>try{if(/netlify\.app$/.test(location.hostname))document.body.classList.add('nfb')}catch(e){}</script>
 
 <!-- ================= HOME ================= -->
 <section class="view lounge on" id="home">
@@ -1053,7 +1057,7 @@ function render(){
   $('#meRow').className=M.turn===0&&!M.over?'turn':'';
   $('#meRow').innerHTML=`<div class="av">${meP.avatar}</div><div class="info"><b>${meP.name}</b>${meP.fichas} pts <small>· ${(()=>{const g=handGroups(meP.hand,M.cfg.hand).slice(0,3);const n=g.filter(x=>x.length>=3&&E.meldType(x,M.cor,M.cfg)).length;return n+' de 3 jogos montados';})()}</small>${meP.queimado?'<span class="burn">🔥 só bate comprando do monte</span>':''}</div>`;
   const short=innerHeight<520&&innerWidth>innerHeight;
-  const nh=meP.hand.length, W=Math.min(innerWidth-(short?160:0),900)-20;
+  const nh=meP.hand.length, W=Math.min(innerWidth-(short?160:0)-(document.body.classList.contains('nfb')?190:0),900)-20;
   const maxH=innerHeight<520?innerHeight*0.19:96;
   const groups=handGroups(meP.hand,M.cfg.hand), ng=groups.length-1;
   const hcw=Math.max(28,Math.min(84,maxH/1.42,(W-(ng+1)*12)/(1+(nh-1)*0.64+ng*0.55)));

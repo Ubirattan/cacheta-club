@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Rubik:wght@400;500;700;800;900&family=Playfair+Display:ital,wght@1,800&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('cc_four')==='1')document.body.classList.add('four')}catch(e){}" }} />
+        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('cc_four')==='1')document.body.classList.add('four')}catch(e){}try{if(/netlify\\.app$/.test(location.hostname))document.body.classList.add('nfb')}catch(e){}" }} />
         {children}<div id="toast" /><Tela />
       </body>
     </html>

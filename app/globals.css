@@ -388,3 +388,6 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .kbd .k.fn.on{background:linear-gradient(180deg,#e9bd4a,#a8740f)}
 .kbd .k.sp{flex:3;font-size:14px}
 .kbd .k.ok{flex:2.2;background:linear-gradient(180deg,#34d399,#059669);font:600 17px Oswald}
+
+/* espaço livre no canto de baixo à direita para o selo do Netlify */
+.nfb #hand{padding-right:190px}.nfb .footbar{padding-right:200px}
