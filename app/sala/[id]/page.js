@@ -12,9 +12,9 @@ import { looks } from '../../../lib/shop-items.js';
 
 // animação de carta voando (mesmo efeito do modo offline)
 function cardStr(c, cor) {
-  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s], jk = Engine.isJ(c, cor);
+  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s] + '\uFE0E', jk = Engine.isJ(c, cor);
   const mid = c.r >= 10 ? `<div class="face"><b>${r}</b><i>${s}</i></div>` : `<div class="ctr">${s}</div>`;
-  return `<div class="card ${red ? 'red' : ''} ${jk ? 'joker' : ''}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div></div>`;
+  return `<div class="card s${c.s} ${red ? 'red' : ''} ${jk ? 'joker' : ''}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div></div>`;
 }
 function fly(fromSel, toSel, html) {
   const a = document.querySelector(fromSel), b = document.querySelector(toSel);

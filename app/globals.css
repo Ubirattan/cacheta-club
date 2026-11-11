@@ -349,3 +349,15 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .coins .plus{margin-left:-4px;width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,#34d399,#059669);color:#fff;display:flex;align-items:center;justify-content:center;font:700 17px Rubik;border:2px solid #000;z-index:1}
 .buybtn{border:2px solid #000;border-radius:30px;padding:10px 22px;font:700 19px Oswald;color:#fff;background:linear-gradient(180deg,#34d399,#059669);box-shadow:0 4px 0 #065f46,0 8px 18px rgba(0,0,0,.4);display:flex;flex-direction:column;align-items:center;line-height:1.1}
 .buybtn small{font:500 11px Rubik;opacity:.9}
+
+/* naipes mais nítidos: índice maior, símbolo de texto (não emoji) e figuras com letra reta */
+.card .ix{top:3%;left:6%}
+.card .ix b{font:800 calc(var(--cw)*.36)/1 Rubik;letter-spacing:-1.5px;white-space:nowrap}
+.card .ix i{font:400 calc(var(--cw)*.34)/1 'Segoe UI Symbol','DejaVu Sans','Noto Sans Symbols2','Arial Unicode MS',sans-serif;font-style:normal;margin-top:1px}
+.card .ix.br{bottom:3%;right:6%;top:auto;left:auto}
+.card .ctr{font-family:'Segoe UI Symbol','DejaVu Sans','Noto Sans Symbols2','Arial Unicode MS',sans-serif;font-size:calc(var(--cw)*.6)}
+.card .face b{font:800 calc(var(--cw)*.42)/1 Rubik;font-style:normal}
+.card .face i{font-family:'Segoe UI Symbol','DejaVu Sans','Noto Sans Symbols2',sans-serif;font-size:calc(var(--cw)*.2)}
+/* baralho de 4 cores (opcional): ♦ azul, ♣ verde */
+.four .card.s2{color:#1d5fd1}
+.four .card.s3{color:#138a3a}

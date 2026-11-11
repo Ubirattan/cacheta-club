@@ -247,6 +247,18 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   .piles{order:1}#msg{order:2}.center{top:56%}
   .seat .bubble{top:2px;left:100%;margin:0 0 0 2px}.seat.rt .bubble{left:auto;right:100%;margin:0 2px 0 0}
 }
+
+/* naipes mais nítidos: índice maior, símbolo de texto (não emoji) e figuras com letra reta */
+.card .ix{top:3%;left:6%}
+.card .ix b{font:800 calc(var(--cw)*.36)/1 Rubik;letter-spacing:-1.5px;white-space:nowrap}
+.card .ix i{font:400 calc(var(--cw)*.34)/1 'Segoe UI Symbol','DejaVu Sans','Noto Sans Symbols2','Arial Unicode MS',sans-serif;font-style:normal;margin-top:1px}
+.card .ix.br{bottom:3%;right:6%;top:auto;left:auto}
+.card .ctr{font-family:'Segoe UI Symbol','DejaVu Sans','Noto Sans Symbols2','Arial Unicode MS',sans-serif;font-size:calc(var(--cw)*.6)}
+.card .face b{font:800 calc(var(--cw)*.42)/1 Rubik;font-style:normal}
+.card .face i{font-family:'Segoe UI Symbol','DejaVu Sans','Noto Sans Symbols2',sans-serif;font-size:calc(var(--cw)*.2)}
+/* baralho de 4 cores (opcional): ♦ azul, ♣ verde */
+.four .card.s2{color:#1d5fd1}
+.four .card.s3{color:#138a3a}
 </style>
 </head>
 <body>
@@ -333,6 +345,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 <div id="ov"></div><div id="toast"></div>
 
 <script>
+
 
 
 
@@ -664,9 +677,9 @@ function setCoins(n){coins=n;store.set('coins',coins);['#hCoins','#lCoins'].forE
 
 /* ---- cartas ---- */
 function cardHTML(c,cls=''){
-  const red=c.s===1||c.s===2, r=E.RANKS[c.r], s=E.SUITS[c.s], jk=M&&E.isJ(c,M.cor);
+  const red=c.s===1||c.s===2, r=E.RANKS[c.r], s=E.SUITS[c.s]+'\uFE0E', jk=M&&E.isJ(c,M.cor);
   const mid=c.r>=10?`<div class="face"><b>${r}</b><i>${s}</i></div>`:`<div class="ctr">${s}</div>`;
-  return `<div class="card ${red?'red':''} ${jk?'joker':''} ${cls}" data-id="${c.id}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div>${jk?'<span class="jk">★</span>':''}</div>`;
+  return `<div class="card s${c.s} ${red?'red':''} ${jk?'joker':''} ${cls}" data-id="${c.id}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div>${jk?'<span class="jk">★</span>':''}</div>`;
 }
 const backHTML=()=>`<div class="bk"></div>`;
 function fly(fromR,toR,html,dur=380){
@@ -733,6 +746,7 @@ function settingsModal(){
   showOv(`<h2>Configurações</h2>`+
     seg('sound',{...c,label:'Sons',v:[[true,'Ligados'],[false,'Desligados']]})+
     seg('timer',{...c,label:'Cronômetro por jogada',v:[[0,'Sem'],[20,'20 s'],[30,'30 s'],[60,'60 s']]})+
+    seg('four',{...c,label:'Cores dos naipes',v:[[false,'2 cores (♥♦ vermelho)'],[true,'4 cores (♦ azul, ♣ verde)']]})+
     seg('hints',{...c,label:'Bolinha verde nas cartas em jogo',v:[[true,'Mostrar'],[false,'Esconder']]},'Escondendo, você mesmo confere se dá pra bater: mais risco de errar a batida.')+
     `<button class="go" data-act="close">Pronto</button>`);
 }
@@ -1053,6 +1067,7 @@ document.addEventListener('click',e=>{
     case 'startCustom': startMatch({entry:0,fichas:S.fichas,players:S.bots+1,cfg:{hand:S.hand,coringa:S.coringa,deck:S.deck,maxJ:S.maxJ,aceHigh:S.aceHigh,limpaDobro:S.limpaDobro},level:S.level,modeName:'Mesa personalizada'}); break;
     case 'again': { const t=table; leaveMatch(); startMatch(t); break; }
     case 'set': S[el.dataset.k]=JSON.parse(el.dataset.v); store.set('settings',S);
+      document.body.classList.toggle('four',!!S.four);
       if(el.dataset.ctx==='custom') customModal(); else settingsModal(); if(M) render(); break;
     case 'settings': settingsModal(); break;
     case 'profile': profileModal(); break;
@@ -1086,6 +1101,7 @@ document.addEventListener('click',e=>{
       if(j<0||j>=h.length) break; [h[i],h[j]]=[h[j],h[i]]; render(); break; }
   }
 });
+document.body.classList.toggle('four',!!S.four);
 renderHomeArt(); renderHeader();
 if(!me.nick) setTimeout(profileModal,300);
 </script>
