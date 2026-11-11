@@ -13,7 +13,7 @@ import { looks } from '../../../lib/shop-items.js';
 // animação de carta voando (mesmo efeito do modo offline)
 function cardStr(c, cor) {
   const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s], jk = Engine.isJ(c, cor);
-  const mid = c.r >= 7 ? `<div class="face"><b>${r}</b><i>${s}</i></div>` : `<div class="ctr">${s}</div>`;
+  const mid = c.r >= 10 ? `<div class="face"><b>${r}</b><i>${s}</i></div>` : `<div class="ctr">${s}</div>`;
   return `<div class="card ${red ? 'red' : ''} ${jk ? 'joker' : ''}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div></div>`;
 }
 function fly(fromSel, toSel, html) {
@@ -32,9 +32,18 @@ function fly(fromSel, toSel, html) {
 
 const name = c => Engine.RANKS[c.r] + Engine.SUITS[c.s];
 
+// 9 cartas: 3+3+3 · 10 cartas: 3+3+4 · a carta comprada fica num grupo à parte
+function handGroups(h, size) {
+  const sizes = size === 10 ? [3, 3, 4] : [3, 3, 3], out = []; let i = 0;
+  for (const n of sizes) { if (i >= h.length) break; out.push(h.slice(i, i + n)); i += n; }
+  if (i < h.length) out.push(h.slice(i));
+  return out;
+}
+function corTxt(cor) { const c = Engine.corColor(cor); return Engine.RANKS[Engine.corRank(cor)] + (c < 0 ? ' (todos)' : c === 1 ? ' ♥♦' : ' ♠♣'); }
+
 function seatPos(k, n, portrait) {
   if (!portrait && n > 4) { const x = 8 + 84 * (k - 1) / (n - 2), dx = (x - 50) / 47; return { x, y: 56 - 46 * Math.sqrt(Math.max(0, 1 - dx * dx)) }; }
-  const [a0, a1] = portrait ? [165, 375] : [192, 348];
+  const [a0, a1] = portrait ? (n <= 4 ? [205, 335] : [165, 375]) : [192, 348];
   const t = n === 2 ? 270 : a0 + (a1 - a0) * (k - 1) / (n - 2), rad = t * Math.PI / 180;
   let x = 50 + (portrait ? 44 : 47) * Math.cos(rad); x = Math.max(portrait ? 12 : 6, Math.min(portrait ? 88 : 94, x));
   return { x, y: 50 + (portrait ? 46 : 44) * Math.sin(rad) };
@@ -88,6 +97,40 @@ export default function Sala() {
   const [portrait, setPortrait] = useState(true);
   const [sortMode, setSortMode] = useState(0);
   const lastRef = useRef(null), chatOpenRef = useRef(false), dealRef = useRef(false);
+  const dragRef = useRef(null), suppressRef = useRef(false);
+  // arrastar cartas da mão com o dedo/mouse para montar os jogos
+  useEffect(() => {
+    const dropIdx = (x, id) => {
+      const cs = [...document.querySelectorAll('#hand .card')].filter(c => +c.dataset.id !== id);
+      let i = 0; for (const c of cs) { const r = c.getBoundingClientRect(); if (x > r.left + r.width / 2) i++; }
+      return { i, cs };
+    };
+    const mv = e => {
+      const d = dragRef.current; if (!d) return;
+      const dx = e.clientX - d.x, dy = e.clientY - d.y;
+      if (!d.on && Math.hypot(dx, dy) > 8) { d.on = true; d.el.classList.add('dragging'); }
+      if (!d.on) return;
+      e.preventDefault();
+      d.el.style.transform = `translate(${dx}px,${dy}px) scale(1.06)`;
+      const { i, cs } = dropIdx(e.clientX, d.id);
+      cs.forEach(c => c.classList.remove('insL', 'insR'));
+      if (cs[i]) cs[i].classList.add('insL'); else if (cs.length) cs[cs.length - 1].classList.add('insR');
+    };
+    const up = (e, cancel) => {
+      const d = dragRef.current; dragRef.current = null;
+      if (!d || !d.on) return;
+      d.el.style.transform = ''; d.el.classList.remove('dragging');
+      document.querySelectorAll('#hand .card').forEach(c => c.classList.remove('insL', 'insR'));
+      suppressRef.current = true; setTimeout(() => { suppressRef.current = false; }, 60);
+      if (cancel) return;
+      const { i } = dropIdx(e.clientX, d.id);
+      setOrder(o => { const n = o.filter(x => x !== d.id); n.splice(i, 0, d.id); return n; });
+      sfx('card');
+    };
+    const u = e => up(e, false), c = e => up(e, true);
+    addEventListener('pointermove', mv, { passive: false }); addEventListener('pointerup', u); addEventListener('pointercancel', c);
+    return () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', u); removeEventListener('pointercancel', c); };
+  }, []);
   chatOpenRef.current = chatOpen;
 
   const isMember = !!user && players.some(p => p.user_id === user.id);
@@ -298,16 +341,21 @@ export default function Sala() {
   const pct = game.cfg.turn ? Math.min(100, left / (game.cfg.turn * 1000) * 100) : 0;
   const W = Math.min(typeof innerWidth !== 'undefined' ? innerWidth : 400, 900) - 20;
   const short = typeof innerHeight !== 'undefined' && innerHeight < 520 && !portrait;
-  const ngap = Math.max(0, Math.ceil(myHand.length / 3) - 1);
-  const hcw = Math.max(30, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 190 : 0)) / (1 + (myHand.length - 1) * .64 + ngap * .52)));
+  const groups = handGroups(myHand, game.cfg.hand), ngap = groups.length - 1;
+  const gType = groups.map(g => (g.length >= 3 ? Engine.meldType(g, game.cor, cfgFull) : null));
+  const okN = gType.slice(0, 3).filter(Boolean).length, full = groups.length >= 3 && okN === 3;
+  const hcw = Math.max(28, Math.min(84, (short ? innerHeight * .2 : 96) / 1.42, (W - (short ? 190 : 0) - (ngap + 1) * 12) / (1 + (myHand.length - 1) * .64 + ngap * .55)));
   const lastTxt = l => !l ? '' : l.t === 'draw' ? (l.from === 'desc' ? `pegou ${name(l.card)}` : 'comprou do monte') : l.t === 'discard' ? `descartou ${name(l.card)}` : l.t === 'bateuErrado' ? 'errou a batida!' : l.t === 'leave' ? 'saiu da mesa' : l.t === 'bater' ? 'BATEU!' : '';
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
-    : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>' : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
+    : myTurn ? (game.phase === 'draw' ? 'Sua vez: compre do <b>monte</b> ou pegue o <b>descarte</b>'
+      : full && myHand.length === game.cfg.hand + 1 ? '✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER'
+      : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
     : `Vez de <b>${turnName}</b>`;
   const others = [];
   for (let k = 1; k < n; k++) others.push((myIdx + k) % n);
 
   function tapHand(c) {
+    if (suppressRef.current) return;
     if (sel === c.id && canEnd) return act({ type: 'discard', cardId: c.id });
     setSel(sel === c.id ? null : c.id);
   }
@@ -327,7 +375,7 @@ export default function Sala() {
         <div className="l">
           <button className="ico" onClick={() => setModal('placar')}>👥</button>
           <button className="ico" onClick={() => { setChatOpen(o => !o); setUnread(0); }}>💬{unread > 0 && <span className="badge-n">{unread}</span>}</button>
-          <div className="cpill">{game.cor >= 0 ? <>Coringa <b>{Engine.RANKS[Engine.corRank(game.cor)]}{game.cor >= 10 ? (game.cor >= 20 ? ' ♥♦' : ' ♠♣') : ''}</b> ★</> : 'Sem coringa'}</div>
+          <div className="cpill">{game.cor >= 0 ? <>Coringa <b>{corTxt(game.cor)}</b> ★</> : 'Sem coringa'}</div>
         </div>
         <button className="mesas" onClick={() => setModal('sair')}><i>🃏</i><span>Sair</span></button>
       </div>
@@ -337,11 +385,13 @@ export default function Sala() {
           <div className="center">
             <div id="msg"><span dangerouslySetInnerHTML={{ __html: msg }} /></div>
             <div className="piles">
-              <div className="pile"><div id="viraBox">{game.vira && <Card c={game.vira} cor={game.cor} />}</div>
+              <div className="pile">
                 <div id="monte" onClick={() => canDraw && act({ type: 'draw', from: 'monte' })}><div className={`back ${canDraw ? 'glow' : ''}`} style={{ background: backBg, borderColor: lk.back.gold ? '#f2c94c' : '#fff' }}><b>{game.monte}</b></div></div></div>
-              <div className="pile"><div className="corbox">{game.cor >= 0
-                ? <><small>Coringas</small><div className="cc">{Engine.corSuits(game.cor).map(s => <Card key={s} c={{ id: -10 - s, r: Engine.corRank(game.cor), s }} cor={game.cor} />)}</div></>
-                : <small>Sem<br />coringa</small>}</div></div>
+              <div className="pile"><div className="corbox">
+                {game.vira && <div className="vcol"><small>Vira</small><Card c={game.vira} cor={game.cor} cls="vira" /></div>}
+                {game.cor >= 0
+                  ? <div className="vcol"><small>Coringas</small><div className="cc">{Engine.corSuits(game.cor).map(s => <Card key={s} c={{ id: -10 - s, r: Engine.corRank(game.cor), s }} cor={game.cor} />)}</div></div>
+                  : <div className="vcol"><small>Sem<br />coringa</small></div>}</div></div>
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
                 {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={canDraw ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
             </div>
@@ -362,12 +412,19 @@ export default function Sala() {
       </div>
       <div id="mine">
         <div id="meRow" className={myTurn ? 'turn' : ''}><div className="av">{me.avatar}</div>
-          <div className="info"><b>{me.name}</b>{me.fichas} pts <small>· {an.melds.length} jogo{an.melds.length === 1 ? '' : 's'} · {myHand.length - an.cov} solta{myHand.length - an.cov === 1 ? '' : 's'}</small>
+          <div className="info"><b>{me.name}</b>{me.fichas} pts <small>· {okN} de 3 jogos montados</small>
             {me.queimado && <span className="burn">🔥 só bate comprando do monte</span>}</div></div>
         <div id="timer" className={left < 6000 ? 'warn' : ''} style={{ visibility: myTurn ? 'visible' : 'hidden' }}><i style={{ width: pct + '%' }} /></div>
-        <div id="hand" style={{ '--hcw': hcw + 'px' }}>
-          {myHand.map((c, i) => <Card key={c.id} c={c} cor={game.cor} onClick={() => tapHand(c)}
-            cls={[i > 0 && i % 3 === 0 ? 'gap' : '', sel === c.id ? 'sel' : '', inM.has(c.id) ? 'inm' : '', game.last?.t === 'draw' && game.last.pi === myIdx && hand[hand.length - 1]?.id === c.id ? 'new' : ''].join(' ')} />)}
+        <div id="hand" style={{ '--hcw': hcw + 'px' }} onPointerDown={e => {
+          const el = e.target.closest('.card'); if (!el) return;
+          dragRef.current = { id: +el.dataset.id, el, x: e.clientX, y: e.clientY, on: false };
+        }}>
+          {groups.map((g, gi) => (
+            <div key={gi} className={`grp ${gType[gi] ? 'ok' : ''}`}>
+              {gType[gi] && <span className="gtag">✓ {gType[gi] === 'trinca' ? 'Trinca' : 'Sequência'}</span>}
+              {g.map(c => <Card key={c.id} c={c} cor={game.cor} onClick={() => tapHand(c)}
+                cls={[sel === c.id ? 'sel' : '', inM.has(c.id) ? 'inm' : '', game.last?.t === 'draw' && game.last.pi === myIdx && hand[hand.length - 1]?.id === c.id ? 'new' : ''].join(' ')} />)}
+            </div>))}
         </div>
         <div id="bar">
           <button className="mv" onClick={() => move(-1)}>◀</button>

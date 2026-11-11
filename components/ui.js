@@ -14,7 +14,7 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
   return (
     <div className={`card ${red ? 'red' : ''} ${jk ? 'joker' : ''} ${cls}`} onClick={onClick} style={style} data-id={c.id}>
       <div className="ix"><b>{r}</b><i>{s}</i></div>
-      {c.r >= 7 ? <div className="face"><b>{r}</b><i>{s}</i></div> : <div className="ctr">{s}</div>}
+      {c.r >= 10 ? <div className="face"><b>{r}</b><i>{s}</i></div> : <div className="ctr">{s}</div>}
       <div className="ix br"><b>{r}</b><i>{s}</i></div>
       {jk && <span className="jk">★</span>}
     </div>

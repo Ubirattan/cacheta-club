@@ -34,9 +34,9 @@ export default function Home() {
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#38b6ff,#1565d8 60%,#0a3fa8)' }} onClick={() => router.push('/lobby')}>
           <Art cards={[[0, 1], [0, 0], [0, 3]]} em="🌐" /><h3>Cacheta online</h3></button>
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#43e0a0,#109c61 60%,#06703f)' }} onClick={() => router.push('/torneios')}>
-          <Art cards={[[9, 2], [8, 1]]} em="🏆" big /><h3>Torneio Cacheta</h3></button>
+          <Art cards={[[12, 2], [11, 1]]} em="🏆" big /><h3>Torneio Cacheta</h3></button>
         <a className="mode" style={{ '--g': 'linear-gradient(180deg,#ffb347,#ef6c0a 55%,#a3380a)' }} href="/offline/index.html">
-          <Art cards={[[6, 1], [7, 0], [5, 2]]} em="🤖" /><h3>Contra o computador</h3></a>
+          <Art cards={[[6, 1], [10, 0], [5, 2]]} em="🤖" /><h3>Contra o computador</h3></a>
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#ff6fd8,#d6247e 55%,#8e0f4e)' }} onClick={() => setModal('codigo')}>
           <Art cards={[[2, 3], [3, 3], [4, 3]]} em="🔑" /><h3>Entrar com código</h3></button>
       </div>
