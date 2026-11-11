@@ -524,6 +524,29 @@ const Engine=(()=>{
   const err=e=>({ok:false,err:e});
   function act(M,pi,a){
     if(M.over) return err('A rodada já terminou');
+    if(a.type==='baterDesc'){
+      // bater com a carta que o adversário acabou de descartar, sem comprar — vale até fora da vez
+      const p=M.players[pi], mine=M.turn===pi;
+      if(!p||p.fichas<=0) return err('Você não está na rodada');
+      if(M.phase!=='draw') return err(mine?'Você já comprou: escolha a carta e toque em BATER':'Espere o próximo descarte para bater');
+      if(!M.desc.length) return err('Não tem carta no descarte');
+      if(p.queimado) return err('Você errou uma batida nesta rodada: agora só pode bater comprando do monte');
+      const lastD=[...M.history].reverse().find(h=>h.t==='discard');
+      if(lastD&&lastD.pi===pi) return err('Não dá pra bater com a carta que você mesmo descartou');
+      const top=M.desc[M.desc.length-1], all=[...p.hand,top];
+      const b=findBater(M,all,top.id);
+      if(b<0){
+        // batida errada: não leva a carta e fica queimado; se era a vez dele, perde a vez
+        p.queimado=true; M.history.push({pi,t:'pass',errou:true});
+        if(mine){ M.turn=nextIdx(M,M.turn); M.phase='draw'; M.taken=null; }
+        return {ok:true,ev:{type:'bateuErrado',pi,card:null,top,fora:!mine}};
+      }
+      const cardId=all[b].id;
+      M.turn=pi; // quem bate pega o descarte na hora
+      const r1=act(M,pi,{type:'draw',from:'desc'}); if(!r1.ok) return r1;
+      const r2=act(M,pi,{type:'bater',cardId}); if(!r2.ok) return r2;
+      r2.ev.top=top; r2.ev.fora=!mine; return r2;
+    }
     if(M.turn!==pi) return err('Não é a sua vez');
     const p=M.players[pi];
     if(a.type==='draw'){
@@ -535,24 +558,6 @@ const Engine=(()=>{
       p.hand.push(c); M.phase='discard';
       M.history.push({pi,t:'draw',from:a.from,card:c});
       return {ok:true,ev:{type:'draw',pi,from:a.from,card:c}};
-    }
-    if(a.type==='baterDesc'){
-      // bater pegando a carta do descarte, direto, sem precisar comprar antes
-      if(M.phase!=='draw') return err('Você já comprou: escolha a carta e toque em BATER');
-      if(!M.desc.length) return err('Não tem carta no descarte');
-      if(p.queimado) return err('Você errou uma batida nesta rodada: agora só pode bater comprando do monte');
-      const top=M.desc[M.desc.length-1], all=[...p.hand,top];
-      const b=findBater(M,all,top.id);
-      if(b<0){
-        // batida errada: não leva a carta, perde a vez e fica queimado
-        p.queimado=true; M.history.push({pi,t:'pass',errou:true});
-        M.turn=nextIdx(M,M.turn); M.phase='draw'; M.taken=null;
-        return {ok:true,ev:{type:'bateuErrado',pi,card:null,top}};
-      }
-      const cardId=all[b].id;
-      const r1=act(M,pi,{type:'draw',from:'desc'}); if(!r1.ok) return r1;
-      const r2=act(M,pi,{type:'bater',cardId}); if(!r2.ok) return r2;
-      r2.ev.top=top; return r2;
     }
     if(a.type==='discard'||a.type==='bater'){
       if(M.phase!=='discard') return err('Compre uma carta primeiro');
@@ -905,6 +910,7 @@ function myGroups(){ // grupos que o jogador montou; carta nova entra num grupo 
 }
 function beginTurn(){
   if(M.over) return;
+  if(M.desc.length){ const g0=gen, top=M.desc[M.desc.length-1].id; setTimeout(()=>{ if(g0===gen&&M&&!M.over&&M.phase==='draw'&&M.desc.length&&M.desc[M.desc.length-1].id===top) botSnipe(); },900); }
   const p=M.players[M.turn];
   if(p.human){
     M.ready=true; M.msgFull=false; sfx('turn');
@@ -969,23 +975,42 @@ async function humanEnd(type,cardId){
   setMsg(`Você descartou ${E.name(r.ev.card)}`);
   beginTurn();
 }
-function humanBater(){
-  if(!M||M.over||M.turn!==0) return;
-  if(M.phase==='draw') return humanBaterDesc();
+function humanBater(){ // BATER fica sempre disponível
+  if(!M||M.over) return;
+  const me0=M.players[0];
+  if(M.turn!==0||M.phase==='draw'){
+    if(M.phase==='draw'&&M.desc.length&&!me0.queimado) return humanBaterDesc();
+    sfx('err');
+    return toast(me0.queimado?'Você errou uma batida: agora só pode bater comprando do monte, na sua vez':M.turn===0?'Ainda não tem carta no descarte: compre do monte':'Espere o próximo descarte para bater');
+  }
   let id=sel;
   if(id==null){ const p=M.players[0], b=(p.queimado&&M.taken!=null)?-1:E.findBater(M,p.hand,M.taken); if(b>=0) id=p.hand[b].id; }
   if(id==null) return toast('Toque na carta que vai descartar e depois em BATER');
   humanEnd('bater',id);
 }
-function humanBaterDesc(){ // bater direto com a carta do descarte do adversário
-  if(!M.ready) return;
+function humanBaterDesc(){ // bater direto com a carta do descarte do adversário (na vez ou fora dela)
+  if(M.turn===0&&!M.ready) return;
   const r=E.act(M,0,{type:'baterDesc'});
   if(!r.ok){sfx('err');return toast(r.err);}
-  stopTimer(); sel=null; newId=null;
-  if(r.ev.type==='bater'){ render(); return onBater(r.ev); }
+  sel=null; newId=null;
+  if(r.ev.type==='bater'){ gen++; stopTimer(); render(); return onBater(r.ev); }
   sfx('err'); render();
+  if(r.ev.fora){ toast(`Batida errada com ${E.name(r.ev.top)}! 🔥 Agora você só bate comprando do monte`); return; }
+  stopTimer();
   showOv(`<h2>Batida errada!</h2><p>Com o <b>${E.name(r.ev.top)}</b> do descarte suas cartas não fecham. Você perdeu a vez.</p><p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button class="go" data-act="closeGo">Continuar</button>`);
   M.pendingTurn=true;
+}
+function botSnipe(){ // os robôs (médio e difícil) também batem com o descarte fora da vez
+  if(!M||M.over||M.phase!=='draw'||!M.desc.length) return false;
+  const top=M.desc[M.desc.length-1];
+  for(let k=1;k<M.players.length;k++){
+    const p=M.players[k];
+    if(k===M.turn||p.fichas<=0||p.queimado||p.level==='facil') continue;
+    if(E.findBater(M,[...p.hand,top],top.id)<0) continue;
+    const r=E.act(M,k,{type:'baterDesc'});
+    if(r.ok&&r.ev.type==='bater'){ gen++; stopTimer(); bubbles={}; bubbles[k]='bateu com o descarte!'; render(); onBater(r.ev); return true; }
+  }
+  return false;
 }
 function onEmpate(){
   stopTimer(); render();
@@ -1165,7 +1190,7 @@ function render(){
   if(full&&M.turn===0&&M.phase==='discard'&&!M.over&&nh===M.cfg.hand+1&&!M.msgFull){M.msgFull=true;setMsg('✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER');}
   const canEnd=M.phase==='discard'&&M.turn===0&&!M.over;
   $('#bDisc').disabled=!(canEnd&&sel!=null);
-  $('#bBate').disabled=!(canEnd||(M.phase==='draw'&&M.turn===0&&!M.over&&M.ready&&M.desc.length&&!meP.queimado));
+  $('#bBate').disabled=M.over||dealing;
   $('#bSort').textContent=['🃏 Jogos','♠ Naipe','7 Valor'][sortMode];
 }
 window.addEventListener('resize',()=>{if(M&&$('#game').classList.contains('on'))render();});
@@ -1175,8 +1200,8 @@ const RULES=()=>`<ol class="rules">
 <li>Uma carta é virada: a <b>vira</b>. O coringa é a carta seguinte a ela, <b>da mesma cor da vira</b>: vira 9♥ → coringas 10♥ e 10♦; vira K♠ → Á♠ e Á♣. Ele vale por qualquer carta. Na mesa personalizada dá pra usar coringa em todos os naipes. No Pif Paf não tem coringa.</li>
 <li>Na sua vez, compre do <b>monte</b> ou pegue a carta de cima do <b>descarte</b>, depois descarte uma. Não vale descartar a carta que acabou de pegar do descarte.</li>
 <li>Forme jogos de 3 ou mais: <b>trinca</b> (mesmo valor, naipes diferentes) ou <b>sequência</b> (mesmo naipe e em ordem). <b>Arraste as cartas</b> pra montar seus grupos, do tamanho que quiser (2, 3, 4, 5…). Solte em cima de um grupo pra juntar, ou no espaço entre os grupos pra separar. Com 3 ou mais cartas o grupo mostra <b>Trinca</b> ou <b>Sequência</b> em verde, ou <b>Inválido</b>.</li>
-<li>Quem fechar todas as cartas em jogos <b>bate</b>: toque em BATER. Dá pra bater na hora com a carta que o adversário descartou, sem comprar. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
-<li><b>Batida errada:</b> se as cartas não fecharem, a carta vai pro descarte, você perde a vez e, até o fim da rodada, só pode bater com carta comprada do monte.</li>
+<li>Quem fechar todas as cartas em jogos <b>bate</b>: toque em BATER. O botão fica sempre ativo: dá pra bater na hora com a carta que um adversário acabou de descartar, sem comprar, <b>mesmo fora da sua vez</b>. Os outros perdem 1 ponto, ou 2 na <b>batida limpa</b>, sem coringa.</li>
+<li><b>Batida errada:</b> se as cartas não fecharem, você fica impedido de bater com o descarte: até o fim da rodada, só pode bater com carta comprada do monte. Se era a sua vez, também perde a vez.</li>
 <li>Quem zera os pontos sai. O último na mesa vence e leva o pote de fichas.</li></ol>`;
 
 /* ---- eventos ---- */

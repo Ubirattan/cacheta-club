@@ -232,7 +232,7 @@ export default function Sala() {
     }
     if (game.over && game.result && !game.result.empate) sfx(game.result.winner === myIdx ? 'win' : 'lose');
     else if (!game.over && game.turn === myIdx && game.phase === 'draw') sfx('turn');
-    if (game.last?.t === 'bateuErrado' && game.last.pi === myIdx) setModal(game.last.card ? 'errou' : 'errouDesc');
+    if (game.last?.t === 'bateuErrado' && game.last.pi === myIdx) setModal(game.last.card ? 'errou' : game.last.fora ? 'errouFora' : 'errouDesc');
     if (game.last?.t === 'deal') { dealRef.current = true; setTimeout(() => { dealRef.current = false; }, 3000); sortHand(sortMode); }
     if (game.over && game.result?.matchOver) reloadProfile();
   }, [game]); // eslint-disable-line
@@ -375,10 +375,13 @@ export default function Sala() {
     if (sel === c.id && canEnd) return act({ type: 'discard', cardId: c.id });
     setSel(sel === c.id ? null : c.id);
   }
-  const canBaterDesc = canDraw && !!game.descTop && !me.queimado;
+  // BATER fica sempre disponível: na vez, ou fora dela com a carta que o adversário acabou de descartar
   function bater() {
-    if (canBaterDesc) return act({ type: 'baterDesc' }); // bate na hora com a carta que o adversário descartou
-    if (!canEnd) return toast('Compre uma carta primeiro');
+    if (game.over) return;
+    if (!canEnd) {
+      if (game.phase === 'draw' && game.descTop && !me.queimado) return act({ type: 'baterDesc' });
+      return toast(me.queimado ? 'Você errou uma batida: agora só pode bater comprando do monte, na sua vez' : myTurn ? 'Ainda não tem carta no descarte: compre do monte' : 'Espere o próximo descarte para bater');
+    }
     let id = sel;
     if (id == null) { const b = (me.queimado && game.taken != null) ? -1 : Engine.findBater({ ...game, cfg: cfgFull }, myHand, game.taken); if (b >= 0) id = myHand[b].id; }
     if (id == null) return toast('Toque na carta que vai descartar e depois em BATER');
@@ -449,7 +452,7 @@ export default function Sala() {
         <div id="bar">
           <button id="bSort" onClick={() => { const m = (sortMode + 1) % 3; setSortMode(m); sortHand(m); toast(['Organizado por jogos', 'Organizado por naipe', 'Organizado por valor'][m]); }}>{['🃏 Jogos', '♠ Naipe', '7 Valor'][sortMode]}</button>
           <button className="disc" id="bDisc" disabled={!canEnd || sel == null || busy} onClick={() => act({ type: 'discard', cardId: sel })}>DESCARTAR</button>
-          <button className="bate" id="bBate" disabled={!(canEnd || canBaterDesc) || busy} onClick={bater}>BATER</button>
+          <button className="bate" id="bBate" disabled={game.over || busy} onClick={bater}>BATER</button>
         </div>
       </div>
 
@@ -461,7 +464,7 @@ export default function Sala() {
       {modal === 'sair' && <Modal onClose={() => setModal(null)}><h2>Sair da mesa?</h2>
         <p>{room.status === 'playing' ? `A partida não acabou. Saindo agora você é eliminado${game.cfg.entry ? ` e perde a entrada de 💰 ${fmt(game.cfg.entry)}` : ''}.` : 'Você vai voltar para a lista de salas.'}</p>
         <button className="go" onClick={leave}>Sair</button><button className="sec" onClick={() => setModal(null)}>Continuar jogando</button></Modal>}
-      {(modal === 'errou' || modal === 'errouDesc') && <Modal><h2>Batida errada!</h2><p>{modal === 'errou' ? 'Suas cartas não fechavam. A carta foi pro descarte e você perdeu a vez.' : 'Com a carta do descarte suas cartas não fecham. Você perdeu a vez.'}</p>
+      {(modal === 'errou' || modal === 'errouDesc' || modal === 'errouFora') && <Modal><h2>Batida errada!</h2><p>{modal === 'errou' ? 'Suas cartas não fechavam. A carta foi pro descarte e você perdeu a vez.' : modal === 'errouFora' ? 'Com a carta do descarte suas cartas não fecham.' : 'Com a carta do descarte suas cartas não fecham. Você perdeu a vez.'}</p>
         <p>🔥 Até o fim da rodada você <b>só pode bater comprando do monte</b>.</p><button className="go" onClick={() => setModal(null)}>Continuar</button></Modal>}
 
       {game.over && res && (
