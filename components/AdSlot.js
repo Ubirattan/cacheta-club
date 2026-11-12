@@ -20,6 +20,8 @@ export default function AdSlot({ profile }) {
   const a = ads[i % ads.length];
   const body = <>{a.img && <img src={a.img} alt={a.text || 'Anúncio'} />}{a.text && <span>{a.text}</span>}<small>Publicidade</small></>;
   return a.link
-    ? <a className="adslot adreal" href={a.link} target="_blank" rel="noopener noreferrer sponsored">{body}</a>
+    ? (typeof window !== 'undefined' && a.link.startsWith(window.location.origin)
+      ? <a className="adslot adreal" href={a.link.slice(window.location.origin.length) || '/'}>{body}</a> // link do próprio site: abre na mesma aba
+      : <a className="adslot adreal" href={a.link} target="_blank" rel="noopener noreferrer sponsored">{body}</a>)
     : <div className="adslot adreal">{body}</div>;
 }
