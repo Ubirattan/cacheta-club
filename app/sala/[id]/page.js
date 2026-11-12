@@ -486,8 +486,8 @@ export default function Sala() {
                   : <div className="vcol"><small>Sem<br />coringa</small></div>}</div></div>
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
                 {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={Engine.isJ(game.descTop, game.cor) ? 'lockj' : canDraw && !me.queimado ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
-            {canEnd && <button className="cdisc" onClick={() => sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
             </div>
+            {myIdx >= 0 && !game.over && game.phase !== 'decide' && <button className={`cdisc ${canEnd ? '' : 'off'}`} onClick={() => !canEnd ? toast(canDraw ? 'Primeiro compre do monte ou pegue o descarte' : 'Espere a sua vez') : sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
           </div>
           <div id="seats" className={n >= 8 ? 'many' : ''}>
             {others.map((pi, k) => {

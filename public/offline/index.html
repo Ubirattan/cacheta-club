@@ -328,15 +328,11 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .center{--pcw:clamp(64px,16vmin,116px)}
 .center .piles{--cw:var(--pcw);gap:clamp(24px,7.5vmin,80px)}
 .center .corbox .card{--cw:calc(var(--pcw)*.62)}
-/* DESCARTAR colado embaixo das cartas do centro (não fica atrás da mão); no celular deitado ocupa o lugar do aviso */
-.piles{position:relative}
-.piles .cdisc{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;margin-top:10px;padding:7px 30px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;z-index:5}
-.piles .cdisc[hidden]{display:none}
-.piles .cdisc:active{transform:translateX(-50%) scale(.95)}
-@media (orientation:landscape) and (max-height:520px){
-  .piles .cdisc{margin-top:4px;padding:5px 26px;font-size:15px}
-}
-.center:has(.cdisc:not([hidden])) #msg{visibility:hidden}
+/* DESCARTAR sempre na tela, logo embaixo dos coringas; apagado quando não é hora de descartar */
+.center .cdisc{order:1;align-self:center;white-space:nowrap;margin-top:2px;padding:6px 30px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer}
+.center .cdisc.off{opacity:.4;filter:grayscale(.5);box-shadow:none}
+.center .cdisc:active{transform:scale(.95)}
+@media (orientation:landscape) and (max-height:520px){ .center .cdisc{padding:4px 26px;font-size:15px} }
 /* BATER redondo, laranja, com o rótulo embaixo */
 #bar #bBate{flex:none;width:76px;height:76px;padding:0!important;border-radius:50%;border:3px solid #5a1d00;background:radial-gradient(circle at 35% 30%,#ffb35c,#f07a12 55%,#b44a05);box-shadow:0 0 0 3px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.5),inset 0 -4px 8px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;align-self:center}
 #bBate .bi{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
@@ -416,8 +412,8 @@ button{font-family:inherit;cursor:pointer;color:inherit}
           <div class="pile"><div id="viraBox"></div><div id="monte" data-act="monte"></div></div>
           <div class="pile" id="corBox"></div>
           <div class="pile"><div id="desc" data-act="desc"></div></div>
-          <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
         </div>
+        <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
       </div>
       <div id="seats"></div>
     </div></div>
@@ -1333,7 +1329,7 @@ function render(){
   const full=groups.reduce((n,x)=>n+(x.cards.length>=3&&E.meldType(x.cards,M.cor,M.cfg)?x.cards.length:0),0)>=M.cfg.hand;
   if(full&&M.turn===0&&M.phase==='discard'&&!M.over&&nh===M.cfg.hand+1&&!M.msgFull){M.msgFull=true;setMsg('✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER');}
   const canEnd=M.phase==='discard'&&M.turn===0&&!M.over;
-  $('#bDisc').hidden=!canEnd;
+  $('#bDisc').classList.toggle('off',!canEnd);
   $('#bBate').disabled=M.over||dealing;
   $('#bSort').textContent=['🃏 Jogos','♠ Naipe','7 Valor'][sortMode];
 }
@@ -1405,7 +1401,7 @@ document.addEventListener('click',e=>{
     case 'monte': humanDraw('monte'); break;
     case 'desc':
       if(M&&M.phase==='discard'&&M.turn===0&&sel!=null) humanEnd('discard',sel); else humanDraw('desc'); break;
-    case 'discard': if(sel==null){toast('Toque na carta que vai descartar');break;} humanEnd('discard',sel); break;
+    case 'discard': if(!(M&&M.phase==='discard'&&M.turn===0&&!M.over)){toast(M&&M.turn===0&&M.phase==='draw'?'Primeiro compre do monte ou pegue o descarte':'Espere a sua vez');break;} if(sel==null){toast('Toque na carta que vai descartar');break;} humanEnd('discard',sel); break;
     case 'bater': humanBater(); break;
     case 'decGo': humanDecide(true); break;
     case 'decRun': humanDecide(false); break;
