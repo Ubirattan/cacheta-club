@@ -8,7 +8,7 @@ import { useAuth, useOnline } from '../../../../components/useAuth.js';
 import { Header, Modal, toast } from '../../../../components/ui.js';
 import Chat from '../../../../components/Chat.js';
 import { sendInvite } from '../../../../components/Convites.js';
-import { GudeField, Hud, Regras, recado, GUDE_CSS } from '../../../../components/Gude.js';
+import { GudeField, Hud, Regras, recado, GUDE_CSS, quer3D } from '../../../../components/Gude.js';
 import { modeName, isGudeMode, fmt } from '../../../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../../../lib/sfx.js';
 
@@ -221,7 +221,7 @@ export default function GudeSala() {
           <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
           <button className="rbtn" title="Sair" onClick={() => leave(false)}>↩</button></>} />
       <GudeField init={init} me={myIdx} viewRef={viewRef} canPlay={canPlay} onShoot={onShoot} onSettle={onSettle} onChange={st => setS({ ...st })} />
-      <div id="msg">{msg || (S && !S.over ? (S.turn === myIdx ? 'Sua vez: arraste da sua bolinha pra trás e solte' : `Vez de ${S.players[S.turn]?.name}…`) : ' ')}</div>
+      <div id="msg">{msg || (S && !S.over ? (S.turn === myIdx ? (quer3D() ? 'Sua vez: mire e segure o botão de força' : 'Sua vez: arraste da sua bolinha pra trás e solte') : `Vez de ${S.players[S.turn]?.name}…`) : ' ')}</div>
       {chatOpen && <div className="overlay" onClick={e => { if (e.target === e.currentTarget) setChatOpen(false); }}>
         <Chat roomId={id} user={user} profile={profile} msgs={msgs} onClose={() => setChatOpen(false)} /></div>}
       {rules && <Regras mode={srv.mode} onClose={() => setRules(false)} />}

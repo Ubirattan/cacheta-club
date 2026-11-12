@@ -40,7 +40,12 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
   O servidor guarda a partida e confere toda tecada (a do jogador e a do computador), então ninguém inventa vitória.
 - **Online 1 contra 1:** no lobby, aba **🔵 Gude** → Criar sala. Tem entrada em fichas, convite, chat e cronômetro (tempo acabou = passa a vez).
   Quem ganha leva o pote; empate devolve a entrada; quem sai no meio perde.
-- Mira nova: os pontinhos mostram até onde a bolinha vai parar e a força aparece em %.
+- **Mesa em 3D** (estilo "Bola de Gude Brasil"): a câmera fica atrás da bolinha, você arrasta o dedo pra mirar,
+  segura o botão de força e solta. A linha branca mostra até onde ela vai. 👁 mostra o campo de cima.
+  O 3D (`lib/gude-view3d.js`) usa a mesma física e o mesmo servidor do 2D: só o desenho mudou.
+  O Three.js vem do CDN quando a gude abre. Se não carregar, ou o celular não tiver WebGL, volta sozinho pra mesa 2D antiga
+  (pra forçar o 2D num aparelho: `localStorage.gd_2d = '1'`).
+- Mesa 2D: os pontinhos mostram até onde a bolinha vai parar e a força aparece em %.
 - ⚠️ Rode uma vez o arquivo `supabase/gude.sql` no SQL Editor do Supabase (cria a tabela das partidas contra o computador).
 
 ### Novidades da etapa 3

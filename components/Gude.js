@@ -1,29 +1,61 @@
 'use client';
 // Peças da tela da gude usadas contra o computador e no online: mesa, placar, regras e recados.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal } from './ui.js';
 import { createView } from '../lib/gude-view.js';
+import { createView3D, loadThree, webglOk } from '../lib/gude-view3d.js';
 import { MODOS, BUL_SEQ, MATA_PTS, left, target } from '../lib/gude.js';
+
+// 3D liga sozinho quando o celular aguenta. Pra forçar o desenho antigo: localStorage gd_2d = '1'.
+export const quer3D = () => { try { if (localStorage.getItem('gd_2d') === '1') return false; } catch {} return webglOk(); };
+
+// enquanto o 3D carrega, guarda o que a página mandar (tecadas, mesa final) pra repassar depois
+function esperando(state) {
+  const calls = []; let S = state;
+  return { calls, get state() { return S; }, busy: () => true, myTurn: () => false,
+    push(x) { calls.push(['push', x]); }, setFinal(x) { calls.push(['setFinal', x]); },
+    reset(x) { calls.length = 0; S = x; calls.push(['reset', x]); }, destroy() {} };
+}
 
 // mesa: cria o desenho quando `init` muda (partida nova). Os callbacks podem mudar à vontade.
 export function GudeField({ init, me, viewRef, canPlay, onShoot, onSettle, onChange }) {
   const boxRef = useRef(null), cvRef = useRef(null), cb = useRef({});
+  const [loading, setLoading] = useState(false);
   cb.current = { canPlay, onShoot, onSettle, onChange };
   useEffect(() => {
     if (!init) return;
-    const v = createView({
+    let dead = false, v = null;
+    const o = {
       canvas: cvRef.current, box: boxRef.current, state: init.state, me,
       canPlay: () => (cb.current.canPlay ? cb.current.canPlay() : true),
       onShoot: x => cb.current.onShoot && cb.current.onShoot(x),
       onSettle: (e, S) => cb.current.onSettle && cb.current.onSettle(e, S),
       onChange: S => cb.current.onChange && cb.current.onChange(S),
-    });
-    if (init.shots && init.shots.length) v.push(init.shots);
-    if (init.final) v.setFinal(init.final);
-    viewRef.current = v; cb.current.onChange && cb.current.onChange(v.state);
-    return () => { v.destroy(); if (viewRef.current === v) viewRef.current = null; };
+    };
+    const pend = esperando(init.state);
+    const montar = real => {
+      v = real;
+      if (init.shots && init.shots.length) real.push(init.shots);
+      if (init.final) real.setFinal(init.final);
+      for (const [k, x] of pend.calls) real[k](x);
+      viewRef.current = real; cb.current.onChange && cb.current.onChange(real.state);
+    };
+    const doisD = () => { cvRef.current.style.display = ''; montar(createView({ ...o, state: pend.state })); };
+    if (quer3D()) {
+      cvRef.current.style.display = 'none';
+      viewRef.current = pend; setLoading(true);
+      loadThree().then(THREE => {
+        if (dead) return;
+        let real = null;
+        try { real = createView3D({ ...o, state: pend.state }, THREE); }
+        catch (e) { console.warn('gude 3D', e); boxRef.current?.querySelectorAll('.gd3-cv,.gd3-ui').forEach(x => x.remove()); }
+        real ? montar(real) : doisD();
+      }).catch(() => { if (!dead) doisD(); })
+        .finally(() => { if (!dead) setLoading(false); });
+    } else doisD();
+    return () => { dead = true; if (v) v.destroy(); if (viewRef.current === v || viewRef.current === pend) viewRef.current = null; };
   }, [init, me]); // eslint-disable-line
-  return <div className="gd-field" ref={boxRef}><canvas ref={cvRef} /></div>;
+  return <div className="gd-field" ref={boxRef}><canvas ref={cvRef} />{loading && <div className="gd3-load">Carregando a mesa…</div>}</div>;
 }
 
 const nome = (S, i, me) => i === me ? 'Você' : (S.players[i]?.name || 'Adversário');
@@ -84,7 +116,9 @@ export function Regras({ mode, onClose }) {
   return (
     <Modal onClose={onClose}><h2>Como jogar · {MODOS[mode]?.name}</h2>
       <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
-        <p>• Na sua vez, encoste na sua bolinha, <b>arraste pra trás</b> como um estilingue e solte. Os pontinhos mostram até onde ela vai se não bater em nada.</p>
+        {quer3D()
+          ? <p>• Na sua vez, <b>arraste o dedo na tela</b> pra mirar. Depois <b>segure o botão laranja</b>: a força sobe e desce. Solte na hora certa. A linha branca mostra até onde a bolinha vai se não bater em nada. O <b>👁</b> mostra o campo de cima.</p>
+          : <p>• Na sua vez, encoste na sua bolinha, <b>arraste pra trás</b> como um estilingue e solte. Os pontinhos mostram até onde ela vai se não bater em nada.</p>}
         {mode === 'triangulo' && <>
           <p>• No chão tem um <b>triângulo</b> com 10 bolinhas. Bolinha que sair do triângulo é sua. <b>Tirou alguma, joga de novo.</b> Não tirou, passa a vez.</p>
           <p>• Na próxima vez você teca de onde parou. Se a sua bolinha parar <b>dentro do triângulo</b>, volta pra linha e você perde a vez.</p>
@@ -94,7 +128,7 @@ export function Regras({ mode, onClose }) {
           <p>• Pra cair, a bolinha tem que chegar <b>devagar</b>: forte demais ela pula o buraco. Acertou, joga de novo.</p>
           <p>• Fez o caminho todo, vira <b>MATADOR 💀</b>: aí é só acertar a bolinha do adversário pra ganhar.</p></>}
         {mode === 'matamata' && <>
-          <p>• É uma <b>caçada na rua</b>: cada um começa de um lado. A câmera segue a bolinha. No canto tem o <b>mapa</b> e a seta mostra onde o outro está. Arraste fora da bolinha pra olhar a rua.</p>
+          <p>• É uma <b>caçada na rua</b>: cada um começa de um lado. A câmera segue a bolinha. {quer3D() ? <>A mira já começa apontando pro outro, e o <b>👁</b> mostra a rua de cima.</> : <>No canto tem o <b>mapa</b> e a seta mostra onde o outro está. Arraste fora da bolinha pra olhar a rua.</>}</p>
           <p>• <b>Acertou a bolinha do outro, ganha 1 ponto</b> e as duas voltam pro começo. Errou, a bolinha fica onde parou e passa a vez.</p>
           <p>• <b>Árvores, postes e carros</b> rebatem a bolinha. <b>Subir o meio-fio</b> freia, e calçada e grama são mais ásperas. Se cair no <b>bueiro</b>, volta pro começo!</p>
           <p>• Quem fizer <b>{MATA_PTS} pontos</b> ganha.</p></>}
@@ -137,6 +171,19 @@ export const GUDE_CSS = `
 .gd-top .rbtn{width:42px;height:42px;font-size:18px}
 .gd-field{flex:1;min-height:0;position:relative;margin:0 8px}
 .gd-field canvas{position:absolute;inset:0;display:block;touch-action:none;border-radius:14px}
+.gd3-cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;border-radius:14px}
+.gd3-ui{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:14px}
+.gd3-msg{position:absolute;left:0;right:0;top:16%;text-align:center;font:700 clamp(26px,7vmin,54px) Oswald,sans-serif;font-style:italic;color:#ffd23f;-webkit-text-stroke:1.5px #6b3200;text-shadow:0 4px 0 #6b3200,0 8px 16px rgba(0,0,0,.6);opacity:0;line-height:1.05;text-transform:uppercase}
+.gd3-msg small{display:block;font-size:.5em;color:#fff;-webkit-text-stroke:1px #6b3200}
+.gd3-msg.show{animation:gd3pop 1.7s ease forwards}
+@keyframes gd3pop{0%{opacity:0;transform:scale(.4)}14%{opacity:1;transform:scale(1.12)}24%{transform:scale(1)}78%{opacity:1}100%{opacity:0}}
+.gd3-hint{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:500 13px Rubik,sans-serif;color:#fff;text-shadow:0 1px 3px #000;transition:opacity .3s}
+.gd3-eye{pointer-events:auto;position:absolute;left:12px;bottom:14px;width:50px;height:50px;border-radius:50%;border:2px solid var(--gold2);background:rgba(0,0,0,.55);color:#fff;font-size:20px;cursor:pointer}
+.gd3-eye.on{background:#ff7a00;border-color:#ffd23f}
+.gd3-pw{pointer-events:auto;position:absolute;right:14px;bottom:14px;width:clamp(76px,17vmin,96px);height:clamp(76px,17vmin,96px);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.6);touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+.gd3-pw .in{width:78%;height:78%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#666,#151515 70%);display:flex;align-items:center;justify-content:center;color:#fff;font:700 12px Oswald,sans-serif;text-align:center;line-height:1.1}
+.gd3-pw.off{opacity:.3}
+.gd3-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 16px Oswald;color:var(--mut)}
 .gd-cost{font:500 13px Oswald;color:var(--mut);margin-top:6px}
 .gd-cost b{color:var(--gold)}
 `;

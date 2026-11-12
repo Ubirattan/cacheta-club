@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
 import { Modal, Seg, toast } from '../../components/ui.js';
-import { GudeField, Hud, Regras, recado, GUDE_CSS } from '../../components/Gude.js';
+import { GudeField, Hud, Regras, recado, GUDE_CSS, quer3D } from '../../components/Gude.js';
 import { api } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../lib/sfx.js';
@@ -45,7 +45,7 @@ export default function Gude() {
       prizeRef.current = r.prize || 0;
       const init = r.shots.length ? { state: r.shots[0].pre, shots: r.shots, final: r.state } : { state: r.state };
       setGame({ id: r.id, version: r.version, init, mode, bot: r.state.players[1] });
-      setMsg(r.shots.length ? `${r.state.players[1].name} começa` : 'Sua vez: arraste da sua bolinha pra trás e solte');
+      setMsg(r.shots.length ? `${r.state.players[1].name} começa` : (quer3D() ? 'Sua vez: mire e segure o botão de força' : 'Sua vez: arraste da sua bolinha pra trás e solte'));
       reloadProfile();
     } catch (e) { if (/fichas/i.test(e.message)) setSemFichas(true); else toast(e.message); }
     finally { setBusy(false); }
