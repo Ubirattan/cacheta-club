@@ -228,7 +228,7 @@ function Settings() {
     })}</div></div>
     <div className="opt-row"><label>Bônus diário (fichas)</label><input className="field" style={{ marginTop: 0 }} type="number" value={s.daily_bonus} onChange={e => set('daily_bonus', e.target.value)} /></div>
     <div className="opt-row"><label>Entrada máxima das salas</label><input className="field" style={{ marginTop: 0 }} type="number" value={s.max_entry} onChange={e => set('max_entry', e.target.value)} /></div>
-    <Seg label="Espaço de anúncios" value={!!s.ads_enabled} onChange={v => set('ads_enabled', v)} options={[[false, 'Desligado'], [true, 'Ligado']]} hint="Quando ligado, os anúncios abaixo aparecem no lobby, se revezando a cada 8 segundos (VIP não vê)." />
+    <Seg label="Espaço de anúncios" value={!!s.ads_enabled} onChange={v => set('ads_enabled', v)} options={[[false, 'Desligado'], [true, 'Ligado']]} hint="Quando ligado, um dos anúncios abaixo abre grande na tela quando o jogador toca em Resgatar fichas (VIP não vê)." />
     <AdsEditor ads={s.ads || []} onChange={v => set('ads', v)} />
     <div className="opt-row"><label>Recado na tela inicial</label><input className="field" style={{ marginTop: 0 }} maxLength={140} value={s.motd || ''} onChange={e => set('motd', e.target.value)} /></div>
     <button className="go" onClick={save}>Salvar</button>

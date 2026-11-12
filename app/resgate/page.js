@@ -7,6 +7,7 @@ import { ITEMS } from '../../lib/shop-items.js';
 import { fmt } from '../../lib/modes.js';
 import { toast } from '../../components/ui.js';
 import { sfx } from '../../lib/sfx.js';
+import AdSlot from '../../components/AdSlot.js';
 
 const TROFEUS = ITEMS.filter(i => i.slot === 'trofeu');
 function Body({ profile, reloadProfile, user }) {
@@ -24,6 +25,7 @@ function Body({ profile, reloadProfile, user }) {
     setBusy(null);
   }
   return <>
+    <AdSlot profile={profile} popup />
     <div className="panel" style={{ marginBottom: 12, textAlign: 'center' }}>
       <p style={{ margin: 0, font: '600 18px Oswald', color: 'var(--gold)' }}>🏆 Você receberá seu troféu em instantes</p>
     </div>

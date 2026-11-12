@@ -6,7 +6,6 @@ import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header, Modal, Seg, toast } from '../../components/ui.js';
 import ProfileModal from '../../components/ProfileModal.js';
 import JoinCode from '../../components/JoinCode.js';
-import AdSlot from '../../components/AdSlot.js';
 import { MODES, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
 
 function CreateRoom({ profile, onClose }) {
@@ -105,7 +104,6 @@ export default function Lobby() {
           </button>
         ))}
       </div>
-      <AdSlot profile={profile} />
       <div className="lobfoot">
         {[['waiting', 'Aguardando'], ['playing', 'Jogando'], ['priv', 'Privadas']].map(([k, t]) =>
           <button key={k} className="chk" onClick={() => setFilt(o => ({ ...o, [k]: !o[k] }))}><i>{filt[k] ? '✓' : ''}</i>{t}</button>)}

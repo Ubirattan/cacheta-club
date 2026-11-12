@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { sb } from '../lib/supabase-browser.js';
 
-export default function AdSlot({ profile }) {
+export default function AdSlot({ profile, popup = false }) {
   const [on, setOn] = useState(false), [ads, setAds] = useState([]), [i, setI] = useState(0), [big, setBig] = useState(null);
   useEffect(() => {
     sb().from('app_settings').select('key,value').in('key', ['ads_enabled', 'ads']).then(({ data }) => {
@@ -13,25 +13,27 @@ export default function AdSlot({ profile }) {
       setAds((Array.isArray(m.ads) ? m.ads : []).filter(a => a && a.on !== false && (a.img || a.text)));
     });
   }, []);
-  useEffect(() => { if (ads.length < 2) return; const t = setInterval(() => setI(x => (x + 1) % ads.length), 8000); return () => clearInterval(t); }, [ads.length]);
+  // modo popup (tela de resgate): abre um anúncio grande assim que a tela carrega, sorteado entre os que estão no ar
+  useEffect(() => { if (popup && ads.length) setBig(ads[Math.floor(Math.random() * ads.length)]); }, [popup, ads]);
+  useEffect(() => { if (popup || ads.length < 2) return; const t = setInterval(() => setI(x => (x + 1) % ads.length), 8000); return () => clearInterval(t); }, [ads.length]);
   const vip = profile && profile.vip_until && new Date(profile.vip_until) > new Date();
   if (!on || vip) return null;
-  if (!ads.length) return <div className="adslot">Publicidade · seja VIP e jogue sem anúncios</div>;
+  if (!ads.length) return popup ? null : <div className="adslot">Publicidade · seja VIP e jogue sem anúncios</div>;
   const a = ads[i % ads.length];
   const interno = l => typeof window !== 'undefined' && l.startsWith(window.location.origin);
   return <>
     {/* botãozinho flutuante no canto: não ocupa espaço no lobby; tocar abre o anúncio grande */}
-    <button className="adchip" onClick={() => setBig(a)} aria-label="Ver anúncio">
+    {!popup && <button className="adchip" onClick={() => setBig(a)} aria-label="Ver anúncio">
       {a.img ? <img src={a.img} alt="" /> : <span>{a.text}</span>}
       <i>🔍</i>
-    </button>
+    </button>}
     {big && <div className="adbig" onClick={() => setBig(null)}>
       <div className="adbox" onClick={e => e.stopPropagation()}>
         <button className="adx" onClick={() => setBig(null)}>✕</button>
         {big.img && <img src={big.img} alt={big.text || 'Anúncio'} />}
         {big.text && <p>{big.text}</p>}
         {big.link && (interno(big.link)
-          ? <a className="go" href={big.link.slice(window.location.origin.length) || '/'}>Ver agora</a>
+          ? <a className="go" href={big.link.slice(window.location.origin.length) || '/'} onClick={e => { if (big.link.slice(window.location.origin.length).split(/[?#]/)[0] === window.location.pathname) { e.preventDefault(); setBig(null); } }}>Ver agora</a>
           : <a className="go" href={big.link} target="_blank" rel="noopener noreferrer sponsored">Saiba mais</a>)}
       </div>
     </div>}
