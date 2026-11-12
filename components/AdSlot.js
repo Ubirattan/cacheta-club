@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { sb } from '../lib/supabase-browser.js';
 
 export default function AdSlot({ profile }) {
-  const [on, setOn] = useState(false), [ads, setAds] = useState([]), [i, setI] = useState(0);
+  const [on, setOn] = useState(false), [ads, setAds] = useState([]), [i, setI] = useState(0), [big, setBig] = useState(null);
   useEffect(() => {
     sb().from('app_settings').select('key,value').in('key', ['ads_enabled', 'ads']).then(({ data }) => {
       const m = Object.fromEntries((data || []).map(r => [r.key, r.value]));
@@ -18,10 +18,23 @@ export default function AdSlot({ profile }) {
   if (!on || vip) return null;
   if (!ads.length) return <div className="adslot">Publicidade · seja VIP e jogue sem anúncios</div>;
   const a = ads[i % ads.length];
-  const body = <>{a.img && <img src={a.img} alt={a.text || 'Anúncio'} />}{a.text && <span>{a.text}</span>}<small>Publicidade</small></>;
-  return a.link
-    ? (typeof window !== 'undefined' && a.link.startsWith(window.location.origin)
-      ? <a className="adslot adreal" href={a.link.slice(window.location.origin.length) || '/'}>{body}</a> // link do próprio site: abre na mesma aba
-      : <a className="adslot adreal" href={a.link} target="_blank" rel="noopener noreferrer sponsored">{body}</a>)
-    : <div className="adslot adreal">{body}</div>;
+  const interno = l => typeof window !== 'undefined' && l.startsWith(window.location.origin);
+  return <>
+    {/* faixa baixinha no lobby: não esconde as mesas; tocar abre o anúncio grande */}
+    <button className="adslot adreal" onClick={() => setBig(a)}>
+      {a.img && <img src={a.img} alt="" />}
+      <span>{a.text || 'Toque para ver'}</span>
+      <i>🔍</i><small>Publicidade</small>
+    </button>
+    {big && <div className="adbig" onClick={() => setBig(null)}>
+      <div className="adbox" onClick={e => e.stopPropagation()}>
+        <button className="adx" onClick={() => setBig(null)}>✕</button>
+        {big.img && <img src={big.img} alt={big.text || 'Anúncio'} />}
+        {big.text && <p>{big.text}</p>}
+        {big.link && (interno(big.link)
+          ? <a className="go" href={big.link.slice(window.location.origin.length) || '/'}>Ver agora</a>
+          : <a className="go" href={big.link} target="_blank" rel="noopener noreferrer sponsored">Saiba mais</a>)}
+      </div>
+    </div>}
+  </>;
 }
