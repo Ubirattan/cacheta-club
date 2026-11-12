@@ -20,11 +20,10 @@ export default function AdSlot({ profile }) {
   const a = ads[i % ads.length];
   const interno = l => typeof window !== 'undefined' && l.startsWith(window.location.origin);
   return <>
-    {/* faixa baixinha no lobby: não esconde as mesas; tocar abre o anúncio grande */}
-    <button className="adslot adreal" onClick={() => setBig(a)}>
-      {a.img && <img src={a.img} alt="" />}
-      <span>{a.text || 'Toque para ver'}</span>
-      <i>🔍</i><small>Publicidade</small>
+    {/* botãozinho flutuante no canto: não ocupa espaço no lobby; tocar abre o anúncio grande */}
+    <button className="adchip" onClick={() => setBig(a)} aria-label="Ver anúncio">
+      {a.img ? <img src={a.img} alt="" /> : <span>{a.text}</span>}
+      <i>🔍</i>
     </button>
     {big && <div className="adbig" onClick={() => setBig(null)}>
       <div className="adbox" onClick={e => e.stopPropagation()}>
