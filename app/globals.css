@@ -477,3 +477,11 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .card .big{position:absolute;right:7%;bottom:6%;font-size:calc(var(--cw)*.6);line-height:0}
 .card .face{inset:30% 7% 6% 30%}
 .card .jk{top:auto;bottom:3%;left:8%;right:auto}
+
+/* barra de jogos no topo (entre o perfil e o "online") */
+.hdr .games{flex:1;min-width:0;display:flex;justify-content:center;align-items:center;gap:clamp(6px,1.4vw,14px);align-self:center;overflow-x:auto;scrollbar-width:none;padding:10px 6px 4px}
+.hdr .games::-webkit-scrollbar{display:none}
+.hdr .jogo{position:relative;flex:none;display:flex;align-items:center;gap:6px;padding:6px clamp(12px,2vw,20px);border-radius:30px;border:2px solid var(--gold2);background:linear-gradient(180deg,#2a2218,#100d09);color:#eadfca;box-shadow:0 3px 8px rgba(0,0,0,.5);font-size:clamp(16px,3vmin,21px);line-height:1}
+.hdr .jogo span{font:600 clamp(15px,2.6vmin,19px) Oswald}
+.hdr .jogo.on{border-color:var(--gold);background:linear-gradient(180deg,#f3cf62,#b07a12);color:#2a1800;box-shadow:0 0 0 2px #000,0 0 14px rgba(242,201,76,.5)}
+.hdr .jogo em{position:absolute;top:-8px;right:-6px;font:600 10px Oswald;font-style:normal;background:#ef4444;color:#fff;border-radius:8px;padding:1px 6px;text-transform:uppercase}

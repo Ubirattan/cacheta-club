@@ -23,6 +23,14 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
   - Quem sai no meio é eliminado. O campeão leva o pote, e as estatísticas são atualizadas.
 - **Contra o computador:** o jogo da etapa 1 vem junto (`public/offline`).
 
+### Truco paulista (novo)
+- Botões **Cacheta** e **Truco** no topo da tela inicial, entre o perfil e o "online".
+- `/truco`: **contra o computador**, 1 contra 1 ou duplas (2x2), computador Fácil ou Esperto.
+- Regras: vira e manilha (♦ < ♠ < ♥ < ♣ zap), truco/seis/nove/doze, mão de onze (vê as cartas do parceiro) e mão de ferro; partida até 12.
+- Precisa ter fichas no saldo, mas contra o computador elas não são gastas (igual à cacheta).
+- O motor fica em `lib/truco.js` e já está pronto pra rodar no servidor quando vier o truco online.
+- A página do truco só é baixada quando o jogador toca no botão: a tela inicial continua leve.
+
 ### Novidades da etapa 3
 - **Torneios:** o admin cria o torneio com nome, modalidade, jogadores por mesa, inscrição, prêmio extra da casa e horário de início (opcional).
   - Os jogadores se inscrevem e podem desistir enquanto as inscrições estão abertas, com as fichas devolvidas.
