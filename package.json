@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node tests/push.test.mjs && node tests/coringadesc.test.mjs && node tests/service.test.mjs && node tests/etapa3.test.mjs && node tests/pagamento.test.mjs && node tests/gerapix.test.mjs && node tests/admin-login.test.mjs && node tests/abandono.test.mjs && node tests/truco.test.mjs && node tests/gude.test.mjs && node tests/gude-service.test.mjs && node tests/gude-view.test.mjs && node tests/gude-view3d.test.mjs && node tests/treino.test.mjs"
+    "test": "node tests/push.test.mjs && node tests/coringadesc.test.mjs && node tests/service.test.mjs && node tests/etapa3.test.mjs && node tests/pagamento.test.mjs && node tests/gerapix.test.mjs && node tests/admin-login.test.mjs && node tests/abandono.test.mjs && node tests/truco.test.mjs && node tests/gude.test.mjs && node tests/gude-service.test.mjs && node tests/gude-view.test.mjs && node tests/gude-view3d.test.mjs && node tests/treino.test.mjs && node tests/pipa.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
