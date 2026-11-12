@@ -1,6 +1,7 @@
 'use client';
 import { Engine } from '../lib/engine.js';
 import { fmt } from '../lib/modes.js';
+import { suitSvg } from '../lib/suits.js';
 
 export function toast(t) {
   const el = typeof document !== 'undefined' && document.getElementById('toast');
@@ -10,12 +11,13 @@ export function toast(t) {
 }
 
 export function Card({ c, cor = -1, cls = '', onClick, style }) {
-  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s] + '\uFE0E', jk = Engine.isJ(c, cor);
+  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], jk = Engine.isJ(c, cor);
+  const su = { __html: suitSvg(c.s) }; // naipe em vetor: nítido em qualquer tela
   return (
     <div className={`card s${c.s} ${red ? 'red' : ''} ${jk ? 'joker' : ''} ${cls}`} onClick={onClick} style={style} data-id={c.id}>
-      <div className="ix"><b>{r}</b><i>{s}</i></div>
-      {c.r >= 10 ? <div className="face"><b>{r}</b><i>{s}</i></div> : <div className="ctr">{s}</div>}
-      <div className="ix br"><b>{r}</b><i>{s}</i></div>
+      <div className="ix"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div>
+      {c.r >= 10 ? <div className="face"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div> : <div className="ctr" dangerouslySetInnerHTML={su} />}
+      <div className="ix br"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div>
       {jk && <span className="jk">★</span>}
     </div>
   );

@@ -10,10 +10,11 @@ import { Engine } from '../../../lib/engine.js';
 import { MODES, fmt } from '../../../lib/modes.js';
 import { sfx } from '../../../lib/sfx.js';
 import { looks } from '../../../lib/shop-items.js';
+import { suitSvg } from '../../../lib/suits.js';
 
 // animação de carta voando (mesmo efeito do modo offline)
 function cardStr(c, cor) {
-  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = Engine.SUITS[c.s] + '\uFE0E', jk = Engine.isJ(c, cor);
+  const red = c.s === 1 || c.s === 2, r = Engine.RANKS[c.r], s = suitSvg(c.s), jk = Engine.isJ(c, cor);
   const mid = c.r >= 10 ? `<div class="face"><b>${r}</b><i>${s}</i></div>` : `<div class="ctr">${s}</div>`;
   return `<div class="card s${c.s} ${red ? 'red' : ''} ${jk ? 'joker' : ''}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div></div>`;
 }

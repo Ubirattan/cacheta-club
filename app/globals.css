@@ -461,3 +461,11 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
   #bBate .bi{font-size:26px}#bBate small{font-size:12px}
   #meRow,#timer{margin-right:90px!important}
 }
+
+/* naipes em vetor: nítidos, cheios e um pouco maiores (como no Super Cacheta) */
+.card svg.su{display:block;width:1em;height:1em}
+.card .ix i{font-size:calc(var(--cw)*.3);margin-top:2px}
+.card .ctr{font-size:calc(var(--cw)*.58);padding-left:14%;padding-top:8%}
+.card .ctr svg.su{filter:drop-shadow(0 1px 0 rgba(0,0,0,.08))}
+.card .face i{font-size:calc(var(--cw)*.2);margin-top:2px}
+.card.red{color:#d42a1e}
