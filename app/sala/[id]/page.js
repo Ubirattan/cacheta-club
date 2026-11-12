@@ -51,11 +51,12 @@ function overDesc(x, y) { const e = document.getElementById('desc'); if (!e) ret
 function corTxt(cor) { const c = Engine.corColor(cor); return Engine.RANKS[Engine.corRank(cor)] + (c < 0 ? ' (todos)' : c === 1 ? ' ♥♦' : ' ♠♣'); }
 
 function seatPos(k, n, portrait) {
-  if (!portrait && n > 4) { const x = 8 + 84 * (k - 1) / (n - 2), dx = (x - 50) / 47; return { x, y: 56 - 46 * Math.sqrt(Math.max(0, 1 - dx * dx)) }; }
+  if (!portrait && n > 4) { const x = 8 + 84 * (k - 1) / (n - 2), dx = (x - 50) / 47; return { x, y: Math.max(15, 56 - 46 * Math.sqrt(Math.max(0, 1 - dx * dx))) }; }
   const [a0, a1] = portrait ? (n <= 4 ? [218, 322] : [165, 375]) : [192, 348];
   const t = n === 2 ? 270 : a0 + (a1 - a0) * (k - 1) / (n - 2), rad = t * Math.PI / 180;
   let x = 50 + (portrait ? 44 : 47) * Math.cos(rad); x = Math.max(portrait ? 12 : 6, Math.min(portrait ? 88 : 94, x));
-  return { x, y: 50 + (portrait ? 46 : 44) * Math.sin(rad) };
+  const y = 50 + (portrait ? 46 : 44) * Math.sin(rad);
+  return { x, y: portrait ? y : Math.max(15, y) }; // adversário de cima um pouco mais baixo, sem sair da tela
 }
 
 function Chat({ roomId, user, profile, msgs, onClose }) {
