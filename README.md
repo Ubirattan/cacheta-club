@@ -36,10 +36,10 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
   - **Triângulo:** tire as 10 bolinhas do triângulo. Tirou, joga de novo. Ganha quem tirar mais.
   - **Buraco:** acerte os buraquinhos na ordem 1 → 2 → 3 → 2 → 1 e vire **matador** 💀. Aí é acertar a bolinha do outro.
   - **Mata-mata:** só as duas bolinhas. Acertou a do outro, 1 ponto. Faz 3 e ganha.
-- **Contra o computador** (Fácil, Esperto ou Difícil): cada partida custa **1 ficha**. Ganhou, leva **2**. Empate devolve a ficha.
+- **Contra o computador** (Fácil, Esperto ou Difícil): cada partida custa **1 ficha** e não paga prêmio (é treino).
   O servidor guarda a partida e confere toda tecada (a do jogador e a do computador), então ninguém inventa vitória.
 - **Online 1 contra 1:** no lobby, aba **🔵 Gude** → Criar sala. Tem entrada em fichas, convite, chat e cronômetro (tempo acabou = passa a vez).
-  Quem ganha leva o pote; empate devolve a entrada; quem sai no meio perde.
+  Entrada mínima de **2 fichas** de cada. Quem ganha leva a entrada dele + metade da do outro (2 de cada → leva 3) e o resto fica pra casa. Empate devolve a entrada; quem sai no meio perde.
 - **Mesa em 3D** (estilo "Bola de Gude Brasil"): a câmera fica atrás da bolinha, você arrasta o dedo pra mirar,
   segura o botão de força e solta. A linha branca mostra até onde ela vai. 👁 mostra o campo de cima.
   O 3D (`lib/gude-view3d.js`) usa a mesma física e o mesmo servidor do 2D: só o desenho mudou.

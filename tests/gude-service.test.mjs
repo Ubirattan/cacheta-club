@@ -34,7 +34,7 @@ const myShot = S => { const { ang, power } = botShot({ ...S, turn: 0 }, 'dificil
     }
     const w = state.over.winner, delta = coins(R, u) - before;
     if (w === 0) { won++; assert.equal(delta, BOT_PRIZE - BOT_COST); }
-    else if (w < 0) { tie++; assert.equal(delta, 0); }
+    else if (w < 0) { tie++; assert.equal(delta, -BOT_COST, 'empate contra o computador não devolve'); }
     else { lost++; assert.equal(delta, -BOT_COST); }
   }
   console.log('contra o computador (fácil): ganhou', won, 'perdeu', lost, 'empatou', tie);
@@ -68,7 +68,8 @@ const myShot = S => { const { ang, power } = botShot({ ...S, turn: 0 }, 'dificil
     assert.ok(++guard < 400);
   }
   const champ = g.result.champion;
-  assert.equal(coins(R, who(champ)), 60, 'campeão leva o pote');
+  assert.equal(coins(R, who(champ)), 55, 'campeão leva a entrada + metade da do outro');
+  assert.equal(coins(R, who(1 - champ)), 40, 'quem perde fica sem a entrada');
   assert.equal(R.T.rooms[0].status, 'waiting');
   assert.equal(R.T.match_history[0].mode, 'gude-bulica');
 
@@ -100,5 +101,18 @@ const myShot = S => { const { ang, power } = botShot({ ...S, turn: 0 }, 'dificil
   const g = (await R.getGame(room.id)).state;
   assert.ok(g.result && g.result.tie, 'empatou');
   assert.equal(coins(R, a), 20); assert.equal(coins(R, b), 20);
+}
+/* ---------- entrada mínima de 2 e a parte da casa ---------- */
+{
+  const R = memRepo(); const [a, b] = addUsers(R, 2, 10);
+  await assert.rejects(SV.createRoom(R, a, { mode: 'gude-triangulo', entry: 1, turnSeconds: 30 }), /mínima é 2/);
+  const room = await SV.createRoom(R, a, { mode: 'gude-matamata', entry: 2, turnSeconds: 30 });
+  await SV.joinRoom(R, b, { id: room.id });
+  await SV.setReady(R, a, room.id, true); await SV.setReady(R, b, room.id, true);
+  assert.equal(coins(R, a), 8); assert.equal(coins(R, b), 8);
+  await SV.leaveRoom(R, a, room.id);   // a sai: b ganha
+  assert.equal(coins(R, b), 11, 'ganhador leva 3 (2 dele + 1 do outro)');
+  assert.equal(coins(R, a), 8, 'quem perdeu fica sem os 2');
+  assert.equal(R.T.match_players.find(x => x.user_id === b.id).coins_delta, 1);
 }
 console.log('gude servidor ok');

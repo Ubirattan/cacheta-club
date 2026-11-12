@@ -12,9 +12,10 @@ const salaUrl = (id, m) => (isGudeMode(m) ? '/gude/sala/' : '/sala/') + id;
 
 function CreateRoom({ profile, onClose, gude }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: '', mode: gude ? 'gude-triangulo' : 'cacheta', maxPlayers: 4, points: 5, entry: 1, turnSeconds: 30, isPrivate: false, password: '' });
+  const [f, setF] = useState({ name: '', mode: gude ? 'gude-triangulo' : 'cacheta', maxPlayers: 4, points: 5, entry: gude ? 2 : 1, turnSeconds: 30, isPrivate: false, password: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
-  const set = (k, v) => setF(o => ({ ...o, [k]: v }));
+  // gude: entrada mínima de 2 fichas
+  const set = (k, v) => setF(o => { const n = { ...o, [k]: v }; if (isGudeMode(n.mode) && n.entry < 2) n.entry = 2; return n; });
   async function create() {
     setErr(''); setBusy(true);
     try { const r = await api('/api/rooms', f); router.push(salaUrl(r.id, f.mode)); }
@@ -27,8 +28,8 @@ function CreateRoom({ profile, onClose, gude }) {
       <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />
       <Seg label="Bolinha de gude (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(GUDE_ROOMS).map(([k, m]) => [k, m.name.replace('Gude · ', '')])} />
       {!isGudeMode(f.mode) && <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />}
-      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).map(e => [e, fmt(e)])} />
-      {isGudeMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>Gude é sempre 1 contra 1: quem ganhar leva o pote.</div>
+      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).filter(e => !isGudeMode(f.mode) || e >= 2).map(e => [e, fmt(e)])} />
+      {isGudeMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>Gude é sempre 1 contra 1, entrada mínima de 2 fichas. Quem ganha leva {fmt(f.entry + Math.floor(f.entry / 2))} (a entrada dele + metade da do outro); o resto fica pra casa.</div>
         : <Seg label="Pontos" value={f.points} onChange={v => set('points', v)} options={POINTS.map(p => [p, String(p)])} />}
       <Seg label="Tempo por jogada" value={f.turnSeconds} onChange={v => set('turnSeconds', v)} options={TURN_SECONDS.map(t => [t, t + ' s'])} />
       <Seg label="Tipo de sala" value={f.isPrivate} onChange={v => set('isPrivate', v)} options={[[false, '🌐 Pública'], [true, '🔒 Privada']]} />
@@ -83,7 +84,7 @@ export default function Lobby() {
     const g = mode === 'gude';
     const r = (rooms || []).find(x => x.status === 'waiting' && isGudeMode(x.mode) === g && !x.is_private && !x.vip_only && !x.tournament_id && x.n < x.max_players && x.entry <= (profile?.coins || 0));
     if (r) return sit(r);
-    try { const c = await api('/api/rooms', { mode: g ? 'gude-triangulo' : 'cacheta', maxPlayers: 4, points: 5, entry: 1, turnSeconds: 30 }); router.push(salaUrl(c.id, g ? 'gude-triangulo' : 'cacheta')); }
+    try { const c = await api('/api/rooms', { mode: g ? 'gude-triangulo' : 'cacheta', maxPlayers: 4, points: 5, entry: g ? 2 : 1, turnSeconds: 30 }); router.push(salaUrl(c.id, g ? 'gude-triangulo' : 'cacheta')); }
     catch (e) { toast(e.message); }
   }
   return (

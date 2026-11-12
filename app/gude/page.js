@@ -1,6 +1,6 @@
 'use client';
 // BOLINHA DE GUDE contra o computador: Triângulo, Buraco e Mata-mata.
-// Cada partida custa 1 ficha; ganhou leva 2, empate devolve. O servidor confere toda tecada.
+// Cada partida custa 1 ficha e não paga prêmio. O servidor confere toda tecada.
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
@@ -11,7 +11,7 @@ import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../lib/sfx.js';
 import { MODOS, NIVEIS } from '../../lib/gude.js';
 
-const COST = 1, PRIZE = 2;
+const COST = 1;
 
 export default function Gude() {
   const router = useRouter();
@@ -98,7 +98,7 @@ export default function Gude() {
           <button className="go" style={{ background: 'linear-gradient(180deg,#3b82f6,#1d4ed8)' }} onClick={() => router.push('/lobby?jogo=gude')}>🌐 Online 1x1</button>
         </div>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar {MODOS[mode].name}</button>
-        <p className="gd-cost">Contra o computador: cada partida custa <b>{COST} ficha</b>. Ganhou, leva <b>{PRIZE}</b>. Empate devolve a ficha.</p>
+        <p className="gd-cost">Contra o computador: cada partida custa <b>{COST} ficha</b>. É só pra treinar: não tem prêmio.<br />Valendo fichas é no <b>Online 1x1</b> (entrada mínima de 2).</p>
       </div>
       {rules && <Regras mode={mode} onClose={() => setRules(false)} />}
       {semFichas && <Modal onClose={() => setSemFichas(false)}><h2>Sem fichas</h2>
@@ -123,7 +123,7 @@ export default function Gude() {
       {rules && <Regras mode={game.mode} onClose={() => setRules(false)} />}
       {over && <Modal><h2>{over.winner === 0 ? '🏆 Você ganhou!' : over.winner < 0 ? 'Empate!' : `${S.players[1].name} ganhou`}</h2>
         <div className="prize">{S.players[0].score} x {S.players[1].score}</div>
-        <p>{over.winner === 0 ? `+${prizeRef.current || PRIZE} fichas pra você. Boa tecada!` : over.winner < 0 ? 'A ficha voltou pro seu saldo.' : 'Quase! Tenta de novo.'}</p>
+        <p>{over.winner === 0 ? 'Boa tecada! Pra ganhar fichas, jogue no Online 1x1.' : over.winner < 0 ? 'Deu empate.' : 'Quase! Tenta de novo.'}</p>
         <button className="go" disabled={busy} onClick={start}>Jogar de novo · {COST} ficha</button>
         <button className="sec" onClick={() => { setGame(null); setS(null); }}>Voltar ao menu</button></Modal>}
       <style>{GUDE_CSS}</style>

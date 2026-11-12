@@ -180,7 +180,7 @@ export default function GudeSala() {
           <div className="panel">
             <h3>{room.is_private ? '🔒 ' : ''}{room.name}</h3>
             <div className="meta"><span>{modeName(room.mode)}</span><span>1 contra 1</span>
-              <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · pote ${fmt(room.entry * 2)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
+              <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · quem ganha leva ${fmt(room.entry + Math.floor(room.entry / 2))}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
             <div className="invite"><input readOnly value={link} onFocus={e => e.target.select()} />
               <button className="pillbtn" onClick={async () => { try { await navigator.clipboard.writeText(convite); toast('Convite copiado'); } catch { toast('Copie o link acima'); } }}>Copiar convite</button></div>
             <div className="invite" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -214,7 +214,7 @@ export default function GudeSala() {
   return (
     <div className="page lounge gd">
       <Hud S={S} me={myIdx} clock={clock != null && clock <= srv.cfg.turn ? clock : null}
-        extra={srv.cfg.entry ? <> · pote <b>{fmt(srv.pot)}</b></> : null}
+        extra={srv.cfg.entry ? <> · prêmio <b>{fmt(srv.prize)}</b></> : null}
         right={<>
           <button className="rbtn" title="Chat" onClick={() => { setChatOpen(true); setUnread(0); }}>💬{unread > 0 && <i className="dot">{unread}</i>}</button>
           <button className="rbtn" title="Regras" onClick={() => setRules(true)}>📖</button>
@@ -227,7 +227,7 @@ export default function GudeSala() {
       {rules && <Regras mode={srv.mode} onClose={() => setRules(false)} />}
       {overShown && <Modal><h2>{res.tie ? 'Empate!' : res.champion === myIdx ? '🏆 Você ganhou!' : `${srv.players[res.champion]?.name} ganhou`}</h2>
         <div className="prize">{srv.players[myIdx].score} x {srv.players[1 - myIdx].score}</div>
-        <p>{res.forfeit ? 'O adversário saiu da mesa. ' : ''}{res.tie ? 'Cada um recebeu a entrada de volta.' : res.champion === myIdx ? (srv.cfg.entry ? `Você levou o pote de ${fmt(srv.pot)} fichas!` : 'Boa tecada!') : 'Quase! Pede revanche.'}</p>
+        <p>{res.forfeit ? 'O adversário saiu da mesa. ' : ''}{res.tie ? 'Cada um recebeu a entrada de volta.' : res.champion === myIdx ? (srv.cfg.entry ? `Você levou ${fmt(srv.prize)} fichas!` : 'Boa tecada!') : 'Quase! Pede revanche.'}</p>
         <button className="go" onClick={() => { setDismissed(srv.matchId); setMsg(''); }}>🔁 Revanche</button>
         <button className="sec" onClick={() => leave(true)}>Sair da sala</button></Modal>}
       <style>{GUDE_CSS + '.rbtn .dot{position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;font:700 11px Rubik;border-radius:10px;padding:1px 5px;font-style:normal}.rbtn{position:relative}'}</style>
