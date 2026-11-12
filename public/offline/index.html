@@ -328,10 +328,15 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .center{--pcw:clamp(64px,16vmin,116px)}
 .center .piles{--cw:var(--pcw);gap:clamp(24px,7.5vmin,80px)}
 .center .corbox .card{--cw:calc(var(--pcw)*.62)}
-/* DESCARTAR no meio da mesa, embaixo das cartas; aparece na sua vez de descartar */
-.center .cdisc{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;margin-top:6px;padding:8px 34px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;z-index:3}
-.center .cdisc[hidden]{display:none}
-.center .cdisc:active{transform:translateX(-50%) scale(.95)}
+/* DESCARTAR colado embaixo das cartas do centro (não fica atrás da mão); no celular deitado ocupa o lugar do aviso */
+.piles{position:relative}
+.piles .cdisc{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;margin-top:10px;padding:7px 30px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;z-index:5}
+.piles .cdisc[hidden]{display:none}
+.piles .cdisc:active{transform:translateX(-50%) scale(.95)}
+@media (orientation:landscape) and (max-height:520px){
+  .piles .cdisc{margin-top:4px;padding:5px 26px;font-size:15px}
+}
+.center:has(.cdisc:not([hidden])) #msg{visibility:hidden}
 /* BATER redondo, laranja, com o rótulo embaixo */
 #bar #bBate{flex:none;width:76px;height:76px;padding:0!important;border-radius:50%;border:3px solid #5a1d00;background:radial-gradient(circle at 35% 30%,#ffb35c,#f07a12 55%,#b44a05);box-shadow:0 0 0 3px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.5),inset 0 -4px 8px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;align-self:center}
 #bBate .bi{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
@@ -411,8 +416,8 @@ button{font-family:inherit;cursor:pointer;color:inherit}
           <div class="pile"><div id="viraBox"></div><div id="monte" data-act="monte"></div></div>
           <div class="pile" id="corBox"></div>
           <div class="pile"><div id="desc" data-act="desc"></div></div>
+          <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
         </div>
-        <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
       </div>
       <div id="seats"></div>
     </div></div>
