@@ -426,7 +426,7 @@ export default function Sala() {
     : myTurn ? (game.phase === 'draw' ? (me.queimado ? 'Sua vez: 🔥 você errou uma batida, só pode comprar do <b>monte</b>' : game.descTop && Engine.isJ(game.descTop, game.cor) ? 'Sua vez: 🔒 coringa no descarte não pode ser pego, compre do <b>monte</b>' : 'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele')
       : game.phase === 'sync' ? 'Descartando…'
       : full && myHand.length === game.cfg.hand + 1 ? '✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER'
-      : 'Sua vez de descartar: escolha uma carta e toque em <b>Descartar</b>')
+      : 'Sua vez de descartar: escolha uma carta e toque em <b>DESCARTAR</b>')
     : `Vez de <b>${turnName}</b>`;
   const others = [];
   for (let k = 1; k < n; k++) others.push((myIdx + k) % n);
@@ -487,7 +487,7 @@ export default function Sala() {
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
                 {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={Engine.isJ(game.descTop, game.cor) ? 'lockj' : canDraw && !me.queimado ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
             </div>
-            {canEnd && <button className="cdisc" onClick={() => sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>Descartar</button>}
+            {canEnd && <button className="cdisc" onClick={() => sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
           </div>
           <div id="seats" className={n >= 8 ? 'many' : ''}>
             {others.map((pi, k) => {
@@ -523,7 +523,7 @@ export default function Sala() {
         </div>
         <div id="bar">
           <button id="bSort" onClick={() => { const m = (sortMode + 1) % 3; setSortMode(m); sortHand(m); toast(['Organizado por jogos', 'Organizado por naipe', 'Organizado por valor'][m]); }}>{['🃏 Jogos', '♠ Naipe', '7 Valor'][sortMode]}</button>
-          <button className="bate" id="bBate" disabled={game.over} onClick={bater}>BATER</button>
+          <button className="bate" id="bBate" disabled={game.over} onClick={bater}><span className="bi">🃏</span><small>BATER</small></button>
         </div>
       </div>
 
