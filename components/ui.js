@@ -24,7 +24,7 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
   );
 }
 
-export function Header({ profile, right, onProfile }) {
+export function Header({ profile, right, mid, onProfile }) {
   return (
     <div className="hdr">
       <div className="plate">
@@ -32,6 +32,7 @@ export function Header({ profile, right, onProfile }) {
         <div className="who"><b>{profile?.nickname || '...'}{profile?.vip_until && new Date(profile.vip_until) > new Date() ? ' 👑' : ''}</b><small>ID: {profile ? profile.id.slice(0, 8).toUpperCase() : ''}</small></div>
         <a className="coins" href="/loja#comprar" title="Comprar fichas"><i>💰</i><span>{fmt(profile?.coins)}</span><b className="plus">+</b></a>
       </div>
+      {mid && <div className="games">{mid}</div>}
       <div className="right">{right}</div>
     </div>
   );
