@@ -1,6 +1,6 @@
 // Testes da bolinha de gude: os 3 modos, o computador e a repetição da jogada (online)
 import assert from 'node:assert/strict';
-import { newGame, step, shoot, launch, velOf, simulate, snapshot, botShot, inTri, left, holeAt, CX, CY, LINE, HOLES, MODOS, MAXV } from '../lib/gude.js';
+import { newGame, step, shoot, launch, velOf, simulate, snapshot, botShot, inTri, left, holeAt, homes, RUA, zoneAt, CX, CY, LINE, HOLES, MODOS, MAXV } from '../lib/gude.js';
 
 assert.ok(inTri(CX, CY), 'centro está dentro');
 assert.ok(!inTri(LINE, CY), 'linha está fora');
@@ -25,10 +25,26 @@ assert.ok(!inTri(LINE, CY), 'linha está fora');
 }
 { // mata-mata: acertou o outro, ponto, e as bolinhas voltam pro lugar
   const S = newGame({ mode: 'matamata' });
-  S.players[1].sh.x = 300;
+  S.players[1].sh.x = 330; S.players[1].sh.y = 660;
   launch(S, 8, 0); simulate(S);
   assert.equal(S.players[0].score, 1); assert.equal(S.turn, 1, 'quem levou começa');
-  assert.equal(S.players[1].sh.x, 750);
+  assert.equal(S.players[1].sh.x, homes('matamata')[1][0]);
+}
+{ // rua: árvore rebate, carro rebate, meio-fio freia, bueiro devolve pro começo
+  const tr = RUA.trees.find(t => t.y === 500);
+  let S = newGame({ mode: 'matamata' }); Object.assign(S.players[0].sh, { x: tr.x - 80, y: 500, zone: 'canteiro' });
+  launch(S, 6, 0); simulate(S); assert.ok(S.players[0].sh.x < tr.x, 'não atravessa a árvore');
+  const car = RUA.cars[0];
+  S = newGame({ mode: 'matamata' }); Object.assign(S.players[0].sh, { x: car.x + 50, y: car.y + car.h + 60, zone: 'rua' });
+  launch(S, 0, -9); simulate(S); assert.ok(S.players[0].sh.y > car.y + car.h, 'não atravessa o carro');
+  S = newGame({ mode: 'matamata' }); Object.assign(S.players[0].sh, { x: 400, y: 300, zone: 'rua' });
+  launch(S, 0, -12); simulate(S); const comMeioFio = 300 - S.players[0].sh.y;
+  assert.ok(comMeioFio < 12 / (1 - .972), 'meio-fio e calçada freiam');
+  const dr = RUA.drains[2];
+  S = newGame({ mode: 'matamata' }); Object.assign(S.players[0].sh, { x: dr.x - 60, y: dr.y, zone: 'rua' });
+  launch(S, 60 * .028 + .4, 0); simulate(S);
+  assert.deepEqual([S.players[0].sh.x, S.players[0].sh.y], homes('matamata')[0], 'caiu no bueiro, voltou pro começo');
+  assert.ok(RUA.obst.every(o => zoneAt(o.x, o.y) !== 'rua' || o.r < 10), 'árvores fora do asfalto');
 }
 // a mesma tecada refeita a partir da cópia chega exatamente no mesmo lugar (é assim que o online anima)
 for (const mode of Object.keys(MODOS)) {

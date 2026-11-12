@@ -76,6 +76,7 @@ export function recado(e, S, me) {
     return eu ? `Errou.${vez}` : `${who} errou!${vez}`;
   }
   if (e.kill) return `${who} acertou! ${S.players[0].score} x ${S.players[1].score}.${vez}`;
+  if (e.bueiro && e.bueiro.length) return `${e.bueiro.includes(e.pi) ? (eu ? 'Você caiu' : `${who} caiu`) : (eu ? `${outro} caiu` : 'Você caiu')} no bueiro: volta pro começo!${vez}`;
   return eu ? `Não acertou.${vez}` : `${who} errou!${vez}`;
 }
 
@@ -93,8 +94,9 @@ export function Regras({ mode, onClose }) {
           <p>• Pra cair, a bolinha tem que chegar <b>devagar</b>: forte demais ela pula o buraco. Acertou, joga de novo.</p>
           <p>• Fez o caminho todo, vira <b>MATADOR 💀</b>: aí é só acertar a bolinha do adversário pra ganhar.</p></>}
         {mode === 'matamata' && <>
-          <p>• Só as duas bolinhas, uma de cada lado. <b>Acertou a bolinha do outro, ganha 1 ponto</b> e as duas voltam pro lugar.</p>
-          <p>• Errou, a bolinha fica onde parou e passa a vez. Chegar perto ajuda, mas deixa você na mira!</p>
+          <p>• É uma <b>caçada na rua</b>: cada um começa de um lado. A câmera segue a bolinha. No canto tem o <b>mapa</b> e a seta mostra onde o outro está. Arraste fora da bolinha pra olhar a rua.</p>
+          <p>• <b>Acertou a bolinha do outro, ganha 1 ponto</b> e as duas voltam pro começo. Errou, a bolinha fica onde parou e passa a vez.</p>
+          <p>• <b>Árvores, postes e carros</b> rebatem a bolinha. <b>Subir o meio-fio</b> freia, e calçada e grama são mais ásperas. Se cair no <b>bueiro</b>, volta pro começo!</p>
           <p>• Quem fizer <b>{MATA_PTS} pontos</b> ganha.</p></>}
       </div>
       <button className="go" onClick={onClose}>Entendi</button>
