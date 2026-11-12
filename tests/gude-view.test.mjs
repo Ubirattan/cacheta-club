@@ -14,8 +14,9 @@ const run = (n) => { for (let i=0;i<n;i++){ T += 16.7; const f = frames.shift();
 import assert from 'node:assert/strict';
 
 // servidor simulado: partida contra o computador
-const S0 = G.newGame({ mode: 'bulica', first: 0 });
-const srv = JSON.parse(JSON.stringify(S0));
+// a mesa chega do servidor sem a lista de eventos (foi isso que travou a tecada no celular)
+const { events: _e, ...S0 } = G.newGame({ mode: 'bulica', first: 0 });
+const srv = { ...JSON.parse(JSON.stringify(S0)), events: [] };   // no servidor a lista existe
 const cv = mkCanvas(); let shot = null, settles = 0, last = null;
 const v = createView({ canvas: cv, box: cv, state: S0, me: 0, onShoot: x => shot = x, onSettle: () => settles++, onChange: s => last = s });
 run(2);
