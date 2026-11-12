@@ -61,3 +61,27 @@ console.log('view ok: tecadas', shots.length, 'recados', settles);
   v2.destroy();
   console.log('view ok: erro num quadro não trava');
 }
+
+// rua (mata-mata): câmera segue a bolinha, minimapa e obstáculos desenham sem erro
+{
+  const errs = []; const ce = console.error; console.error = (...a) => errs.push(a.join(' '));
+  const st = G.newGame({ mode: 'matamata', first: 0 });
+  const cv2 = mkCanvas(); let shot2 = null;
+  const v2 = createView({ canvas: cv2, box: cv2, state: st, me: 0, onShoot: x => shot2 = x });
+  run(5);
+  const b = { ...v2.state.players[0].sh };
+  // na rua a tela não mostra tudo: tocar na bolinha precisa considerar a câmera
+  // a câmera fica na minha bolinha, mas sem passar da borda da rua
+  const sc = Math.min(920 / 1000, 450 / 490), camx = Math.max(460 / sc, b.x), camy = Math.min(1000 - 225 / sc, b.y);
+  const bx = 460 + (b.x - camx) * sc, by = 225 + (b.y - camy) * sc;
+  cv2.onpointerdown({ clientX: bx, clientY: by, pointerId: 1 });
+  cv2.onpointermove({ clientX: bx - 90, clientY: by });
+  cv2.onpointerup({});
+  assert.ok(shot2 && shot2.vx > 0, 'tecou pra direita a partir do centro da tela');
+  run(3000);
+  assert.ok(!v2.busy());
+  assert.ok(v2.state.players[0].sh.x > b.x + 100, 'andou');
+  console.error = ce;
+  assert.deepEqual(errs, [], 'sem erro desenhando a rua');
+  console.log('view ok: rua com câmera');
+}
