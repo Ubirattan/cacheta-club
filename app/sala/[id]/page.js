@@ -26,7 +26,7 @@ function fly(fromSel, toSel, html) {
   document.body.appendChild(g);
   const dx = (tr.left + tr.width / 2) - (fr.left + fr.width / 2), dy = (tr.top + tr.height / 2) - (fr.top + fr.height / 2);
   try {
-    g.animate([{ transform: 'translate(0,0) rotate(0)' }, { transform: `translate(${dx}px,${dy}px) rotate(${dx > 0 ? 6 : -6}deg)`, offset: .7 }, { transform: `translate(${dx}px,${dy}px)` }], { duration: 380, easing: 'cubic-bezier(.2,.7,.3,1)' })
+    g.animate([{ transform: 'translate(0,0) rotate(0)' }, { transform: `translate(${dx}px,${dy}px) rotate(${dx > 0 ? 6 : -6}deg)`, offset: .7 }, { transform: `translate(${dx}px,${dy}px)` }], { duration: 260, easing: 'cubic-bezier(.2,.7,.3,1)' })
       .finished.then(() => g.remove(), () => g.remove());
   } catch { g.remove(); }
 }
@@ -107,7 +107,7 @@ export default function Sala() {
   const [dismissed, setDismissed] = useState(null);
   const [portrait, setPortrait] = useState(true);
   const [sortMode, setSortMode] = useState(0);
-  const lastRef = useRef(null), chatOpenRef = useRef(false), dealRef = useRef(false);
+  const animRef = useRef(null), lastRef = useRef(null), chatOpenRef = useRef(false), dealRef = useRef(false);
   const dragRef = useRef(null), suppressRef = useRef(false), canDiscardRef = useRef(false), discardRef = useRef(() => {});
   // arrastar cartas da mão com o dedo/mouse para montar os jogos
   useEffect(() => {
@@ -183,8 +183,8 @@ export default function Sala() {
     const ch = sb().channel('sala-' + id)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${id}` }, p => { if (p.eventType === 'DELETE') setRoom(null); else setRoom(p.new); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players' }, p => { if ((p.new && p.new.room_id === id) || (p.old && (p.old.room_id === id || !p.old.room_id))) loadPlayers(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `room_id=eq.${id}` }, p => { if (p.new && p.new.state) showGame(p.new.state, p.new.version); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'hands', filter: `room_id=eq.${id}` }, p => { if (p.new && p.new.user_id === user.id) setHand(p.new.cards); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `room_id=eq.${id}` }, p => { if (!(p.new && p.new.state)) return; if (pendRef.current.n) pendRef.current.stash = p.new; else showGame(p.new.state, p.new.version); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'hands', filter: `room_id=eq.${id}` }, p => { if (p.new && p.new.user_id === user.id && !pendRef.current.n) setHand(p.new.cards); })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${id}` }, p => {
         setMsgs(m => [...m.slice(-80), p.new]);
         if (p.new.user_id !== user.id) { if (!chatOpenRef.current) setUnread(u => u + 1); sfx('msg'); }
@@ -237,7 +237,8 @@ export default function Sala() {
     if (lastRef.current === key) return;
     const first = lastRef.current == null; lastRef.current = key;
     if (first) return;
-    if (game.last && ['draw', 'discard', 'bater', 'bateuErrado'].includes(game.last.t)) {
+    const lk = JSON.stringify([game.round, game.last]), novo = animRef.current !== lk; animRef.current = lk;
+    if (novo && game.last && ['draw', 'discard', 'bater', 'bateuErrado'].includes(game.last.t)) {
       sfx('card');
       const L = game.last, who = L.pi === myIdx ? '#hand' : `#seat-${L.pi} .av`;
       const back = `<div class="bk" style="--cw:60px"></div>`;
@@ -269,18 +270,40 @@ export default function Sala() {
   }
   function sortHand(mode) { setGrp(groupsFor(hand, mode)); }
 
-  async function act(body) {
-    if (busy) return; setBusy(true);
-    // mostra na hora o que já se sabe (descarte e carta do descarte), antes do servidor responder
-    if (body.type === 'discard') { const c = hand.find(x => x.id === body.cardId); if (c) { setHand(h => h.filter(x => x.id !== c.id)); setSel(null); } }
-    else if (body.type === 'draw' && body.from === 'desc' && game?.descTop && !game.players.find(p => p.uid === user.id)?.queimado && !Engine.isJ(game.descTop, game.cor) && !hand.some(x => x.id === game.descTop.id)) { const c = game.descTop; setHand(h => [...h, c]); }
-    try {
-      const r = await api(`/api/rooms/${id}/action`, body);
-      if (r && r.state) { showGame(r.state, r.version); if (r.hand) setHand(r.hand); }
-      if (body.type !== 'draw') setSel(null);
+  // Jogadas: a tela já mostra o resultado no toque (comprar/descartar) e o servidor confirma por trás.
+  // As jogadas ficam numa fila: dá pra comprar e já descartar sem esperar a resposta da compra.
+  const pendRef = useRef({ n: 0, disc: new Set(), stash: null });
+  const qRef = useRef(Promise.resolve());
+  function act(body) {
+    const P = pendRef.current;
+    if (body.type === 'decide' && busy) return;
+    if (body.type === 'draw' && game) {
+      const c = body.from === 'desc' ? game.descTop : null;
+      if (body.from === 'desc' && (!c || Engine.isJ(c, game.cor) || game.players[myIdx]?.queimado)) { /* servidor recusa e avisa */ }
+      else {
+        if (c && !hand.some(x => x.id === c.id)) setHand(h => [...h, c]);
+        setGame(g => ({ ...g, phase: 'discard', monte: body.from === 'monte' ? g.monte - 1 : g.monte, descTop: body.from === 'desc' ? null : g.descTop, descCount: body.from === 'desc' ? g.descCount - 1 : g.descCount, last: { pi: myIdx, t: 'draw', from: body.from, card: c } }));
+      }
+    } else if (body.type === 'discard' && game) {
+      const c = hand.find(x => x.id === body.cardId);
+      if (c) {
+        P.disc.add(c.id); setHand(h => h.filter(x => x.id !== c.id)); setSel(null);
+        setGame(g => ({ ...g, phase: 'sync', descTop: c, descCount: (g.descCount || 0) + 1, last: { pi: myIdx, t: 'discard', card: c } }));
+      }
     }
-    catch (e) { sfx('err'); toast(e.message); loadHand(); loadGame(); }
-    setBusy(false);
+    P.n++; setBusy(true);
+    qRef.current = qRef.current.then(async () => {
+      try {
+        const r = await api(`/api/rooms/${id}/action`, body);
+        if (body.type === 'discard') P.disc.delete(body.cardId);
+        if (r && r.hand) setHand(r.hand.filter(c => !P.disc.has(c.id)));
+        if (r && r.state && P.n === 1) { showGame(r.state, r.version); if (P.stash) { showGame(P.stash.state, P.stash.version); P.stash = null; } }
+        if (body.type !== 'draw') setSel(null);
+      } catch (e) {
+        sfx('err'); toast(e.message); P.disc.clear(); P.stash = null; loadHand(); loadGame();
+      } finally { P.n--; if (!P.n) setBusy(false); }
+    });
+    return qRef.current;
   }
   async function join() {
     setJoinErr('');
@@ -401,8 +424,9 @@ export default function Sala() {
   const msg = game.over ? (game.result?.empate ? 'Monte esgotado' : game.result?.semJogo ? 'Rodada sem jogo' : `${game.players[game.result?.winner]?.name || ''} bateu!`)
     : me && me.out ? 'Você correu desta rodada. Assista o jogo'
     : myTurn ? (game.phase === 'draw' ? (me.queimado ? 'Sua vez: 🔥 você errou uma batida, só pode comprar do <b>monte</b>' : game.descTop && Engine.isJ(game.descTop, game.cor) ? 'Sua vez: 🔒 coringa no descarte não pode ser pego, compre do <b>monte</b>' : 'Sua vez: compre do <b>monte</b>, pegue o <b>descarte</b> ou <b>BATA</b> com ele')
+      : game.phase === 'sync' ? 'Descartando…'
       : full && myHand.length === game.cfg.hand + 1 ? '✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER'
-      : 'Escolha uma carta e toque em <b>DESCARTAR</b> ou <b>BATER</b>')
+      : 'Sua vez de descartar: escolha uma carta e toque em <b>Descartar</b>')
     : `Vez de <b>${turnName}</b>`;
   const others = [];
   for (let k = 1; k < n; k++) others.push((myIdx + k) % n);
@@ -463,6 +487,7 @@ export default function Sala() {
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
                 {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={Engine.isJ(game.descTop, game.cor) ? 'lockj' : canDraw && !me.queimado ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
             </div>
+            {canEnd && <button className="cdisc" onClick={() => sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>Descartar</button>}
           </div>
           <div id="seats" className={n >= 8 ? 'many' : ''}>
             {others.map((pi, k) => {
@@ -498,8 +523,7 @@ export default function Sala() {
         </div>
         <div id="bar">
           <button id="bSort" onClick={() => { const m = (sortMode + 1) % 3; setSortMode(m); sortHand(m); toast(['Organizado por jogos', 'Organizado por naipe', 'Organizado por valor'][m]); }}>{['🃏 Jogos', '♠ Naipe', '7 Valor'][sortMode]}</button>
-          <button className="disc" id="bDisc" disabled={!canEnd || sel == null || busy} onClick={() => act({ type: 'discard', cardId: sel })}>DESCARTAR</button>
-          <button className="bate" id="bBate" disabled={game.over || busy} onClick={bater}>BATER</button>
+          <button className="bate" id="bBate" disabled={game.over} onClick={bater}>BATER</button>
         </div>
       </div>
 
