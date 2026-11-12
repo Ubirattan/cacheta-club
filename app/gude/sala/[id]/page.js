@@ -10,7 +10,7 @@ import Chat from '../../../../components/Chat.js';
 import { sendInvite } from '../../../../components/Convites.js';
 import { GudeField, Hud, Regras, recado, GUDE_CSS } from '../../../../components/Gude.js';
 import { modeName, isGudeMode, fmt } from '../../../../lib/modes.js';
-import { sfx, soundOn, setSound } from '../../../../lib/sfx.js';
+import { sfx, soundOn, setSound, unlockAudio } from '../../../../lib/sfx.js';
 
 export default function GudeSala() {
   const { id } = useParams();
@@ -156,7 +156,7 @@ export default function GudeSala() {
         {room.status === 'playing' ? <p>Essa mesa está jogando agora. Assim que a partida acabar, dá pra sentar.</p> : <>
           {room.is_private && <input className="field" placeholder="Senha da sala" value={pass} onChange={e => setPass(e.target.value)} />}
           {joinErr && <div className="err">{joinErr}</div>}
-          <button className="go" onClick={join}>Sentar na mesa</button></>}
+          <button className="go" onClick={() => { unlockAudio(); join(); }}>Sentar na mesa</button></>}
         <button className="sec" onClick={() => router.push('/lobby?jogo=gude')}>Voltar às salas</button>
       </div></div></div>
   );
@@ -195,7 +195,7 @@ export default function GudeSala() {
             <p className="hint" style={{ textAlign: 'center', marginTop: 12 }}>
               {players.length < 2 ? 'Esperando o adversário. Mande o convite!' : 'A partida começa sozinha quando os dois estiverem prontos.'}
             </p>
-            <button className="go" style={me?.ready ? { background: 'linear-gradient(180deg,#5a5578,#34304f)' } : undefined} onClick={() => ready(!me?.ready)}>
+            <button className="go" style={me?.ready ? { background: 'linear-gradient(180deg,#5a5578,#34304f)' } : undefined} onClick={() => { unlockAudio(); ready(!me?.ready); }}>
               {me?.ready ? 'Cancelar pronto' : '✓ Estou pronto'}</button>
             <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
             <button className="sec" onClick={() => leave(true)}>Sair da sala</button>
@@ -218,7 +218,7 @@ export default function GudeSala() {
         right={<>
           <button className="rbtn" title="Chat" onClick={() => { setChatOpen(true); setUnread(0); }}>💬{unread > 0 && <i className="dot">{unread}</i>}</button>
           <button className="rbtn" title="Regras" onClick={() => setRules(true)}>📖</button>
-          <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
+          <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
           <button className="rbtn" title="Sair" onClick={() => leave(false)}>↩</button></>} />
       <GudeField init={init} me={myIdx} viewRef={viewRef} canPlay={canPlay} onShoot={onShoot} onSettle={onSettle} onChange={st => setS({ ...st })} />
       <div id="msg">{msg || (S && !S.over ? (S.turn === myIdx ? 'Sua vez: arraste da sua bolinha pra trás e solte' : `Vez de ${S.players[S.turn]?.name}…`) : ' ')}</div>

@@ -89,7 +89,7 @@ export function Regras({ mode, onClose }) {
           <p>• Na próxima vez você teca de onde parou. Se a sua bolinha parar <b>dentro do triângulo</b>, volta pra linha e você perde a vez.</p>
           <p>• Quando acabarem as bolinhas, ganha quem tirou mais.</p></>}
         {mode === 'bulica' && <>
-          <p>• Tem <b>3 buraquinhos (búlicas)</b>. Acerte na ordem <b>1 → 2 → 3 → 2 → 1</b>. O buraco da vez pisca.</p>
+          <p>• Tem <b>3 buraquinhos</b>. Acerte na ordem <b>1 → 2 → 3 → 2 → 1</b>. O buraco da vez pisca.</p>
           <p>• Pra cair, a bolinha tem que chegar <b>devagar</b>: forte demais ela pula o buraco. Acertou, joga de novo.</p>
           <p>• Fez o caminho todo, vira <b>MATADOR 💀</b>: aí é só acertar a bolinha do adversário pra ganhar.</p></>}
         {mode === 'matamata' && <>

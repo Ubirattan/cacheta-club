@@ -34,7 +34,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 ### Bolinha de gude (novo)
 - Botão **Gude** no topo da tela inicial. Três modos:
   - **Triângulo:** tire as 10 bolinhas do triângulo. Tirou, joga de novo. Ganha quem tirar mais.
-  - **Búlica:** acerte os buraquinhos na ordem 1 → 2 → 3 → 2 → 1 e vire **matador** 💀. Aí é acertar a bolinha do outro.
+  - **Buraco:** acerte os buraquinhos na ordem 1 → 2 → 3 → 2 → 1 e vire **matador** 💀. Aí é acertar a bolinha do outro.
   - **Mata-mata:** só as duas bolinhas. Acertou a do outro, 1 ponto. Faz 3 e ganha.
 - **Contra o computador** (Fácil, Esperto ou Difícil): cada partida custa **1 ficha**. Ganhou, leva **2**. Empate devolve a ficha.
   O servidor guarda a partida e confere toda tecada (a do jogador e a do computador), então ninguém inventa vitória.
