@@ -27,7 +27,7 @@ function Body({ profile, reloadProfile, user }) {
   return <>
     <AdSlot profile={profile} popup />
     <div className="panel" style={{ marginBottom: 12, textAlign: 'center' }}>
-      <p style={{ margin: 0, font: '600 18px Oswald', color: 'var(--gold)' }}>🏆 Você receberá seu troféu em instantes</p>
+      <p style={{ margin: 0, font: '600 18px Oswald', color: 'var(--gold)' }}>🏆 Você receberá seu prêmio em instantes</p>
     </div>
     <div className="shopgrid">{TROFEUS.map(t => {
       const tem = Math.max(conta(t.id, 'done'), (profile.owned || []).includes(t.id) ? 1 : 0), wait = conta(t.id, 'pending'), falta = profile.coins < t.price;
