@@ -325,9 +325,23 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 /* aviso da vez embaixo das cartas da mesa (não cobre os jogadores) */
 .piles{order:1}#msg{order:2}
 /* cartas do meio da mesa (monte, vira, coringas e descarte) maiores */
-.center{--pcw:clamp(56px,13.5vmin,98px)}
-.center .piles{--cw:var(--pcw);gap:clamp(22px,7vmin,72px)}
-.center .corbox .card{--cw:calc(var(--pcw)*.56)}
+.center{--pcw:clamp(64px,16vmin,116px)}
+.center .piles{--cw:var(--pcw);gap:clamp(24px,7.5vmin,80px)}
+.center .corbox .card{--cw:calc(var(--pcw)*.62)}
+/* DESCARTAR no meio da mesa, embaixo das cartas; aparece na sua vez de descartar */
+.center .cdisc{position:absolute;top:100%;left:50%;transform:translateX(-50%);white-space:nowrap;margin-top:6px;padding:8px 34px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer;z-index:3}
+.center .cdisc[hidden]{display:none}
+.center .cdisc:active{transform:translateX(-50%) scale(.95)}
+/* BATER redondo, laranja, com o rótulo embaixo */
+#bar #bBate{flex:none;width:76px;height:76px;padding:0!important;border-radius:50%;border:3px solid #5a1d00;background:radial-gradient(circle at 35% 30%,#ffb35c,#f07a12 55%,#b44a05);box-shadow:0 0 0 3px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.5),inset 0 -4px 8px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;align-self:center}
+#bBate .bi{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+#bBate small{font:700 13px/1 Oswald;letter-spacing:.5px;margin-top:2px}
+#bBate:active{transform:scale(.94)}
+@media (orientation:landscape) and (max-height:520px){
+  #bar #bBate{width:66px!important;height:66px;top:-14px;font-size:inherit!important}
+  #bBate .bi{font-size:26px}#bBate small{font-size:12px}
+  #meRow,#timer{margin-right:90px!important}
+}
 .center .corbox small{font-size:11px}
 /* coringa no descarte: ninguém pode pegar */
 .card.lockj{filter:saturate(.6) brightness(.9)}
@@ -398,6 +412,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
           <div class="pile" id="corBox"></div>
           <div class="pile"><div id="desc" data-act="desc"></div></div>
         </div>
+        <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
       </div>
       <div id="seats"></div>
     </div></div>
@@ -408,8 +423,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
     <div id="hand"></div>
     <div id="bar">
       <button data-act="sort" id="bSort">Organizar</button>
-      <button class="disc" data-act="discard" id="bDisc">DESCARTAR</button>
-      <button class="bate" data-act="bater" id="bBate">BATER</button>
+      <button class="bate" data-act="bater" id="bBate"><span class="bi">🃏</span><small>BATER</small></button>
     </div>
   </div>
 </section>
@@ -847,7 +861,7 @@ function cardHTML(c,cls=''){
   return `<div class="card s${c.s} ${red?'red':''} ${jk?'joker':''} ${cls}" data-id="${c.id}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div>${jk?'<span class="jk">★</span>':''}</div>`;
 }
 const backHTML=()=>`<div class="bk"></div>`;
-function fly(fromR,toR,html,dur=380){
+function fly(fromR,toR,html,dur=260){
   if(!fromR||!toR) return Promise.resolve();
   const g=document.createElement('div'); g.className='ghost'; g.innerHTML=html;
   g.style.left=fromR.left+'px'; g.style.top=fromR.top+'px';
@@ -1032,7 +1046,7 @@ function myGroups(){ // grupos que o jogador montou; carta nova entra num grupo 
 }
 function beginTurn(){
   if(M.over) return;
-  if(M.desc.length){ const g0=gen, top=M.desc[M.desc.length-1].id; setTimeout(()=>{ if(g0===gen&&M&&!M.over&&M.phase==='draw'&&M.desc.length&&M.desc[M.desc.length-1].id===top) botSnipe(); },1600); }
+  if(M.desc.length){ const g0=gen, top=M.desc[M.desc.length-1].id; setTimeout(()=>{ if(g0===gen&&M&&!M.over&&M.phase==='draw'&&M.desc.length&&M.desc[M.desc.length-1].id===top) botSnipe(); },700); }
   const p=M.players[M.turn];
   if(p.human){
     M.ready=true; M.msgFull=false; sfx('turn');
@@ -1041,7 +1055,7 @@ function beginTurn(){
   } else {
     setMsg(`Vez de <b>${p.name}</b>`);
     render();
-    const g=gen; setTimeout(()=>{if(g===gen)botPlay();},M.players.length>6?1800:M.players.length>4?2300:2800);
+    const g=gen; setTimeout(()=>{if(g===gen)botPlay();},M.players.length>6?1000:M.players.length>4?1100:1200);
   }
 }
 async function botPlay(){
@@ -1055,7 +1069,7 @@ async function botPlay(){
   bubbles={}; bubbles[pi]=from==='desc'?`pegou ${E.name(r.ev.card)}`:'comprou do monte';
   render(); sfx('card');
   await fly(src,R('#opp'+pi+' .av'),from==='desc'?cardHTML(r.ev.card):backHTML());
-  await wait(M.players.length>6?1500:M.players.length>4?1900:2400); if(g!==gen) return;
+  await wait(M.players.length>6?900:M.players.length>4?1000:1100); if(g!==gen) return;
   const a=AI.chooseEnd(M,pi,p.level);
   const from2=R('#opp'+pi+' .av');
   const r2=E.act(M,pi,a); if(!r2.ok) return;
@@ -1314,7 +1328,7 @@ function render(){
   const full=groups.reduce((n,x)=>n+(x.cards.length>=3&&E.meldType(x.cards,M.cor,M.cfg)?x.cards.length:0),0)>=M.cfg.hand;
   if(full&&M.turn===0&&M.phase==='discard'&&!M.over&&nh===M.cfg.hand+1&&!M.msgFull){M.msgFull=true;setMsg('✅ <b>Seus jogos estão completos!</b> Toque na carta que sobrou e depois em BATER');}
   const canEnd=M.phase==='discard'&&M.turn===0&&!M.over;
-  $('#bDisc').disabled=!(canEnd&&sel!=null);
+  $('#bDisc').hidden=!canEnd;
   $('#bBate').disabled=M.over||dealing;
   $('#bSort').textContent=['🃏 Jogos','♠ Naipe','7 Valor'][sortMode];
 }
@@ -1386,7 +1400,7 @@ document.addEventListener('click',e=>{
     case 'monte': humanDraw('monte'); break;
     case 'desc':
       if(M&&M.phase==='discard'&&M.turn===0&&sel!=null) humanEnd('discard',sel); else humanDraw('desc'); break;
-    case 'discard': humanEnd('discard',sel); break;
+    case 'discard': if(sel==null){toast('Toque na carta que vai descartar');break;} humanEnd('discard',sel); break;
     case 'bater': humanBater(); break;
     case 'decGo': humanDecide(true); break;
     case 'decRun': humanDecide(false); break;
