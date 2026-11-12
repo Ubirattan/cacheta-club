@@ -208,6 +208,13 @@ export default function Sala() {
     if (due && !tickBusy.current) { tickBusy.current = true; api(`/api/rooms/${id}/tick`).catch(() => {}).finally(() => setTimeout(() => { tickBusy.current = false; }, 1500)); }
   }, [now, game, isMember, room, id]);
   const tickBusy = useRef(false);
+  // "estou aqui" a cada 2 min enquanto a tela da sala está aberta (mesa sem ninguém por 10 min é fechada)
+  useEffect(() => {
+    if (!isMember) return;
+    const p = () => { if (document.visibilityState === 'visible') api(`/api/rooms/${id}/ping`).catch(() => {}); };
+    p(); const t = setInterval(p, 120000); document.addEventListener('visibilitychange', p);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', p); };
+  }, [isMember, id]);
 
   // ordem das cartas na mão (cada um organiza do seu jeito)
   useEffect(() => {

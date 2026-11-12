@@ -60,7 +60,10 @@ export default function Lobby() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players' }, later)
       .subscribe();
     const tk = setInterval(() => api('/api/tournaments', { op: 'tick' }).catch(() => {}), 30000);
-    return () => { sb().removeChannel(ch); clearTimeout(tRef.current); clearInterval(tk); };
+    // fecha mesas abandonadas (10 min sem ninguém e sem jogada)
+    const limpa = () => api('/api/rooms/cleanup', {}).then(r => { if (r && r.closed) load(); }).catch(() => {});
+    limpa(); const lp = setInterval(limpa, 120000);
+    return () => { sb().removeChannel(ch); clearTimeout(tRef.current); clearInterval(tk); clearInterval(lp); };
   }, [user, load]);
 
   const list = (rooms || []).filter(r => !r.tournament_id && r.status !== 'closed' && (mode === 'todas' || r.mode === mode)
