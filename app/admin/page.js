@@ -4,7 +4,7 @@ import { PIX_TIPOS, fmtPix } from '../../lib/pix.js';
 import { useEffect, useState, useCallback } from 'react';
 import Shell from '../../components/Shell.js';
 import { api, sb } from '../../lib/supabase-browser.js';
-import { MODES, fmt, TURN_SECONDS } from '../../lib/modes.js';
+import { MODES, modeName, fmt, TURN_SECONDS } from '../../lib/modes.js';
 import { Seg, toast } from '../../components/ui.js';
 
 // sessão do painel (login e senha próprios), guardada só nesta aba do navegador
@@ -125,7 +125,7 @@ function Matches() {
   if (!m.length) return <div className="empty">Nenhuma partida terminada ainda.</div>;
   return <div className="rows">{m.map(x => (
     <div key={x.id} className="rowi"><span className="av">{x.tournament_id ? '🏆' : '🃏'}</span>
-      <div className="grow"><b>{x.room_name}</b><small>{new Date(x.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {MODES[x.mode]?.name} · {x.players.map(p => p.name).join(', ')}</small></div>
+      <div className="grow"><b>{x.room_name}</b><small>{new Date(x.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {modeName(x.mode)} · {x.players.map(p => p.name).join(', ')}</small></div>
       <span className="num">{x.winner_name || '—'}<br /><small className="hint">pote {fmt(x.pot)}</small></span></div>))}</div>;
 }
 
@@ -136,7 +136,7 @@ function Rooms() {
   if (!r) return <div className="empty">Carregando…</div>;
   return <div className="rows">{r.map(x => (
     <div key={x.id} className="rowi"><span className="av">{x.is_private ? '🔒' : '🌐'}</span>
-      <div className="grow"><b>{x.name}</b><small>{x.code} · {MODES[x.mode]?.name} · {x.status} · entrada {fmt(x.entry)}{x.tournament_id ? ' · torneio' : ''}</small></div>
+      <div className="grow"><b>{x.name}</b><small>{x.code} · {modeName(x.mode)} · {x.status} · entrada {fmt(x.entry)}{x.tournament_id ? ' · torneio' : ''}</small></div>
       <button className="pillbtn dark" style={{ padding: '6px 12px' }} onClick={async () => { try { await adm('closeRoom', { roomId: x.id }); toast('Sala fechada'); load(); } catch (e) { toast(e.message); } }}>Fechar</button></div>))}</div>;
 }
 

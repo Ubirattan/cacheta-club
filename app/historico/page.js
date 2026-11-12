@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Shell from '../../components/Shell.js';
 import { sb } from '../../lib/supabase-browser.js';
-import { MODES, fmt } from '../../lib/modes.js';
+import { MODES, modeName, fmt } from '../../lib/modes.js';
 
 function List({ user }) {
   const [rows, setRows] = useState(null);
@@ -29,7 +29,7 @@ function List({ user }) {
       <div key={r.match_id} className="rowi">
         <span className="av">{r.won ? '🏆' : '🃏'}</span>
         <div className="grow"><b>{r.h.room_name}</b>
-          <small>{new Date(r.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {MODES[r.h.mode]?.name} · {r.h.players.length} jogadores · {r.h.rounds} rodada{r.h.rounds === 1 ? '' : 's'}{r.won ? '' : ` · venceu ${r.h.winner_name || '—'}`}</small></div>
+          <small>{new Date(r.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {modeName(r.h.mode)} · {r.h.players.length} jogadores · {r.h.rounds} rodada{r.h.rounds === 1 ? '' : 's'}{r.won ? '' : ` · venceu ${r.h.winner_name || '—'}`}</small></div>
         <span className={`num ${r.coins_delta >= 0 ? 'won' : 'lost'}`}>{r.won ? 'Venceu' : 'Perdeu'}<br />{r.coins_delta ? (r.coins_delta > 0 ? '+' : '') + fmt(r.coins_delta) : ''}</span>
       </div>))}</div>
   </>;

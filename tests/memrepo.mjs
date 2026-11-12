@@ -1,6 +1,6 @@
 // Banco em memória que imita o Supabase (para testes)
 export function memRepo() {
-  const T = { profiles: [], rooms: [], room_players: [], match_history: [], match_players: [], tournaments: [], tournament_players: [], tournament_tables: [], app_settings: [], purchases: [], admin_auth: [] };
+  const T = { gude_partidas: [], profiles: [], rooms: [], room_players: [], match_history: [], match_players: [], tournaments: [], tournament_players: [], tournament_tables: [], app_settings: [], purchases: [], admin_auth: [] };
   const secrets = new Map(), games = new Map(), pub = new Map(), hands = new Map();
   let seq = 0;
   const match = (r, w) => Object.entries(w).every(([k, v]) => r[k] === v);

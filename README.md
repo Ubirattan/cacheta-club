@@ -31,6 +31,18 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 - O motor fica em `lib/truco.js` e já está pronto pra rodar no servidor quando vier o truco online.
 - A página do truco só é baixada quando o jogador toca no botão: a tela inicial continua leve.
 
+### Bolinha de gude (novo)
+- Botão **Gude** no topo da tela inicial. Três modos:
+  - **Triângulo:** tire as 10 bolinhas do triângulo. Tirou, joga de novo. Ganha quem tirar mais.
+  - **Búlica:** acerte os buraquinhos na ordem 1 → 2 → 3 → 2 → 1 e vire **matador** 💀. Aí é acertar a bolinha do outro.
+  - **Mata-mata:** só as duas bolinhas. Acertou a do outro, 1 ponto. Faz 3 e ganha.
+- **Contra o computador** (Fácil, Esperto ou Difícil): cada partida custa **1 ficha**. Ganhou, leva **2**. Empate devolve a ficha.
+  O servidor guarda a partida e confere toda tecada (a do jogador e a do computador), então ninguém inventa vitória.
+- **Online 1 contra 1:** no lobby, aba **🔵 Gude** → Criar sala. Tem entrada em fichas, convite, chat e cronômetro (tempo acabou = passa a vez).
+  Quem ganha leva o pote; empate devolve a entrada; quem sai no meio perde.
+- Mira nova: os pontinhos mostram até onde a bolinha vai parar e a força aparece em %.
+- ⚠️ Rode uma vez o arquivo `supabase/gude.sql` no SQL Editor do Supabase (cria a tabela das partidas contra o computador).
+
 ### Novidades da etapa 3
 - **Torneios:** o admin cria o torneio com nome, modalidade, jogadores por mesa, inscrição, prêmio extra da casa e horário de início (opcional).
   - Os jogadores se inscrevem e podem desistir enquanto as inscrições estão abertas, com as fichas devolvidas.
@@ -60,7 +72,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 2. No menu da esquerda, abra o **SQL Editor** e clique em **New query**.
 3. Abra o arquivo `supabase/schema.sql` deste projeto, copie **tudo** e cole lá.
 4. Clique em **Run**. A mensagem esperada é "Success".
-5. Faça o mesmo com os arquivos `supabase/etapa3.sql` e `supabase/pagamento.sql`, um de cada vez: nova query, colar tudo e **Run**.
+5. Faça o mesmo com os arquivos `supabase/etapa3.sql`, `supabase/pagamento.sql` e `supabase/gude.sql`, um de cada vez: nova query, colar tudo e **Run**.
 6. **Para virar administrador:** depois de criar sua conta no site, rode no SQL Editor a linha abaixo, trocando pelo seu e-mail:
    ```sql
    update public.profiles set is_admin = true where id = (select id from auth.users where email = 'seu@email.com');
