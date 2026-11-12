@@ -1,5 +1,5 @@
 'use client';
-// BOLINHA DE GUDE contra o computador: Triângulo, Búlica e Mata-mata.
+// BOLINHA DE GUDE contra o computador: Triângulo, Buraco e Mata-mata.
 // Cada partida custa 1 ficha; ganhou leva 2, empate devolve. O servidor confere toda tecada.
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import { Modal, Seg, toast } from '../../components/ui.js';
 import { GudeField, Hud, Regras, recado, GUDE_CSS } from '../../components/Gude.js';
 import { api } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
-import { sfx, soundOn, setSound } from '../../lib/sfx.js';
+import { sfx, soundOn, setSound, unlockAudio } from '../../lib/sfx.js';
 import { MODOS, NIVEIS } from '../../lib/gude.js';
 
 const COST = 1, PRIZE = 2;
@@ -36,6 +36,7 @@ export default function Gude() {
 
   async function start() {
     if (!profile || busy) return;
+    unlockAudio();   // liga o som aqui, no toque do botão (criar no meio da tecada travava alguns celulares)
     if ((profile.coins || 0) < COST) return setSemFichas(true);
     setBusy(true);
     try {
@@ -114,7 +115,7 @@ export default function Gude() {
     <div className="page lounge gd">
       <Hud S={S} me={0} right={<>
         <button className="rbtn" title="Regras" onClick={() => setRules(true)}>📖</button>
-        <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
+        <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
         <button className="rbtn" title="Voltar" onClick={sair}>↩</button></>} />
       <GudeField init={game.init} me={0} viewRef={viewRef} canPlay={() => !pend.current}
         onShoot={onShoot} onSettle={onSettle} onChange={st => setS({ ...st })} />

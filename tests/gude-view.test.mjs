@@ -38,3 +38,25 @@ assert.ok(!v.busy(), 'terminou de animar');
 assert.deepEqual(G.snapshot(v.state), G.snapshot(srv), 'tela igual ao servidor');
 assert.equal(settles, shots.length, 'um recado por tecada');
 console.log('view ok: tecadas', shots.length, 'recados', settles);
+
+// erro dentro de um quadro (ex.: no recado) não pode congelar a mesa: o loop continua
+{
+  frames = [];
+  const S1 = G.newGame({ mode: 'bulica', first: 0 });
+  const cv2 = mkCanvas(); let boom = true, shot2 = null;
+  const v2 = createView({ canvas: cv2, box: cv2, state: S1, me: 0, onShoot: x => shot2 = x,
+    onSettle: () => { if (boom) { boom = false; throw new Error('erro de teste'); } } });
+  const ce = console.error; console.error = () => {};
+  run(2);
+  const s2 = v2.state.players[0].sh;
+  cv2.onpointerdown({ clientX: s2.x, clientY: s2.y, pointerId: 1 });
+  cv2.onpointermove({ clientX: s2.x - 50, clientY: s2.y - 10 });
+  cv2.onpointerup({});
+  assert.ok(shot2, 'tecou');
+  run(3000);
+  console.error = ce;
+  assert.ok(frames.length > 0, 'loop continua rodando depois do erro');
+  assert.ok(!v2.state.moving, 'bolinha parou');
+  v2.destroy();
+  console.log('view ok: erro num quadro não trava');
+}
