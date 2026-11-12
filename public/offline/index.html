@@ -304,7 +304,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   .seat .av{width:38px;height:38px;font-size:20px}
   .seat .np{padding:1px 6px}.seat .np b{font-size:12px}.seat .np small{font-size:10px}
   #msg{padding:2px 24px;font-size:13px}
-  .wm{top:86%}.wm small{display:none}
+  .wm{top:80%}.wm small{display:none}
   .piles{order:1}#msg{order:2}.center{top:54%}
   .corbox small{font-size:9px}
   .seat .bubble{top:2px;left:100%;margin:0 0 0 2px}.seat.rt .bubble{left:auto;right:100%;margin:0 2px 0 0}
@@ -328,11 +328,11 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .center{--pcw:clamp(64px,16vmin,116px)}
 .center .piles{--cw:var(--pcw);gap:clamp(24px,7.5vmin,80px)}
 .center .corbox .card{--cw:calc(var(--pcw)*.62)}
-/* DESCARTAR sempre na tela, logo embaixo dos coringas; apagado quando não é hora de descartar */
-.center .cdisc{order:1;align-self:center;white-space:nowrap;margin-top:2px;padding:6px 30px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer}
-.center .cdisc.off{opacity:.4;filter:grayscale(.5);box-shadow:none}
-.center .cdisc:active{transform:scale(.95)}
-@media (orientation:landscape) and (max-height:520px){ .center .cdisc{padding:4px 26px;font-size:15px} }
+/* DESCARTAR sempre na tela, embaixo do nome CACHETA CLUB; apagado quando não é hora de descartar */
+.felt > .cdisc{position:absolute;left:50%;top:84%;transform:translateX(-50%);z-index:3;white-space:nowrap;padding:6px 30px;border:2px solid #000;border-radius:30px;background:linear-gradient(180deg,#e9bd4a,#a8740f);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);font:600 17px Oswald;letter-spacing:.5px;box-shadow:0 3px 10px rgba(0,0,0,.45);cursor:pointer}
+.felt > .cdisc.off{opacity:.4;filter:grayscale(.5);box-shadow:none}
+.felt > .cdisc:active{transform:translateX(-50%) scale(.95)}
+@media (orientation:landscape) and (max-height:520px){ .felt > .cdisc{top:auto;bottom:1%;padding:3px 26px;font-size:15px} }
 /* BATER redondo, laranja, com o rótulo embaixo */
 #bar #bBate{flex:none;width:76px;height:76px;padding:0!important;border-radius:50%;border:3px solid #5a1d00;background:radial-gradient(circle at 35% 30%,#ffb35c,#f07a12 55%,#b44a05);box-shadow:0 0 0 3px rgba(0,0,0,.35),0 6px 14px rgba(0,0,0,.5),inset 0 -4px 8px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;align-self:center}
 #bBate .bi{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
@@ -406,6 +406,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   <div id="arena">
     <div class="rail"><div class="felt" id="felt">
       <div class="wm"><b>CACHETA CLUB</b><small id="wmInfo"></small></div>
+      <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
       <div class="center">
         <div id="msg"></div>
         <div class="piles">
@@ -413,7 +414,6 @@ button{font-family:inherit;cursor:pointer;color:inherit}
           <div class="pile" id="corBox"></div>
           <div class="pile"><div id="desc" data-act="desc"></div></div>
         </div>
-        <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
       </div>
       <div id="seats"></div>
     </div></div>

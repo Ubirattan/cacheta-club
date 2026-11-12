@@ -468,6 +468,7 @@ export default function Sala() {
       <div id="arena">
         <div className="rail"><div className="felt" style={{ background: feltBg }}>
           <div className="wm"><b>CACHETA CLUB</b><small>{MODES[room.mode]?.name} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
+          {myIdx >= 0 && !game.over && game.phase !== 'decide' && <button className={`cdisc ${canEnd ? '' : 'off'}`} onClick={() => !canEnd ? toast(canDraw ? 'Primeiro compre do monte ou pegue o descarte' : 'Espere a sua vez') : sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
           <div className="center">
             {game.phase === 'decide' && !game.over && myIdx >= 0 && me.fichas > 0
               ? <div id="msg"><span>{me.dec ? 'Aguardando os outros decidirem…' : me.fichas <= 1 ? 'Com 1 ponto não dá pra correr:' : 'Vai jogar esta rodada?'}</span>
@@ -487,7 +488,6 @@ export default function Sala() {
               <div className="pile"><div id="desc" onClick={() => { if (canEnd && sel != null) act({ type: 'discard', cardId: sel }); else if (canDraw && game.descTop) act({ type: 'draw', from: 'desc' }); }}>
                 {game.descTop ? <Card c={game.descTop} cor={game.cor} cls={Engine.isJ(game.descTop, game.cor) ? 'lockj' : canDraw && !me.queimado ? 'glow' : ''} /> : <div className="slot">🗑</div>}</div></div>
             </div>
-            {myIdx >= 0 && !game.over && game.phase !== 'decide' && <button className={`cdisc ${canEnd ? '' : 'off'}`} onClick={() => !canEnd ? toast(canDraw ? 'Primeiro compre do monte ou pegue o descarte' : 'Espere a sua vez') : sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
           </div>
           <div id="seats" className={n >= 8 ? 'many' : ''}>
             {others.map((pi, k) => {
