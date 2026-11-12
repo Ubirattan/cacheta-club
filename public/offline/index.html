@@ -355,6 +355,14 @@ button{font-family:inherit;cursor:pointer;color:inherit}
 .card .ctr svg.su{filter:drop-shadow(0 1px 0 rgba(0,0,0,.08))}
 .card .face i{font-size:calc(var(--cw)*.2);margin-top:2px}
 .card.red{color:#d42a1e}
+/* layout do Super Cacheta: número + naipe no canto, naipe médio em cima à direita, naipe grande embaixo à direita */
+.card .ix{top:4%;left:7%}
+.card .ix b{font:800 calc(var(--cw)*.38)/1 Rubik;letter-spacing:-2px}
+.card .ix i{font-size:calc(var(--cw)*.27);margin-top:3px}
+.card .tr{position:absolute;top:6%;right:9%;font-size:calc(var(--cw)*.3);line-height:0}
+.card .big{position:absolute;right:7%;bottom:6%;font-size:calc(var(--cw)*.6);line-height:0}
+.card .face{inset:30% 7% 6% 30%}
+.card .jk{top:auto;bottom:3%;left:8%;right:auto}
 </style>
 </head>
 <body>
@@ -874,8 +882,8 @@ const SUIT_P = [
 const suitSvg=s=>`<svg class="su" viewBox="0 0 100 100" aria-hidden="true" fill="currentColor">${SUIT_P[s]}</svg>`;
 function cardHTML(c,cls=''){
   const red=c.s===1||c.s===2, r=E.RANKS[c.r], s=suitSvg(c.s), jk=M&&E.isJ(c,M.cor);
-  const mid=c.r>=10?`<div class="face"><b>${r}</b><i>${s}</i></div>`:`<div class="ctr">${s}</div>`;
-  return `<div class="card s${c.s} ${red?'red':''} ${jk?'joker':''} ${cls}" data-id="${c.id}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}<div class="ix br"><b>${r}</b><i>${s}</i></div>${jk?'<span class="jk">★</span>':''}</div>`;
+  const mid=c.r>=10?`<div class="face"><b>${r}</b><i>${s}</i></div>`:`<div class="tr">${s}</div><div class="big">${s}</div>`;
+  return `<div class="card s${c.s} ${red?'red':''} ${jk?'joker':''} ${cls}" data-id="${c.id}"><div class="ix"><b>${r}</b><i>${s}</i></div>${mid}${jk?'<span class="jk">★</span>':''}</div>`;
 }
 const backHTML=()=>`<div class="bk"></div>`;
 function fly(fromR,toR,html,dur=260){

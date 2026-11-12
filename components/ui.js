@@ -15,9 +15,10 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
   const su = { __html: suitSvg(c.s) }; // naipe em vetor: nítido em qualquer tela
   return (
     <div className={`card s${c.s} ${red ? 'red' : ''} ${jk ? 'joker' : ''} ${cls}`} onClick={onClick} style={style} data-id={c.id}>
+      {/* número + naipe no canto, naipe médio em cima à direita e naipe grande embaixo (como no Super Cacheta) */}
       <div className="ix"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div>
-      {c.r >= 10 ? <div className="face"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div> : <div className="ctr" dangerouslySetInnerHTML={su} />}
-      <div className="ix br"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div>
+      {c.r >= 10 ? <div className="face"><b>{r}</b><i dangerouslySetInnerHTML={su} /></div>
+        : <><div className="tr" dangerouslySetInnerHTML={su} /><div className="big" dangerouslySetInnerHTML={su} /></>}
       {jk && <span className="jk">★</span>}
     </div>
   );
