@@ -441,3 +441,7 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .adedit .prev{max-width:100%;max-height:90px;border-radius:8px;object-fit:contain}
 .adedit .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .opt-row .adedit label.pillbtn{display:inline-flex;margin:0;font:inherit;color:inherit;letter-spacing:0}
+
+/* valor em fichas em cima do troféu */
+.trsw .trval{position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);white-space:nowrap;font:700 12px/1 Oswald;color:#1a1206;background:linear-gradient(180deg,#f3cf62,#c8901c);border:1.5px solid #000;border-radius:10px;padding:3px 7px;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+.trsw{margin-bottom:6px}

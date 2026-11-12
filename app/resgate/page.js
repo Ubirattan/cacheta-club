@@ -32,7 +32,7 @@ function Body({ profile, reloadProfile, user }) {
     <div className="shopgrid">{TROFEUS.map(t => {
       const tem = Math.max(conta(t.id, 'done'), (profile.owned || []).includes(t.id) ? 1 : 0), wait = conta(t.id, 'pending'), falta = profile.coins < t.price;
       return <div key={t.id} className="item">
-        <div className="swatch" style={{ display: 'grid', placeItems: 'center', fontSize: 44, background: 'radial-gradient(circle,#3a2f1d,#120e08)', borderColor: '#f2c94c' }}>{t.em}</div>
+        <div className="swatch trsw" style={{ display: 'grid', placeItems: 'center', fontSize: 44, background: 'radial-gradient(circle,#3a2f1d,#120e08)', borderColor: '#f2c94c', position: 'relative' }}>{t.em}<span className="trval">💰 {fmt(t.price)}</span></div>
         <b>{t.name}</b>
         {tem > 0 && <span style={{ color: '#4ade80', font: '600 15px Oswald' }}>✔ Você tem {tem}</span>}
         {wait > 0 && <span style={{ color: '#fbbf24', font: '600 15px Oswald' }}>⏳ {wait} aguardando liberação</span>}
