@@ -33,6 +33,9 @@ function fly(fromSel, toSel, html) {
 }
 
 const name = c => Engine.RANKS[c.r] + Engine.SUITS[c.s];
+// chave estável da última jogada: o banco (jsonb) devolve as chaves do objeto em outra ordem,
+// então comparar com JSON.stringify direto fazia a mesma jogada parecer nova e a animação repetir
+const lastKey = L => L ? [L.t, L.pi ?? null, L.from ?? null, L.card ? L.card.id : null, !!L.fora] : null;
 
 // onde soltar a carta arrastada: em cima de um grupo = entra nele; no espaço entre grupos = grupo novo
 function dropTarget(x, id) {
@@ -234,11 +237,11 @@ export default function Sala() {
   const myIdx = game && user ? game.players.findIndex(p => p.uid === user.id) : -1;
   useEffect(() => {
     if (!game) return;
-    const key = JSON.stringify([game.round, game.turn, game.phase, game.last, game.over]);
+    const key = JSON.stringify([game.round, game.turn, game.phase, lastKey(game.last), game.over]);
     if (lastRef.current === key) return;
     const first = lastRef.current == null; lastRef.current = key;
     if (first) return;
-    const lk = JSON.stringify([game.round, game.last]), novo = animRef.current !== lk; animRef.current = lk;
+    const lk = JSON.stringify([game.round, lastKey(game.last)]), novo = animRef.current !== lk; animRef.current = lk;
     if (novo && game.last && ['draw', 'discard', 'bater', 'bateuErrado'].includes(game.last.t)) {
       sfx('card');
       const L = game.last, who = L.pi === myIdx ? '#hand' : `#seat-${L.pi} .av`;
