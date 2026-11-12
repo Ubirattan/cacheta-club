@@ -11,7 +11,7 @@ import { newMatch, act, needs, botMove, canCall, isManilha, teamOf, manilhaRank,
 const BOTS = [['Tião', '🤠'], ['Dona Cida', '🦉'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zé', '🎩']];
 // posição na mesa vista por quem joga (lugar 0 = você, embaixo)
 const SEATS = { 2: [null, [50, 9]], 4: [null, [7, 46], [50, 9], [93, 46]] };
-const PLAYED = { 2: [[50, 70], [50, 38]], 4: [[50, 72], [33, 52], [50, 40], [67, 52]] };
+const PLAYED = { 2: [[50, 72], [50, 47]], 4: [[50, 74], [33, 54], [50, 48], [67, 54]] };
 const verb = (G, t, um, varios) => G.n === 4 && t === 1 ? varios : um;
 const nextCall = v => CALL_NAME[VALUES[VALUES.indexOf(v) + 1]];
 
@@ -117,7 +117,6 @@ export default function Truco() {
   return (
     <div className="page lounge tr">
       <div className="tr-top">
-        <button className="rbtn" onClick={() => { if (G.phase === 'over' || confirm('Sair da partida?')) setM(null); }}>↩</button>
         <div className="tr-score">
           <div className={G.score[0] >= 11 ? 'hot' : ''}><small>{G.n === 2 ? 'VOCÊ' : 'NÓS'}</small><b>{G.score[0]}</b></div>
           <i>x</i>
@@ -125,6 +124,7 @@ export default function Truco() {
         </div>
         <div className="tr-val">Vale <b>{G.value}</b>{G.ferro && <small>mão de ferro</small>}{G.onze !== null && <small>mão de onze</small>}</div>
         <div className="tr-vz">{[0, 1, 2].map(k => <i key={k} className={G.vazas[k] === undefined ? '' : G.vazas[k] < 0 ? 'eq' : G.vazas[k] === 0 ? 'ok' : 'no'} />)}</div>
+        <button className="rbtn" title="Voltar" onClick={() => { if (G.phase === 'over' || confirm('Sair da partida?')) setM(null); }}>↩</button>
       </div>
 
       <div id="arena"><div className="rail"><div className="felt">
