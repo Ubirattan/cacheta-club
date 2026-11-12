@@ -1,10 +1,11 @@
 'use client';
-// TRUCO PAULISTA contra o computador (1x1 ou duplas). Precisa ter fichas no saldo, mas aqui elas não são gastas.
+// TRUCO PAULISTA contra o computador (1x1 ou duplas). Cada partida custa 1 ficha (cobrada no servidor: /api/treino).
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
 import { Card, Modal, Seg, toast } from '../../components/ui.js';
 import { fmt } from '../../lib/modes.js';
+import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
 import { newMatch, act, needs, botMove, canCall, isManilha, teamOf, manilhaRank, RANKS, CALL_NAME, MAN_NAME, VALUES } from '../../lib/truco.js';
 
@@ -17,9 +18,10 @@ const nextCall = v => CALL_NAME[VALUES[VALUES.indexOf(v) + 1]];
 
 export default function Truco() {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, reloadProfile } = useAuth();
   const [cfg, setCfg] = useState({ n: 2, level: 'medio' });
   const [M, setM] = useState(null);
+  const [busy, setBusy] = useState(false);
   const [ver, setVer] = useState(0);
   const [shout, setShout] = useState(null);
   const [msg, setMsg] = useState('');
@@ -72,9 +74,13 @@ export default function Truco() {
     return () => clearTimeout(tRef.current);
   }, [M, ver, play, cfg.level]);
 
-  function start() {
-    if (!profile) return;
+  async function start() {
+    if (!profile || busy) return;
     if ((profile.coins || 0) < 1) return setM('semfichas');
+    setBusy(true);
+    try { await api('/api/treino', { jogo: 'truco' }); reloadProfile && reloadProfile(); }
+    catch (e) { setBusy(false); if (/fichas/i.test(e.message)) return setM('semfichas'); return toast(e.message); }
+    setBusy(false);
     const pool = BOTS.slice().sort(() => Math.random() - .5);
     const players = [{ name: profile.nickname || 'Você', avatar: profile.avatar || '😎' }];
     for (let i = 1; i < cfg.n; i++) players.push({ name: pool[i][0], avatar: pool[i][1], bot: true });
@@ -92,13 +98,13 @@ export default function Truco() {
         <h2>🤖 Contra o computador</h2>
         <Seg label="Mesa" value={cfg.n} onChange={v => setCfg(c => ({ ...c, n: v }))} options={[[2, '1 contra 1'], [4, 'Duplas (2x2)']]} />
         <Seg label="Computador" value={cfg.level} onChange={v => setCfg(c => ({ ...c, level: v }))} options={[['facil', 'Fácil'], ['medio', 'Esperto']]} />
-        <button className="go" disabled={!profile} onClick={start}>▶ Jogar</button>
+        <button className="go" disabled={!profile || busy} onClick={start}>{busy ? 'Começando…' : '▶ Jogar · 1 ficha'}</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Regras do truco paulista</button>
-        <p className="hint" style={{ textAlign: 'center' }}>É preciso ter fichas no saldo. Contra o computador elas não são gastas. Truco online com amigos: em breve.</p>
+        <p className="hint" style={{ textAlign: 'center' }}>Contra o computador cada partida custa 1 ficha. Truco online com amigos: em breve.</p>
       </div>
       {rules && <Rules onClose={() => setRules(false)} />}
       {M === 'semfichas' && <Modal onClose={() => setM(null)}><h2>Sem fichas</h2>
-        <p>Para jogar, inclusive contra o computador, você precisa ter fichas no saldo.</p>
+        <p>Cada partida contra o computador custa 1 ficha. Compre fichas pra jogar.</p>
         <button className="go" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas com Pix</button>
         <button className="sec" onClick={() => setM(null)}>Fechar</button></Modal>}
       <style>{CSS}</style>
@@ -172,7 +178,7 @@ export default function Truco() {
       {G.phase === 'over' && <Modal><h2>{G.over.team === 0 ? '🏆 Vitória!' : 'Não foi dessa vez'}</h2>
         <div className="prize">{G.score[0]} x {G.score[1]}</div>
         <p>{G.over.team === 0 ? (G.n === 2 ? 'Você ganhou a partida!' : 'Sua dupla ganhou a partida!') : `${teamName(G, 1)} ${verb(G, 1, 'ganhou', 'ganharam')} a partida.`}</p>
-        <button className="go" onClick={start}>Jogar de novo</button>
+        <button className="go" disabled={busy} onClick={start}>Jogar de novo · 1 ficha</button>
         <button className="sec" onClick={() => setM(null)}>Voltar ao menu</button></Modal>}
       <style>{CSS}</style>
     </div>

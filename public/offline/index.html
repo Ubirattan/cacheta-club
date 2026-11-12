@@ -408,7 +408,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   </div>
   <div class="tabs" id="tabs"></div>
   <div class="tabs pc" id="pcount"></div>
-  <div class="note">Mesas contra o computador · o número grande é a entrada em fichas virtuais. Quem vence leva o pote.</div>
+  <div class="note" id="lobNote">Mesas contra o computador · o número grande é a entrada em fichas virtuais. Quem vence leva o pote.</div>
   <div class="tables" id="tables"></div>
   <div class="lobfoot" id="lobfoot"></div>
 </section>
@@ -919,9 +919,9 @@ function renderLobby(){
   const mode={...MODES.find(m=>m.id===lobbyMode),players:lobbyPlayers};
   $('#pcount').innerHTML='<span>Jogadores</span>'+[2,3,4,5,6,7,8,9].map(n=>`<button class="${n===lobbyPlayers?'on':''}" data-act="pc" data-v="${n}">${n}</button>`).join('');
   $('#tables').innerHTML=ENTRIES.map((e,i)=>{
-    const pts=e>=200?7:5, lock=coins<e;
+    const pts=e>=200?7:5, lock=coins<(SITE?1:e);
     return `<button class="tbl ${i===2?'hot':''} ${lock?'lock':''}" data-act="sit" data-v="${e}" data-p="${pts}">
-      <div class="val">${fmt(e)}<small>${lock?'🔒 fichas insuficientes':SITE?'precisa de '+fmt(e)+' fichas':'pote '+fmt(e*mode.players)}</small></div>
+      <div class="val">${fmt(e)}<small>${lock?'🔒 fichas insuficientes':SITE?'custa 1 ficha':'pote '+fmt(e*mode.players)}</small></div>
       <div class="row"><span>👥 ${mode.players} jogadores</span><span>Pontos: ${pts}</span></div></button>`;
   }).join('');
   $('#lobfoot').innerHTML=Object.entries(LEVELS).map(([k,v])=>`<button class="chk" data-act="lvl" data-v="${k}"><i>${S.level===k?'✓':''}</i>${v}</button>`).join('');
@@ -966,7 +966,7 @@ function statsModal(){
   <p style="font-size:12px;color:var(--mut)">Ranking geral e histórico online chegam com o cadastro (etapa 2).</p><button class="go" data-act="close">Fechar</button>`);
 }
 function coinsModal(){
-  if(SITE){ showOv(`<h2>Fichas</h2><p>Seu saldo: <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas.</p><p>Para jogar, inclusive contra o computador, é preciso ter fichas no saldo. Contra o computador as fichas não são gastas; para jogar valendo fichas, entre nas mesas online.</p>
+  if(SITE){ showOv(`<h2>Fichas</h2><p>Seu saldo: <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas.</p><p>Cada partida contra o computador custa 1 ficha. Para jogar valendo o pote, entre nas mesas online.</p>
   <button class="go" onclick="location.href='/loja#comprar'">💰 Comprar fichas com Pix</button><button class="sec" onclick="location.href='/'">Ir para as mesas online</button><button class="sec" data-act="close">Fechar</button>`); return; }
   const can=coins<100;
   showOv(`<h2>Fichas</h2><p>Você tem <b style="color:var(--gold)">💰 ${fmt(coins)}</b> fichas virtuais.</p><p>As fichas são só pra jogar: não valem dinheiro, não podem ser sacadas nem trocadas.</p>
@@ -975,9 +975,31 @@ function coinsModal(){
 }
 
 /* ---- PARTIDA ---- */
-function startMatch(opts){
-  if(SITE){ const need=Math.max(1,opts.entry||0);
-    if(coins<need){ sfx('err'); showOv(`<h2>Sem fichas</h2><p>Para jogar você precisa ter <b>💰 ${fmt(need)}</b> ${need>1?'fichas':'ficha'} no saldo. Seu saldo: <b>💰 ${fmt(coins)}</b>.</p><button class="go" onclick="location.href='/loja#comprar'">💰 Comprar fichas com Pix</button><button class="sec" data-act="close">Fechar</button>`); return; } }
+/* No site cada partida contra o computador custa 1 ficha, cobrada no servidor (/api/treino) antes de dar as cartas. */
+function semFichas(){ sfx('err'); showOv(`<h2>Sem fichas</h2><p>Cada partida contra o computador custa <b>💰 1 ficha</b>. Seu saldo: <b>💰 ${fmt(coins)}</b>.</p><button class="go" onclick="location.href='/loja#comprar'">💰 Comprar fichas com Pix</button><button class="sec" data-act="close">Fechar</button>`); }
+function authToken(){
+  try{ for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)){const t=JSON.parse(localStorage.getItem(k));return t&&t.access_token;}} }catch(e){}
+  return null;
+}
+let cobrando=false;
+const voltaLobby=()=>{ if(!M){ renderHeader(); renderLobby(); show('lobby'); } };
+async function startMatch(opts){
+  if(SITE){
+    if(cobrando) return;
+    if(coins<1){ voltaLobby(); return semFichas(); }
+    const tok=authToken();
+    if(!tok){ location.replace('/login?next='+encodeURIComponent(location.pathname)); return; }
+    cobrando=true;
+    try{
+      const r=await fetch('/api/treino',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({jogo:'cacheta'})});
+      const out=await r.json().catch(()=>({}));
+      if(r.status===401){ location.replace('/login?next='+encodeURIComponent(location.pathname)); return; }
+      if(r.status===402){ setCoins(0); voltaLobby(); renderLobby(); return semFichas(); }
+      if(!r.ok){ voltaLobby(); sfx('err'); toast(out.error||'Erro de conexão, tente de novo'); return; }
+      setCoins(out.coins!=null?out.coins:coins-1); renderLobby(); sfx('coin');
+    }catch(e){ voltaLobby(); sfx('err'); toast('Sem conexão: não deu pra começar'); return; }
+    finally{ cobrando=false; }
+  }
   gen++;
   table=opts;
   if(opts.entry&&!SITE){ if(coins<opts.entry){toast('Fichas insuficientes pra essa mesa');return;} setCoins(coins-opts.entry); sfx('coin'); }
@@ -1438,7 +1460,7 @@ document.addEventListener('click',e=>{
 });
 document.body.classList.toggle('four',!!S.four);
 renderHomeArt(); renderHeader();
-if(SITE){ const t=$('#soonTag'); if(t) t.remove(); }
+if(SITE){ const t=$('#soonTag'); if(t) t.remove(); const n=$('#lobNote'); if(n) n.textContent='Mesas contra o computador · cada partida custa 1 ficha.'; }
 if(SITE) loadReal(); else if(!me.nick) setTimeout(profileModal,300);
 </script>
 </body>
