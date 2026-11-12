@@ -7,10 +7,11 @@ import { useAuth, useOnline } from '../../../components/useAuth.js';
 import { sendInvite } from '../../../components/Convites.js';
 import { Header, Card, Modal, toast } from '../../../components/ui.js';
 import { Engine } from '../../../lib/engine.js';
-import { MODES, fmt } from '../../../lib/modes.js';
+import { modeName, isGudeMode, fmt } from '../../../lib/modes.js';
 import { sfx } from '../../../lib/sfx.js';
 import { looks } from '../../../lib/shop-items.js';
 import { suitSvg } from '../../../lib/suits.js';
+import Chat from '../../../components/Chat.js';
 
 // animação de carta voando (mesmo efeito do modo offline)
 function cardStr(c, cor) {
@@ -57,31 +58,6 @@ function seatPos(k, n, portrait) {
   let x = 50 + (portrait ? 44 : 47) * Math.cos(rad); x = Math.max(portrait ? 12 : 6, Math.min(portrait ? 88 : 94, x));
   const y = 50 + (portrait ? 46 : 44) * Math.sin(rad);
   return { x, y: portrait ? y : Math.max(15, y) }; // adversário de cima um pouco mais baixo, sem sair da tela
-}
-
-function Chat({ roomId, user, profile, msgs, onClose }) {
-  const [txt, setTxt] = useState('');
-  const box = useRef(null);
-  useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [msgs]);
-  async function send(e) {
-    e.preventDefault();
-    const t = txt.trim(); if (!t) return;
-    setTxt('');
-    const { error } = await sb().from('messages').insert({ room_id: roomId, user_id: user.id, nickname: profile?.nickname || 'Jogador', text: t.slice(0, 300) });
-    if (error) toast('Mensagem não enviada');
-  }
-  return (
-    <div className="panel chat">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ fontSize: 18 }}>💬 Chat da mesa</h3>{onClose && <button className="sec" style={{ width: 'auto', margin: 0, padding: '4px 12px' }} onClick={onClose}>✕</button>}
-      </div>
-      <div className="msgs" ref={box}>
-        {!msgs.length && <div className="hint">Ninguém falou nada ainda. Mande um oi!</div>}
-        {msgs.map(m => <div key={m.id} className={`m ${m.user_id === user.id ? 'me' : ''}`}><b>{m.nickname}</b>{m.text}</div>)}
-      </div>
-      <form onSubmit={send}><input value={txt} onChange={e => setTxt(e.target.value)} maxLength={300} placeholder="Escreva uma mensagem…" /><button className="pillbtn" style={{ padding: '8px 14px' }}>Enviar</button></form>
-    </div>
-  );
 }
 
 export default function Sala() {
@@ -158,6 +134,8 @@ export default function Sala() {
   chatOpenRef.current = chatOpen;
 
   const isMember = !!user && players.some(p => p.user_id === user.id);
+  // sala de bolinha de gude tem a tela própria
+  useEffect(() => { if (room && isGudeMode(room.mode)) router.replace('/gude/sala/' + id); }, [room, id, router]);
 
   const loadRoom = useCallback(async () => {
     const { data } = await sb().from('rooms').select('*').eq('id', id).maybeSingle();
@@ -337,7 +315,7 @@ export default function Sala() {
       <div className="center-box"><div className="authcard" style={{ textAlign: 'center' }}>
         <h2 style={{ font: '700 28px Oswald', fontStyle: 'italic', color: 'var(--gold)', margin: 0 }}>{room.is_private ? '🔒 ' : ''}{room.name}</h2>
         {room.vip_only && <p className="vip">👑 Sala exclusiva para VIP</p>}
-        <p>{MODES[room.mode]?.name} · 👥 {players.length}/{room.max_players} · Pontos {room.points} · {room.entry ? `Entrada 💰 ${fmt(room.entry)}` : 'Grátis'}</p>
+        <p>{modeName(room.mode)} · 👥 {players.length}/{room.max_players} · Pontos {room.points} · {room.entry ? `Entrada 💰 ${fmt(room.entry)}` : 'Grátis'}</p>
         {room.status === 'playing' ? <p>Essa mesa está jogando agora. Assim que a partida acabar, dá pra sentar.</p> : <>
           {room.is_private && <input className="field" placeholder="Senha da sala" value={pass} onChange={e => setPass(e.target.value)} />}
           {joinErr && <div className="err">{joinErr}</div>}
@@ -369,7 +347,7 @@ export default function Sala() {
         <div className="wait">
           <div className="panel">
             <h3>{room.is_private ? '🔒 ' : ''}{room.name}</h3>
-            <div className="meta"><span>{MODES[room.mode]?.name}</span><span>👥 {players.length}/{room.max_players}</span><span>Pontos {room.points}</span>
+            <div className="meta"><span>{modeName(room.mode)}</span><span>👥 {players.length}/{room.max_players}</span><span>Pontos {room.points}</span>
               <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · pote ${fmt(room.entry * players.length)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
             <div className="invite"><input readOnly value={link} onFocus={e => e.target.select()} />
               <button className="pillbtn" onClick={async () => { try { await navigator.clipboard.writeText(`Bora jogar cacheta! ${link}${room.is_private ? ' (peça a senha pra quem te convidou)' : ''}`); toast('Convite copiado'); } catch { toast('Copie o link acima'); } }}>Copiar convite</button></div>
@@ -472,7 +450,7 @@ export default function Sala() {
       </div>
       <div id="arena">
         <div className="rail"><div className="felt" style={{ background: feltBg }}>
-          <div className="wm"><b>CACHETA CLUB</b><small>{MODES[room.mode]?.name} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
+          <div className="wm"><b>CACHETA CLUB</b><small>{modeName(room.mode)} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
           {myIdx >= 0 && !game.over && game.phase !== 'decide' && <button className={`cdisc ${canEnd ? '' : 'off'}`} onClick={() => !canEnd ? toast(canDraw ? 'Primeiro compre do monte ou pegue o descarte' : 'Espere a sua vez') : sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
           <div className="center">
             {game.phase === 'decide' && !game.over && myIdx >= 0 && me.fichas > 0
