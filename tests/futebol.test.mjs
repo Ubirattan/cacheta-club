@@ -52,11 +52,11 @@ const coins = i => R.T.profiles[i].coins;
 let l = await futebol(R, u1, { op: 'jogos' }, T0);
 assert.deepEqual(l.jogos.map(j => j.id).sort(), [1, 2, 3], 'só as ligas da lista, com odds');
 assert.equal(l.admin, undefined, 'só o admin vê a cota');
-assert.equal(chamadas.filter(c => c === 'fixtures').length, 3); assert.equal(chamadas.filter(c => c === 'odds').length, 3);
+assert.equal(chamadas.filter(c => c === 'fixtures').length, 2, 'só hoje e amanhã'); assert.equal(chamadas.filter(c => c === 'odds').length, 3);
 // segunda visita logo depois: não chama a API de novo
 const antes = chamadas.length;
 l = await futebol(R, u0, { op: 'jogos' }, T0 + 60e3);
-assert.equal(chamadas.length, antes); assert.equal(l.admin.chamadasHoje, 6);
+assert.equal(chamadas.length, antes); assert.equal(l.admin.chamadasHoje, 5);
 
 // bilhetes
 const sel = (jogo, mercado, escolha, odd) => ({ jogo, mercado, escolha, odd });
