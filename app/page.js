@@ -32,6 +32,7 @@ export default function Home() {
           <button className="jogo" title="Truco" onClick={() => router.push('/truco')}>♣️<span>Truco</span></button>
           <button className="jogo" title="Bolinha de gude" onClick={() => router.push('/gude')}><i className="gude" /><span>Gude</span></button>
           <button className="jogo" title="Pipa" onClick={() => router.push('/pipa')}>🪁<span>Pipa</span><em>novo</em></button>
+          <button className="jogo" title="Roleta" onClick={() => router.push('/roleta')}>🎰<span>Roleta</span><em>novo</em></button>
         </>}
         right={<span className="online"><i />{online.length} online</span>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
