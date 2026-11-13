@@ -35,6 +35,13 @@ export default function Login() {
 
   const go = (n) => { if (n.endsWith('.html')) location.replace(n); else router.replace(n); };
   const next = () => { try { return new URLSearchParams(location.search).get('next') || '/'; } catch { return '/'; } };
+  // link de indicação (?ind=...): guarda quem indicou e já abre o cadastro
+  useEffect(() => {
+    try {
+      const ind = new URLSearchParams(location.search).get('ind');
+      if (ind) { localStorage.setItem('cj_ind', ind); setTab('criar'); }
+    } catch {}
+  }, []);
   useEffect(() => { sb().auth.getSession().then(({ data }) => { if (data.session) go(next()); }); }, [router]); // eslint-disable-line
   useEffect(() => {
     const f = () => { const touch = matchMedia('(pointer:coarse)').matches; setKbAuto(touch && innerWidth > innerHeight && innerHeight < 620); };
@@ -69,9 +76,10 @@ export default function Login() {
     setBusy(true);
     try {
       if (tab === 'criar') {
-        const r = await fetch('/api/cadastro', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: v.nick, email, pass, pixTipo, pix: v.pix }) });
+        const r = await fetch('/api/cadastro', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: v.nick, email, pass, pixTipo, pix: v.pix, ind: (() => { try { return localStorage.getItem('cj_ind') || ''; } catch { return ''; } })() }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || 'Não foi possível criar a conta');
+        try { localStorage.removeItem('cj_ind'); } catch {}
       }
       const { error } = await sb().auth.signInWithPassword({ email, password: pass });
       if (error) throw new Error(error.message.includes('Invalid') ? 'E-mail ou senha errados' : error.message.includes('confirm') ? 'Essa conta ainda não foi confirmada. Abra o link que chegou no seu e-mail.' : error.message);

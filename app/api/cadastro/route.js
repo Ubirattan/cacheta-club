@@ -1,8 +1,9 @@
 // Cadastro sem confirmação por e-mail: o servidor cria a conta já confirmada
 // e o navegador entra logo em seguida com e-mail e senha.
 import { NextResponse } from 'next/server';
-import { adminClient } from '../../../lib/repo-supabase.js';
+import { adminClient, repo } from '../../../lib/repo-supabase.js';
 import { normPix } from '../../../lib/pix.js';
+import { registrarIndicacao } from '../../../lib/indicacao.js';
 export const dynamic = 'force-dynamic';
 
 const tentativas = new Map(); // limite simples por IP (por instância)
@@ -34,6 +35,7 @@ export async function POST(req) {
     if (uid) {
       const { error: e2 } = await adminClient().from('user_private').upsert({ user_id: uid, pix_tipo: pix.tipo, pix_chave: pix.chave, updated_at: new Date().toISOString() });
       if (e2) console.error('chave pix no cadastro:', e2.message);
+      if (b.ind) await registrarIndicacao(repo, uid, b.ind).catch(e3 => console.error('indicação no cadastro:', e3.message));
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
