@@ -239,3 +239,43 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   usarApi(null);
   console.log('OK — futebol: escanteios e cartões (linha, estatística do jogo, prorrogação anula)');
 }
+
+// ---- 1º tempo, quem marca primeiro, handicap e placar exato ----
+{
+  const F = await import('../lib/futebol.js');
+  const bky = [{ id: 8, bets: [{ id: 1, name: 'Match Winner', values: [v('Home', 2), v('Draw', 3.3), v('Away', 3.8)] },
+    { id: 13, name: 'First Half Winner', values: [v('Home', 2.7), v('Draw', 2.1), v('Away', 4.5)] },
+    { id: 14, name: 'Team To Score First', values: [v('Home', 1.7), v('Draw', 9), v('Away', 2.6)] },
+    { id: 4, name: 'Asian Handicap', values: [v('Home -1', 2.9), v('Away +1', 1.4), v('Home -0.5', 2.0), v('Away +0.5', 1.85), v('Home -1.5', 3.6), v('Away +1.5', 1.3), v('Home -0.25', 1.7), v('Away +0.25', 2.1)] },
+    { id: 10, name: 'Exact Score', values: ['1:0', '0:0', '1:1', '2:1', '0:1', '2:0', '1:2', '2:2', '3:0', '3:1', '0:2', '3:2', '4:0', '0:3', '4:1', '1:3', '5:0', '9:9'].map((k, i) => v(k, 6 + i * 2)) }] }];
+  const oy = F.lerOdds({ bookmakers: bky });
+  assert.deepEqual(oy.ht, { 1: 2.7, X: 2.1, 2: 4.5 }); assert.deepEqual(oy.primeiro, { casa: 1.7, nenhum: 9, fora: 2.6 });
+  assert.deepEqual(oy.handicap, { linha: -0.5, casa: 2, fora: 1.85 }, 'só linhas ,5 e a mais equilibrada');
+  assert.equal(Object.keys(oy.placar).length, 16); assert.ok(!oy.placar['9:9']);
+  assert.equal(F.rotulo('handicap', 'casa', 'Fla', 'Pal', -1.5), 'Fla -1,5'); assert.equal(F.rotulo('handicap', 'fora', 'Fla', 'Pal', -1.5), 'Pal +1,5');
+  assert.equal(F.acertou('handicap', 'casa', 2, 0, -1.5), true); assert.equal(F.acertou('handicap', 'casa', 1, 0, -1.5), false);
+  assert.equal(F.acertou('handicap', 'fora', 1, 0, -1.5), true);
+  assert.equal(F.acertou('placar', '2:1', 2, 1), true);
+  const T = Date.UTC(2026, 10, 15, 12, 0), H = 3600e3;
+  const s = (mercado, escolha, extra = {}) => ({ jogo: 1, mercado, escolha, odd: 2, ...extra });
+  // 1º tempo decide no intervalo
+  assert.equal(F.situacao(s('ht', '1'), { status: '1H', ht_casa: null }), null);
+  assert.equal(F.situacao(s('ht', '1'), { status: 'HT', ht_casa: 1, ht_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao(s('ht', 'X'), { status: '2H', ht_casa: 1, ht_fora: 0 }), 'perdeu');
+  // quem marca primeiro (acompanhando o placar)
+  assert.equal(F.primeiroGol(null, { status: '1H', ao_vivo_casa: 0, ao_vivo_fora: 1 }), 'fora');
+  assert.equal(F.primeiroGol({ primeiro: 'fora' }, { status: '2H', ao_vivo_casa: 3, ao_vivo_fora: 1 }), 'fora', 'não muda depois');
+  assert.equal(F.primeiroGol(null, { status: '2H', ao_vivo_casa: 1, ao_vivo_fora: 1 }), '?');
+  assert.equal(F.situacao(s('primeiro', 'fora'), { status: '2H', primeiro: 'fora' }), 'ganhou', 'paga quando sai o 1º gol');
+  assert.equal(F.situacao(s('primeiro', 'nenhum'), { status: 'FT', gols_casa: 0, gols_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao(s('primeiro', 'casa'), { status: 'FT', gols_casa: 2, gols_fora: 0 }), 'ganhou', 'sem acompanhar: 2x0 foi a casa');
+  assert.equal(F.situacao(s('primeiro', 'casa'), { status: '2H', primeiro: '?' }), 'anulada');
+  assert.equal(F.situacao(s('handicap', 'casa', { linha: -1.5 }), { status: 'FT', gols_casa: 3, gols_fora: 1 }), 'ganhou');
+  // cash out com os novos palpites (chance entre 0 e 1)
+  const j = { status: '1H', minuto: 20, ao_vivo_casa: 0, ao_vivo_fora: 0, odds: oy, atualizado: new Date(T).toISOString(), inicio: '' };
+  for (const sl of [s('ht', '1'), s('primeiro', 'casa'), s('handicap', 'casa', { linha: -0.5 }), s('placar', '1:0')]) {
+    const c = F.chance(sl, j); assert.ok(c > 0 && c < 1, sl.mercado + ' ' + c);
+  }
+  assert.equal(F.conferirBilhete([{ jogo: 1, mercado: 'placar', escolha: '1:0', odd: oy.placar['1:0'] }], { 1: { status: 'NS', inicio: new Date(T + H).toISOString(), odds: oy, casa: 'A', fora: 'B' } }, T).odd, oy.placar['1:0']);
+  console.log('OK — futebol: 1º tempo, quem marca primeiro, handicap e placar exato');
+}

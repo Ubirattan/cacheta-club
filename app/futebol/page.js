@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
+import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
 import { criarTeste } from '../../lib/futebol-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -227,7 +227,7 @@ export default function Futebol() {
                   {aberto === j.id && <div className="fb-extra">
                     {Object.keys(MERCADOS).filter(m => m !== '1x2' && j.odds[m]).map(m => <div key={m} className="fb-merc">
                       <span>{MERCADOS[m].nome}</span>
-                      <div>{MERCADOS[m].ops.map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} onClick={() => escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null)}</small>{f2(j.odds[m][e])}</button>)}</div>
+                      <div className={m === 'placar' ? 'fb-grade' : ''}>{opcoes(m, j.odds).map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} onClick={() => escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
                     </div>)}
                   </div>}
                 </div>
@@ -269,6 +269,7 @@ export default function Futebol() {
           <p>• <b>Simples</b>: um jogo só. <b>Múltipla</b>: até {MAX_SELECOES} jogos no mesmo bilhete, um palpite por jogo. As odds se multiplicam, mas precisa acertar todos.</p>
           <p>• Prêmio = aposta × odd total. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas. Prêmio máximo de {fichas(MAX_PREMIO)} fichas por bilhete.</p>
           <p>• Vale o resultado dos <b>90 minutos</b> (com acréscimos). Prorrogação e pênaltis não contam.</p>
+          <p>• <b>1º tempo</b>: vale o placar do intervalo (paga já no intervalo). <b>Quem marca primeiro</b>: o time do 1º gol nos 90 minutos; "Sem gol" ganha no 0 x 0. <b>Handicap</b>: soma ou tira gols do time (ex.: Flamengo −1,5 precisa ganhar por 2 ou mais). <b>Placar exato</b>: o placar dos 90 minutos.</p>
           <p>• <b>Escanteios</b> e <b>cartões</b>: total dos dois times no jogo. Nos cartões, amarelo e vermelho contam 1 cada. Jogo com prorrogação anula esses palpites. Esses palpites não têm cash out depois que o jogo começa.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
           <p>• As apostas fecham 1 minuto antes do jogo começar. O resultado é conferido sozinho e o prêmio cai no seu saldo.</p>
@@ -315,6 +316,8 @@ export default function Futebol() {
 .fb-merc{display:flex;flex-direction:column;gap:4px}
 .fb-merc>span{font:500 12px Rubik;color:#a7c4b0}
 .fb-merc>div{display:flex;gap:5px}
+.fb-merc>div.fb-grade{display:grid;grid-template-columns:repeat(4,auto);gap:5px}
+.fb-merc{max-width:100%}
 .fb-bil{flex:0 0 min(34%,330px);min-height:0;display:flex;flex-direction:column;background:#0b1f14;border:1px solid #4ade8044;border-radius:16px;overflow:hidden}
 .fb-bt{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#14532d;font:500 14px Rubik;color:#d1fae5}
 .fb-bt span{margin-right:auto;font-size:12px;color:#a7f3d0}
