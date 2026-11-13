@@ -257,7 +257,7 @@ export default function Sinuca() {
         {TESTE && <p className="hint" style={{ color: '#fbbf24', textAlign: 'center' }}>🧪 MODO TESTE · sem login e sem fichas</p>}
         <div className="sn-prev">{[1, 9, 8, 3, 11].map(n => <span key={n} style={{ background: n > 8 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }}><b>{n}</b></span>)}</div>
         <Seg label="Modalidade" value={modo} onChange={setModo} options={MODOS} />
-        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Você taca uma bola sua. Quem matar as 5 primeiro ganha.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Faz 3 jogos primeiro, leva.'}</p>
+        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Você taca uma bola sua. Quem matar as 5 primeiro ganha.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
         <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '1 ficha'}`}</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
@@ -276,7 +276,7 @@ export default function Sinuca() {
   const h = hud || { turn: 0, grupos: [null, null], rest: [7, 7], caidas: [], phase: 'aim' };
   const bolinha = n => <span key={n} className={h.caidas.includes(n) ? 'foi' : ''} style={{ background: n > 8 && n < 100 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }} />;
   const fila = p => {
-    if (h.modo === 'bolinho') return <div className="sn-fila">{Array.from({ length: 3 }, (_, k) => <span key={k} className={k < h.placar[p] ? 'ganho' : 'vazio'} />)}</div>;
+    if (h.modo === 'bolinho') return <div className="sn-fila">{Array.from({ length: 5 }, (_, k) => <span key={k} className={k < h.placar[p] ? 'ganho' : 'vazio'} />)}</div>;
     const g = h.grupos[p];
     const nums = g === 'lisas' ? [1, 2, 3, 4, 5, 6, 7] : g === 'listradas' ? [9, 10, 11, 12, 13, 14, 15] : g === 'verm' ? [101, 102, 103, 104, 105] : g === 'amar' ? [201, 202, 203, 204, 205] : [];
     return <div className="sn-fila">{g ? nums.map(bolinha) : Array.from({ length: 7 }, (_, k) => <span key={k} className="vazio" />)}</div>;
@@ -319,7 +319,7 @@ function Regras({ onClose }) {
         <p>• <b>Falta</b> (branca na caçapa, não encostar em nada ou bater primeiro na bola do outro): o adversário joga com a <b>bola na mão</b> e coloca a branca onde quiser.</p>
         <p>• <b>A 8 é a última.</b> Matou a 8 depois de limpar as suas: ganhou. Matou antes da hora: perdeu.</p>
         <p><b>Bola lisa:</b> sem a branca. Você é das vermelhas, o computador das amarelas. Toque numa bola sua pra tacar com ela. Encaçapou bola sua: joga de novo. Quem matar as 5 primeiro ganha.</p>
-        <p><b>Bolinho:</b> 3 bolas na mesa por jogo (são 5 jogos com as 15 bolas). Quem matar a última ganha o jogo. Se cegar (não encostar em nenhuma) ou a branca cair, perde o jogo. Quem fizer 3 jogos primeiro leva a partida.</p>
+        <p><b>Bolinho:</b> 3 bolas na mesa por jogo (são 5 jogos com as 15 bolas). Quem matar a última ganha o jogo. Se cegar (não encostar em nenhuma) ou a branca cair, perde o jogo. Sempre se jogam os 5 jogos: quem ganhar mais leva a partida.</p>
       </div>
       <button className="go" onClick={onClose}>Entendi</button>
     </Modal>
