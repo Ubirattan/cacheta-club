@@ -279,3 +279,35 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.equal(F.conferirBilhete([{ jogo: 1, mercado: 'placar', escolha: '1:0', odd: oy.placar['1:0'] }], { 1: { status: 'NS', inicio: new Date(T + H).toISOString(), odds: oy, casa: 'A', fora: 'B' } }, T).odd, oy.placar['1:0']);
   console.log('OK — futebol: 1º tempo, quem marca primeiro, handicap e placar exato');
 }
+
+// ---- Criar aposta ----
+{
+  const F = await import('../lib/futebol.js');
+  const T = Date.UTC(2026, 10, 15, 12, 0), H = 3600e3;
+  const odds = { '1x2': { 1: 2.1, X: 3.3, 2: 3.6 }, gols: { mais: 1.95, menos: 1.85 }, ambos: { sim: 1.8, nao: 1.95 }, ht: { 1: 2.8, X: 2.1, 2: 4.2 }, escanteios: { linha: 9.5, mais: 1.85, menos: 1.9 } };
+  const P = (mercado, escolha, linha) => ({ mercado, escolha, ...(linha ? { linha } : {}) });
+  const c = F.oddCombo([P('1x2', '1'), P('gols', 'mais')], odds);
+  assert.ok(c.odd > 2.5 && c.odd < 2.1 * 1.95, 'odd do combo menor que a multiplicação: ' + c.odd);
+  assert.match(F.oddCombo([P('1x2', '1')], odds).erro, /pelo menos 2/);
+  assert.match(F.oddCombo([P('1x2', '1'), P('1x2', 'X')], odds).erro, /um palpite de cada tipo/i);
+  assert.ok(F.oddCombo([P('1x2', '1'), P('ht', '2'), P('gols', 'mais')], odds).odd > 10, 'virada: improvável mas possível');
+  assert.match(F.oddCombo([P('1x2', '1'), P('ht', '2'), P('ambos', 'nao')], odds).erro, /impossível/, 'casa vence virando sem os dois marcarem');
+  assert.match(F.oddCombo([P('gols', 'menos'), P('1x2', '1'), P('placar', '3:0')], { ...odds, placar: { '3:0': 15 } }).erro, /impossível/);
+  const jogo = { status: 'NS', inicio: new Date(T + H).toISOString(), odds, casa: 'A', fora: 'B', liga_nome: 'L' };
+  const sel = { jogo: 1, mercado: 'combo', escolha: 'combo', odd: c.odd, partes: [P('1x2', '1'), P('gols', 'mais')] };
+  const b = F.conferirBilhete([sel], { 1: jogo }, T);
+  assert.equal(b.odd, c.odd); assert.equal(b.selecoes[0].partes.length, 2);
+  assert.ok(F.conferirBilhete([{ ...sel, odd: c.odd + 0.2 }], { 1: jogo }, T).mudou, 'odd diferente');
+  const ss = b.selecoes[0];
+  assert.equal(F.situacao(ss, { status: 'FT', gols_casa: 2, gols_fora: 1 }), 'ganhou');
+  assert.equal(F.situacao(ss, { status: 'FT', gols_casa: 1, gols_fora: 0 }), 'perdeu');
+  assert.equal(F.situacao(ss, { status: '2H', ao_vivo_casa: 0, ao_vivo_fora: 3 }), null);
+  const comEsc = F.oddCombo([P('1x2', '1'), P('escanteios', 'mais', 9.5)], odds);
+  assert.equal(F.situacao({ mercado: 'combo', partes: comEsc.partes }, { status: 'AET', gols_casa: 1, gols_fora: 0 }), 'anulada', 'escanteio com prorrogação anula o combo');
+  // cash out do combo com o jogo rolando: 2x0 aos 60' → chance alta de "casa + mais de 2,5"? precisa de mais 1 gol
+  const vivo = { status: '2H', minuto: 60, ao_vivo_casa: 2, ao_vivo_fora: 0, ht_casa: 1, ht_fora: 0, odds, atualizado: new Date(T).toISOString(), inicio: '' };
+  const cv = F.cashOut({ valor: 10, selecoes: [ss] }, { 1: vivo }, T);
+  assert.ok(cv > 3 && cv < 10 * c.odd, 'cash out do combo: ' + cv);
+  assert.equal(F.cashOut({ valor: 10, selecoes: [{ ...ss, partes: comEsc.partes }] }, { 1: vivo }, T), null, 'escanteio rolando: sem cash out');
+  console.log('OK — futebol: Criar aposta (odd do combo, impossível, conferência, anulação e cash out)');
+}
