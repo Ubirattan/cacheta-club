@@ -10,7 +10,8 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal, Seg, toast } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
-import { sfx, soundOn, setSound } from '../../lib/sfx.js';
+import { sfx, soundOn, setSound, unlockAudio } from '../../lib/sfx.js';
+import { createSom } from '../../lib/pipa-som.js';
 import { W, H, GROUND, LINE_HP, ROUNDS_TO_WIN, NIVEIS, newPipa, stepPipa, linePts, crossOf } from '../../lib/pipa.js';
 import { drawPipa, modelo, modelosBots, PIPA_PADRAO } from '../../lib/pipa-arte.js';
 import { loadThree, webglOk } from '../../lib/three-loader.js';
@@ -22,6 +23,9 @@ import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
 const PIPAS = ITEMS.filter(i => i.slot === 'pipa');
+// total de pipas cortadas e aparadas (guardado no aparelho)
+const lerTot = () => { try { return { cortou: 0, aparou: 0, ...JSON.parse(localStorage.getItem('pp_tot') || '{}') }; } catch { return { cortou: 0, aparou: 0 }; } };
+const somaTot = campo => { try { const t = lerTot(); t[campo]++; localStorage.setItem('pp_tot', JSON.stringify(t)); } catch {} };
 
 // desenho do cenário (miniatura e fundo do menu)
 function Cena({ id, className }) {
@@ -153,6 +157,8 @@ export default function Pipa() {
   const [som, setSom] = useState(true);
   const cvRef = useRef(null), boxRef = useRef(null), ctlRef = useRef(null);
   const [desc, setDesc] = useState(false);
+  const [tot, setTot] = useState(null);
+  useEffect(() => { if (!game) setTot(lerTot()); }, [game]);
   const descarrega = on => { if (ctlRef.current) ctlRef.current.solta = on; setDesc(on); };
   const minha = escolha || (profile?.equipped && profile.equipped.pipa) || PIPA_PADRAO;
   const tenho = id => { const it = PIPAS.find(p => p.id === id); return !!it && (it.price === 0 || (profile?.owned || []).includes(id)); };
@@ -184,6 +190,7 @@ export default function Pipa() {
   async function start() {
     if (!profile || busy) return;
     if ((profile.coins || 0) < 1) return setSemFichas(true);
+    unlockAudio();   // liga o som no toque do botão
     setBusy(true);
     try {
       await api('/api/treino', { jogo: 'pipa' });
@@ -203,7 +210,8 @@ export default function Pipa() {
     const G = newPipa({ level: game.level, names, pipas: game.n });
     const ctl = { x: 0, y: 0, solta: false }; ctlRef.current = ctl;
     let raf, alive = true, acc = 0, last = performance.now(), lastHud = 0, wasCross = false, v3 = null;
-    const sync = () => setHud({ score: [...G.score], hp: G.k.map(k => Math.max(0, k.hp)), cut: G.k.map(k => k.cut), over: G.over, round: G.round, phase: G.phase, cross: crossOf(G, 0).length > 0 });
+    const som3 = createSom();
+    const sync = () => setHud({ cortou: G.cortou[0], aparou: G.aparou[0], score: [...G.score], hp: G.k.map(k => Math.max(0, k.hp)), cut: G.k.map(k => k.cut), over: G.over, round: G.round, phase: G.phase, cross: crossOf(G, 0).length > 0 });
 
     /* ---- tela 2D (reserva) ---- */
     const c = cv.getContext('2d');
@@ -236,11 +244,17 @@ export default function Pipa() {
         if (e.type === 'go') setMsg(game.n > 2 ? 'Já! Corte todo mundo e seja o último no céu' : 'Já! Cruze a linha e puxe pra cortar');
         if (e.type === 'cruzou' && (e.a === 0 || e.b === 0)) { sfx('tick'); try { navigator.vibrate && navigator.vibrate(15); } catch {} }
         if (e.type === 'corte' || e.type === 'caiu') {
-          popTxt(e.type === 'corte' ? 'CORTOU!' : 'CAIU!', e.x, e.y);
+          popTxt(e.type === 'corte' ? (e.winner === 0 ? 'VAAAI!' : 'CORTOU!') : 'CAIU!', e.x, e.y);
+          if (e.type === 'corte' && e.winner === 0) { som3.grito('Vaaai!'); somaTot('cortou'); }
+          if (e.type === 'corte' && (e.winner === 0 || e.loser === 0)) try { navigator.vibrate && navigator.vibrate(e.winner === 0 ? [30, 40, 60] : 120); } catch {}
           const quem = names[e.loser], por = e.winner != null ? names[e.winner] : null;
           if (e.type === 'corte') setMsg(e.winner === 0 ? `Você cortou a pipa do ${quem}!` : e.loser === 0 ? `${por} cortou a sua pipa!` : `${por} cortou a pipa do ${quem}`);
           else setMsg(e.loser === 0 ? 'Sua pipa caiu no telhado!' : `A pipa do ${quem} caiu no telhado!`);
           if (e.winner === 0) sfx('coin'); else if (e.loser === 0) sfx('err'); else sfx('tick');
+        }
+        if (e.type === 'aparou') {
+          popTxt('APAROU!', e.x, e.y); som3.grito('Aparou!'); sfx('coin'); somaTot('aparou');
+          setMsg(`Você aparou a pipa do ${names[e.loser]}!`); try { navigator.vibrate && navigator.vibrate([20, 30, 20]); } catch {}
         }
         if (e.type === 'rodada') {
           const eu = e.winner === 0;
@@ -321,6 +335,8 @@ export default function Pipa() {
         const cr = crossOf(G, 0).length > 0;
         if (now - lastHud > 120 || cr !== wasCross) { lastHud = now; wasCross = cr; sync(); }
         if (v3) v3.draw(G, now); else draw2d(now);
+        const eu = G.k[0];
+        som3.update({ vento: G.wind, cruzando: G.phase === 'play' && cr, forte: eu.pull || eu.solta, solta: !!eu.solta && !eu.cut && G.phase === 'play' });
       } catch (e) { console.error('pipa', e); }
     }
 
@@ -356,6 +372,7 @@ export default function Pipa() {
       removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
       removeEventListener('keydown', key); removeEventListener('keyup', key);
       if (v3) { v3.dispose(); v3 = null; }
+      som3.stop();
     };
   }, [game]); // eslint-disable-line
 
@@ -366,6 +383,7 @@ export default function Pipa() {
       <div className="pp-hd">
         <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
         <div className="pp-logo">PIPA <small>batalha de cortar</small></div>
+        {tot && (tot.cortou > 0 || tot.aparou > 0) && <div className="pp-tot">✂️ {tot.cortou} cortadas · 🪁 {tot.aparou} aparadas</div>}
         <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a>
       </div>
       <div className="pp-sel">
@@ -445,7 +463,8 @@ export default function Pipa() {
       </div>
       <div className={`pp-field ${game.night ? 'noite' : ''}`} ref={boxRef}><canvas ref={cvRef} />
         <button className={`pp-desc ${desc ? 'on' : ''}`} onPointerDown={e => { e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} descarrega(true); }}
-          onPointerUp={() => descarrega(false)} onPointerCancel={() => descarrega(false)} onContextMenu={e => e.preventDefault()}>🧵<b>DESCARREGAR</b></button></div>
+          onPointerUp={() => descarrega(false)} onPointerCancel={() => descarrega(false)} onContextMenu={e => e.preventDefault()}>🧵<b>DESCARREGAR</b></button>
+        <div className="pp-cnt"><span><small>CORTOU</small><b>{h.cortou || 0}</b></span><span><small>APAROU</small><b>{h.aparou || 0}</b></span></div></div>
       <div id="msg">{msg || ' '}</div>
       {rules && <Regras onClose={() => setRules(false)} />}
       {h.over && h.phase === 'cut' && <Modal><h2>{ganhou ? '🏆 Você ganhou!' : `${nome(h.over.winner)} ganhou`}</h2>
@@ -469,6 +488,7 @@ function Regras({ onClose }) {
         <p>• <b>Cruze a sua linha com a do adversário.</b> Enquanto estão cruzadas, as duas se gastam, e quem está <b>mexendo ou descarregando corta muito mais rápido</b>.</p>
         <p>• Linha acabou = pipa cortada. Pipa que encosta no telhado <b>cai</b>. Rodada de até 1 minuto: se ninguém cortar, ganha quem tem mais linha.</p>
         <p>• <b>Várias pipas no céu:</b> todo mundo corta todo mundo. A rodada é de quem ficar por último no céu. Se a sua cair, a rodada acaba.</p>
+        <p>• <b>Aparar:</b> pipa cortada caindo que encosta na sua linha é sua! Conta no placar APAROU.</p>
         <p>• <b>Quem ganhar 2 rodadas primeiro leva.</b> No computador: setas pra mexer e espaço pra descarregar.</p>
         <p>• Troque o desenho da sua pipa na <b>Loja</b>.</p>
       </div>
@@ -539,5 +559,9 @@ const CSS = `
 .pp-desc{position:absolute;right:14px;bottom:14px;z-index:4;width:clamp(64px,11vmin,84px);height:clamp(64px,11vmin,84px);border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#4b5563,#111827);box-shadow:0 4px 0 #000a,0 6px 14px #0008;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;font-size:24px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
 .pp-desc b{font:600 8.5px Oswald;letter-spacing:.3px;margin-top:3px}
 .pp-desc.on{background:radial-gradient(circle at 40% 30%,#fcd34d,#d97706);border-color:#fde68a;color:#000;transform:translateY(3px);box-shadow:0 1px 0 #000a}
+.pp-cnt{position:absolute;left:12px;bottom:12px;z-index:4;display:flex;gap:6px;pointer-events:none}
+.pp-cnt span{display:flex;flex-direction:column;align-items:center;background:#000a;border:1.5px solid #fff8;border-radius:8px;padding:2px 8px;color:#fff;min-width:46px}
+.pp-cnt small{font:600 9px Oswald;letter-spacing:.5px;opacity:.85}.pp-cnt b{font:700 17px Oswald;line-height:1.1}
+.pp-tot{font:500 13px Oswald;color:#fff;background:#0007;border-radius:12px;padding:3px 10px;text-shadow:0 1px 2px #000}
 .pp-field canvas{position:absolute;inset:0;display:block;touch-action:none;border-radius:14px;cursor:pointer;user-select:none;-webkit-user-select:none}
 `;
