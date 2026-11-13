@@ -21,8 +21,10 @@ import { ITEMS } from '../../lib/shop-items.js';
 import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib/pipa-cenarios.js';
 
 // gírias de pipa: o que você grita ao cortar e o que o computador grita quando cruza com você
-const GRITO_CORTE = ['Heeelooou!', 'Heeelooou, manda busca!'];
-const PROVOCA = ['Vem medroso!', 'Manda busca!', 'Descarrega, vem!', 'Vem, vem, vem!'];
+// escritas esticadas e com exclamação pra voz sair como grito
+const GRITO_CORTE = ['Rééééééélooooo!', 'Heeeeelooooou!', 'Heeeeelooou! Manda buuusca!'];
+const GRITO_CRUZOU = ['Rééééélooo!', 'Vaaaai! Rééélo!'];
+const PROVOCA = ['Vem, medrooosoooo!', 'Manda buuuscaaa!', 'Descarrega, veeeem!', 'Vem, vem, veeeem!', 'Rééééélooo!'];
 const sorteia = l => l[(Math.random() * l.length) | 0];
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
@@ -257,14 +259,16 @@ export default function Pipa() {
         if (e.type === 'cruzou' && (e.a === 0 || e.b === 0)) {
           sfx('tick'); try { navigator.vibrate && navigator.vibrate(15); } catch {}
           const quem = e.a === 0 ? e.b : e.a, agora = performance.now();
-          if (agora - ultProvoca > 5000 && Math.random() < .7) {   // o computador provoca (no máximo a cada 5 s)
-            ultProvoca = agora; const f = sorteia(PROVOCA); som3.grito(f, { voz: 'outro' }); setMsg(`🗣 ${names[quem]}: "${f}"`);
+          if (agora - ultProvoca > 5000 && Math.random() < .8) {   // alguém grita (no máximo a cada 5 s): o computador provoca ou você grita "réééélo"
+            ultProvoca = agora;
+            if (Math.random() < .55) { const f = sorteia(PROVOCA); som3.grito(f, { voz: 'outro' }); setMsg(`🗣 ${names[quem]}: "${f}"`); }
+            else { const f = sorteia(GRITO_CRUZOU); som3.grito(f); setMsg(`🗣 Você: "${f}"`); }
           }
         }
         if (e.type === 'corte' || e.type === 'caiu') {
-          popTxt(e.type === 'corte' ? (e.winner === 0 ? 'HEEELOOOU!' : 'CORTOU!') : 'CAIU!', e.x, e.y);
+          popTxt(e.type === 'corte' ? (e.winner === 0 ? sorteia(['HEEELOOOU!', 'RÉÉÉLO!']) : 'CORTOU!') : 'CAIU!', e.x, e.y);
           if (e.type === 'corte' && e.winner === 0) { som3.grito(sorteia(GRITO_CORTE)); somaTot('cortou'); }
-          if (e.type === 'corte' && e.loser === 0 && e.winner != null) { ultProvoca = performance.now(); som3.grito('Heeelooou!', { voz: 'outro' }); }
+          if (e.type === 'corte' && e.loser === 0 && e.winner != null) { ultProvoca = performance.now(); som3.grito(sorteia(GRITO_CORTE), { voz: 'outro' }); }
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0) && v3) v3.shake(e.loser === 0 ? .2 : .1);
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0)) try { navigator.vibrate && navigator.vibrate(e.winner === 0 ? [30, 40, 60] : 120); } catch {}
           const quem = names[e.loser], por = e.winner != null ? names[e.winner] : null;
