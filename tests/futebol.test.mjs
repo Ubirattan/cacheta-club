@@ -81,10 +81,10 @@ R.T.profiles[0].coins = 3;
 await assert.rejects(futebol(R, u0, { op: 'apostar', valor: 5, selecoes: [sel(1, '1x2', '1', 2.1)] }, T0), /insuficientes/);
 
 // jogo 1 acaba 2x1 na prorrogação? não: tempo normal 2x1 (AET com fulltime 1x1 conta 1x1)
-mundo[1] = fx(1, 71, 'Flamengo', 'Palmeiras', T0 + 5 * H, 'FT', [2, 1]);
-mundo[2] = fx(2, 71, 'Santos', 'Grêmio', T0 + 6 * H, 'AET', [1, 1]); mundo[2].goals = { home: 3, away: 1 };
 let mi = await futebol(R, u1, { op: 'minhas' }, T0 + 5 * H + 20 * 60e3);
 assert.equal(mi.apostas.find(a => a.id === s1.id).status, 'aberta', 'ainda no tempo de jogo: não confere');
+mundo[1] = fx(1, 71, 'Flamengo', 'Palmeiras', T0 + 5 * H, 'FT', [2, 1]);
+mundo[2] = fx(2, 71, 'Santos', 'Grêmio', T0 + 6 * H, 'AET', [1, 1]); mundo[2].goals = { home: 3, away: 1 };
 mi = await futebol(R, u1, { op: 'minhas' }, T0 + 8 * H + 5 * 60e3);
 const b = id => mi.apostas.find(a => a.id === id);
 assert.equal(b(s1.id).status, 'ganhou'); assert.equal(b(s1.id).ganho, 210);

@@ -33,7 +33,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 - **Simples ou múltipla** (até 10 jogos, um palpite por jogo, odds multiplicadas). Aposta de **5 a 1000 fichas**, prêmio máximo de 50.000 fichas por bilhete.
 - As apostas fecham 1 minuto antes do jogo. Se a odd mudar entre a tela e a aposta, o servidor recusa e a tela mostra a odd nova.
 - O resultado é conferido sozinho e o prêmio cai no saldo. Jogo cancelado ou adiado por mais de 2 dias é anulado (simples devolve, múltipla conta odd 1).
-- A atualização roda quando alguém abre o futebol (sem nada rodando no fundo): jogos de hoje e amanhã a cada 6 h (o plano grátis só libera de ontem a amanhã), odds aos poucos (cada jogo 1 vez por dia) e resultado só dos jogos que têm aposta. Conta as chamadas pra não passar de 95 por dia (plano grátis = 100).
+- A atualização roda quando alguém abre o futebol (sem nada rodando no fundo): jogos de hoje e amanhã a cada 2 h (o plano grátis só libera de ontem a amanhã), odds aos poucos (cada jogo 1 vez por dia) e resultado só dos jogos que têm aposta. Conta as chamadas pra não passar de 95 por dia (plano grátis = 100).
 - O admin vê no topo da tela do futebol se falta a chave ou se a API deu erro, e quantas chamadas já foram no dia.
 - ⚠️ Rode uma vez o `supabase/futebol.sql` no SQL Editor e cadastre `APIFOOTBALL_KEY` no Netlify (marque **Contains secret values**).
 - **Plano Pro da API (detectado sozinho):** placar ao vivo a cada ~1 min nos jogos com aposta, odds atualizadas a cada 3 h e jogos de até depois de amanhã.
