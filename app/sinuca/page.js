@@ -11,6 +11,8 @@ import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio, audioCtx } from '../../lib/sfx.js';
 import { RAIL, corBola, NOME_MODO, toc, bola, mesa, Regras, SINUCA_CSS as CSS , tacoGrad, setTaco } from '../../components/Sinuca.js';
 import { itemById } from '../../lib/shop-items.js';
+import { loadThree, webglOk } from '../../lib/three-loader.js';
+import { createSinuca3D } from '../../lib/sinuca-view3d.js';
 import { W, H, R, POCKETS, NIVEIS, MODOS, BOLINHO_JOGOS, escolhe, podeEscolher, arrumaBola, comecaLisa, newSinuca, stepSinuca, tacar, colocaBranca, podeColocar, branca, alvos, restantes, grupoDe, primeiraBola, ateTabela, jogadaComputador, computadorColoca } from '../../lib/sinuca.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -29,6 +31,16 @@ export default function Sinuca() {
   const [semFichas, setSemFichas] = useState(false);
   const [som, setSom] = useState(true);
   const cvRef = useRef(null), boxRef = useRef(null), barRef = useRef(null), comecarRef = useRef(null);
+  // OLHO: visão em primeira pessoa (3D), só quando o jogador aperta o botão
+  const [olho, setOlho] = useState(false), olhoRef = useRef(null), v3Ref = useRef(null);
+  useEffect(() => {
+    if (!olho || !game) return;
+    if (!webglOk()) { setOlho(false); toast('Seu celular não abre a visão 3D'); return; }
+    let vivo = true;
+    loadThree().then(THREE => { if (vivo && olhoRef.current) v3Ref.current = createSinuca3D({ THREE, box: olhoRef.current }); })
+      .catch(() => { if (vivo) { setOlho(false); toast('A visão 3D não carregou'); } });
+    return () => { vivo = false; if (v3Ref.current) { v3Ref.current.destroy(); v3Ref.current = null; } };
+  }, [olho, game]); // eslint-disable-line
 
   useEffect(() => { setSom(soundOn()); try { const l = localStorage.getItem('sn_level'); if (NIVEIS.some(x => x[0] === l)) setLevel(l); const m = localStorage.getItem('sn_modo'); if (MODOS.some(x => x[0] === m)) setModo(m); } catch {} }, []);
   useEffect(() => { try { localStorage.setItem('sn_level', level); localStorage.setItem('sn_modo', modo); } catch {} }, [level, modo]);
@@ -160,6 +172,13 @@ export default function Sinuca() {
         while (acc >= 1000 / 60) { acc -= 1000 / 60; stepSinuca(S); events(); }
         if (S.phase === 'aim' && S.turn === 1) vezDoBot(now);
         draw(now);
+        const v3 = v3Ref.current;
+        if (v3) {
+          const cb = branca(S), mirando = S.phase === 'aim' && !cb.in;
+          let fim = null;
+          if (mirando) { const hit = primeiraBola(S, ang); fim = hit ? [hit.gx, hit.gy] : (() => { const p = ateTabela(S, ang); return [p.x, p.y]; })(); }
+          v3.render(S, cb, ang, forca, fim, mirando);
+        }
       } catch (e) { console.error('sinuca', e); }
     }
 
@@ -202,6 +221,11 @@ export default function Sinuca() {
     function bDown(e) { if (S.phase !== 'aim' || S.turn !== 0) return; puxando = true; y0 = e.clientY; try { bar.setPointerCapture(e.pointerId); } catch {} e.stopPropagation(); }
     function bMove(e) { if (!puxando) return; forca = Math.max(0, Math.min(1, (e.clientY - y0) / (bar.clientHeight * .85))); }
     function bUp() { if (!puxando) return; puxando = false; if (forca > .03 && S.turn === 0) tacar(S, ang, forca); forca = 0; }
+    const ov = olhoRef.current; let olhoX = null;
+    const oDown = e => { if (S.phase !== 'aim' || S.turn !== 0) return; olhoX = e.clientX; try { ov.setPointerCapture(e.pointerId); } catch {} };
+    const oMove = e => { if (olhoX == null) return; ang += (e.clientX - olhoX) * .0028; olhoX = e.clientX; };
+    const oUp = () => { olhoX = null; };
+    ov.addEventListener('pointerdown', oDown); ov.addEventListener('pointermove', oMove); ov.addEventListener('pointerup', oUp); ov.addEventListener('pointercancel', oUp);
     const key = e => { if (e.code === 'ArrowLeft') ang -= .01; if (e.code === 'ArrowRight') ang += .01; if (e.code === 'Space' && S.turn === 0) { tacar(S, ang, .6); } };
     cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
     bar.addEventListener('pointerdown', bDown); bar.addEventListener('pointermove', bMove); bar.addEventListener('pointerup', bUp); bar.addEventListener('pointercancel', bUp);
@@ -212,6 +236,7 @@ export default function Sinuca() {
       cv.removeEventListener('pointerdown', down); cv.removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
       bar.removeEventListener('pointerdown', bDown); bar.removeEventListener('pointermove', bMove); bar.removeEventListener('pointerup', bUp); bar.removeEventListener('pointercancel', bUp);
       removeEventListener('keydown', key);
+      ov.removeEventListener('pointerdown', oDown); ov.removeEventListener('pointermove', oMove); ov.removeEventListener('pointerup', oUp); ov.removeEventListener('pointercancel', oUp);
     };
   }, [game]); // eslint-disable-line
 
@@ -266,7 +291,10 @@ export default function Sinuca() {
       <div className="sn-area">
         <div className="sn-bar" ref={barRef} style={h.phase === 'monta' ? { display: 'none' } : null}><i /><span>FORÇA</span></div>
         {h.phase === 'monta' && <button className="sn-comeca" onClick={() => comecarRef.current && comecarRef.current()}>▶<b>COMEÇAR</b></button>}
-        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} /><div className="sn-msg">{msg}</div></div>
+        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} />
+          <div className="sn-olhov" ref={olhoRef} style={{ display: olho ? 'block' : 'none' }}>{olho && <div className="sn-olho-dica">Arraste pros lados pra mirar · puxe a FORÇA pra tacar</div>}</div>
+          {h.phase !== 'monta' && <button className={'sn-olho' + (olho ? ' on' : '')} title={olho ? 'Voltar pra visão de cima' : 'Ver como o jogador (primeira pessoa)'} onClick={() => setOlho(o => !o)}>{olho ? '🗺️' : '👁️'}</button>}
+          <div className="sn-msg">{msg}</div></div>
         <div className="sn-caiu">{h.caidas.slice(-12).map(n => <span key={n} style={{ background: n > 8 && n < 100 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }}>{n < 100 ? <b>{n}</b> : null}</span>)}</div>
       </div>
       {h.phase === 'over' && <Modal><h2>{h.winner === 0 ? '🏆 Você ganhou!' : `${game.bot[0]} ganhou`}</h2>
