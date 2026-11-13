@@ -246,6 +246,7 @@ export default function Pipa() {
         if (e.type === 'corte' || e.type === 'caiu') {
           popTxt(e.type === 'corte' ? (e.winner === 0 ? 'VAAAI!' : 'CORTOU!') : 'CAIU!', e.x, e.y);
           if (e.type === 'corte' && e.winner === 0) { som3.grito('Vaaai!'); somaTot('cortou'); }
+          if (e.type === 'corte' && (e.winner === 0 || e.loser === 0) && v3) v3.shake(e.loser === 0 ? .2 : .1);
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0)) try { navigator.vibrate && navigator.vibrate(e.winner === 0 ? [30, 40, 60] : 120); } catch {}
           const quem = names[e.loser], por = e.winner != null ? names[e.winner] : null;
           if (e.type === 'corte') setMsg(e.winner === 0 ? `Você cortou a pipa do ${quem}!` : e.loser === 0 ? `${por} cortou a sua pipa!` : `${por} cortou a pipa do ${quem}`);
@@ -344,7 +345,7 @@ export default function Pipa() {
     let dedo = null;   // { id, y0 }
     function lado(e) { const r = box.getBoundingClientRect(); return e.clientX < r.left + r.width / 2 ? -1 : 1; }
     function down(e) {
-      if (e.target.closest && e.target.closest('.pp-desc')) return;
+      if (e.target.closest && e.target.closest('.pp-desc, .pp-top')) return;
       dedo = { id: e.pointerId, y0: e.clientY }; ctl.x = lado(e); ctl.y = 0;
       try { e.target.setPointerCapture(e.pointerId); } catch {}
     }
@@ -453,19 +454,20 @@ export default function Pipa() {
   );
   const ganhou = h.over && h.over.winner === 0;
   return (
-    <div className="page lounge pp">
-      <div className="pp-top">
-        <div className="pp-pills">{Array.from({ length: game.n }, (_, i) => placar(i))}</div>
-        <div className="pp-mid">{h.cross ? <b className="cruz">⚔️ PUXA!</b> : <>Rodada <b>{h.round}</b></>}</div>
-        <button className="rbtn" title="Regras" onClick={() => setRules(true)}>📖</button>
-        <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
-        <button className="rbtn" title="Voltar" onClick={() => { if (h.over || confirm('Sair da partida? A ficha já foi usada.')) setGame(null); }}>↩</button>
-      </div>
+    <div className="page pp">
       <div className={`pp-field ${game.night ? 'noite' : ''}`} ref={boxRef}><canvas ref={cvRef} />
+        <div className="pp-vin" />
+        <div className="pp-top">
+          <div className="pp-pills">{Array.from({ length: game.n }, (_, i) => placar(i))}</div>
+          <div className="pp-mid">{h.cross ? <b className="cruz">⚔️ PUXA!</b> : <>Rodada <b>{h.round}</b></>}</div>
+          <button className="rbtn" title="Regras" onClick={() => setRules(true)}>📖</button>
+          <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
+          <button className="rbtn" title="Voltar" onClick={() => { if (h.over || confirm('Sair da partida? A ficha já foi usada.')) setGame(null); }}>↩</button>
+        </div>
+        <div className="pp-msg">{msg || ' '}</div>
         <button className={`pp-desc ${desc ? 'on' : ''}`} onPointerDown={e => { e.stopPropagation(); try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} descarrega(true); }}
           onPointerUp={() => descarrega(false)} onPointerCancel={() => descarrega(false)} onContextMenu={e => e.preventDefault()}>🧵<b>DESCARREGAR</b></button>
         <div className="pp-cnt"><span><small>CORTOU</small><b>{h.cortou || 0}</b></span><span><small>APAROU</small><b>{h.aparou || 0}</b></span></div></div>
-      <div id="msg">{msg || ' '}</div>
       {rules && <Regras onClose={() => setRules(false)} />}
       {h.over && h.phase === 'cut' && <Modal><h2>{ganhou ? '🏆 Você ganhou!' : `${nome(h.over.winner)} ganhou`}</h2>
         <div className="score">{Array.from({ length: game.n }, (_, i) => i).sort((a, b) => h.score[b] - h.score[a]).map(i =>
@@ -535,9 +537,12 @@ const CSS = `
 .pp-pill.mini div{min-width:0}
 .pp-pill.mini strong em{width:9px;height:9px}
 .pp-pill .av{background:#1e3a5f}
-.pp-field.noite{background:#02040c;border-radius:14px}
-.pp{overflow:hidden}
-.pp-top{display:flex;align-items:center;gap:clamp(6px,1.4vw,12px);padding:8px 12px 6px}
+.pp-field.noite{background:#02040c}
+.pp{overflow:hidden;padding:0;background:#000}
+.pp-top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:clamp(5px,1.2vw,10px);padding:max(6px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 14px max(10px,env(safe-area-inset-left));background:linear-gradient(#000a,#0000)}
+.pp-top .pp-pill{background:#000b}
+.pp-msg{position:absolute;left:50%;transform:translateX(-50%);top:clamp(52px,12vh,64px);z-index:4;pointer-events:none;font:500 clamp(12px,2.4vmin,16px) Oswald;color:#fff;text-shadow:0 1px 3px #000,0 0 8px #000;white-space:nowrap;max-width:80%;overflow:hidden;text-overflow:ellipsis}
+.pp-vin{position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.38) 100%)}
 .pp-pill{display:flex;align-items:center;gap:8px;background:#0c0a07;border:2px solid var(--gold2);border-radius:30px;padding:3px 12px 3px 4px;min-width:0}
 .pp-pill.x{border-color:#f59e0b;box-shadow:0 0 12px rgba(245,158,11,.55)}
 .pp-pill .av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
@@ -554,14 +559,14 @@ const CSS = `
 @keyframes ppb{to{opacity:.55}}
 .pp-top .rbtn:first-of-type{margin-left:auto}
 .pp-top .pp-mid{flex:none}
-.pp-top .rbtn{width:42px;height:42px;font-size:18px}
-.pp-field{flex:1;min-height:0;position:relative;margin:0 8px;touch-action:none;user-select:none;-webkit-user-select:none}
-.pp-desc{position:absolute;right:14px;bottom:14px;z-index:4;width:clamp(64px,11vmin,84px);height:clamp(64px,11vmin,84px);border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#4b5563,#111827);box-shadow:0 4px 0 #000a,0 6px 14px #0008;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;font-size:24px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
+.pp-top .rbtn{width:38px;height:38px;font-size:16px;border-width:2px}
+.pp-field{position:absolute;inset:0;touch-action:none;user-select:none;-webkit-user-select:none}
+.pp-desc{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:4;width:clamp(64px,11vmin,84px);height:clamp(64px,11vmin,84px);border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#4b5563,#111827);box-shadow:0 4px 0 #000a,0 6px 14px #0008;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;font-size:24px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
 .pp-desc b{font:600 8.5px Oswald;letter-spacing:.3px;margin-top:3px}
 .pp-desc.on{background:radial-gradient(circle at 40% 30%,#fcd34d,#d97706);border-color:#fde68a;color:#000;transform:translateY(3px);box-shadow:0 1px 0 #000a}
-.pp-cnt{position:absolute;left:12px;bottom:12px;z-index:4;display:flex;gap:6px;pointer-events:none}
+.pp-cnt{position:absolute;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:4;display:flex;gap:6px;pointer-events:none}
 .pp-cnt span{display:flex;flex-direction:column;align-items:center;background:#000a;border:1.5px solid #fff8;border-radius:8px;padding:2px 8px;color:#fff;min-width:46px}
 .pp-cnt small{font:600 9px Oswald;letter-spacing:.5px;opacity:.85}.pp-cnt b{font:700 17px Oswald;line-height:1.1}
 .pp-tot{font:500 13px Oswald;color:#fff;background:#0007;border-radius:12px;padding:3px 10px;text-shadow:0 1px 2px #000}
-.pp-field canvas{position:absolute;inset:0;display:block;touch-action:none;border-radius:14px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.pp-field canvas{position:absolute;inset:0;display:block;touch-action:none;cursor:pointer;user-select:none;-webkit-user-select:none}
 `;
