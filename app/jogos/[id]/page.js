@@ -34,7 +34,6 @@ export default function Jogo() {
         ))}
       </div>
       <div className="cj-acoes" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8, padding: '0 10px 10px' }}>
-        <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
       </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       <style>{`

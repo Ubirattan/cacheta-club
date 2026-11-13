@@ -9,7 +9,8 @@ import { Modal, Seg, toast } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio, audioCtx } from '../../lib/sfx.js';
-import { RAIL, corBola, NOME_MODO, toc, bola, mesa, Regras, SINUCA_CSS as CSS } from '../../components/Sinuca.js';
+import { RAIL, corBola, NOME_MODO, toc, bola, mesa, Regras, SINUCA_CSS as CSS , tacoGrad, setTaco } from '../../components/Sinuca.js';
+import { itemById } from '../../lib/shop-items.js';
 import { W, H, R, POCKETS, NIVEIS, MODOS, BOLINHO_JOGOS, escolhe, podeEscolher, arrumaBola, comecaLisa, newSinuca, stepSinuca, tacar, colocaBranca, podeColocar, branca, alvos, restantes, grupoDe, primeiraBola, ateTabela, jogadaComputador, computadorColoca } from '../../lib/sinuca.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -17,6 +18,7 @@ const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '
 export default function Sinuca() {
   const router = useRouter();
   const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  useEffect(() => { setTaco(itemById(profile?.equipped?.taco)?.colors); }, [profile?.equipped?.taco]); // eslint-disable-line
   const [level, setLevel] = useState('medio');
   const [modo, setModo] = useState('bola8');
   const [game, setGame] = useState(null);         // { id, bot, level }
@@ -142,7 +144,7 @@ export default function Sinuca() {
         const x1 = cb.x - dx * (R + pux), y1 = cb.y - dy * (R + pux), x2 = x1 - dx * L, y2 = y1 - dy * L;
         c.lineCap = 'round';
         c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 9; c.beginPath(); c.moveTo(x1 + 4, y1 + 5); c.lineTo(x2 + 4, y2 + 5); c.stroke();
-        const gr = c.createLinearGradient(x1, y1, x2, y2); gr.addColorStop(0, '#f1e6c8'); gr.addColorStop(.03, '#f1e6c8'); gr.addColorStop(.035, '#1e3a8a'); gr.addColorStop(.06, '#1e3a8a'); gr.addColorStop(.065, '#d9b26f'); gr.addColorStop(.6, '#a8692e'); gr.addColorStop(.62, '#111'); gr.addColorStop(1, '#3a1d0a');
+        const gr = tacoGrad(c, x1, y1, x2, y2);
         c.strokeStyle = gr; c.lineWidth = 7; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
       }
       // barra de força
