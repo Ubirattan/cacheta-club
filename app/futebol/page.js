@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
+import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
 import { criarTeste } from '../../lib/futebol-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -33,6 +33,9 @@ function quando(s) {
 }
 const SEL_ST = { ganhou: '✅', perdeu: '❌', anulada: '↩️' };
 
+const rotuloSel = (x, casa, fora) => x.mercado === 'combo' ? x.partes.map(p => rotulo(p.mercado, p.escolha, casa, fora, p.linha)).join(' + ') : rotulo(x.mercado, x.escolha, casa, fora, x.linha);
+const nomeMerc = m => m === 'combo' ? '🧩 Criar aposta' : MERCADOS[m].nome;
+
 function Escudo({ src, nome }) {
   const [ok, setOk] = useState(true);
   if (src && ok) return <img className="fb-esc" src={src} alt="" onError={() => setOk(false)} />;
@@ -51,6 +54,7 @@ export default function Futebol() {
   const [minhas, setMinhas] = useState(null);
   const [liga, setLiga] = useState(0);
   const [aberto, setAberto] = useState(null);           // jogo com os outros mercados à mostra
+  const [criar, setCriar] = useState(null);             // Criar aposta: { jogo, partes: [{ mercado, escolha, linha }] }
   const [bil, setBil] = useState([]);                   // [{ jogo, mercado, escolha, odd }]
   const [valor, setValor] = useState(10);
   const [coins, setCoins] = useState(null);
@@ -72,7 +76,11 @@ export default function Futebol() {
       stRef.current = s; setSt(s); setFalha('');
       if (s.coins != null) setCoins(s.coins);
       // atualiza as odds do bilhete e tira jogo que já começou
-      setBil(b => b.map(x => { const j = s.jogos.find(j => j.id === x.jogo); const o = j?.odds?.[x.mercado]?.[x.escolha]; return j && o ? { ...x, odd: o, ...(MERCADOS[x.mercado].linha ? { linha: j.odds[x.mercado].linha } : {}) } : null; }).filter(Boolean));
+      setBil(b => b.map(x => {
+        const j = s.jogos.find(j => j.id === x.jogo);
+        if (j && x.mercado === 'combo') { const c = oddCombo(x.partes, j.odds); return c.erro ? null : { ...x, odd: c.odd, partes: c.partes }; }
+        const o = j?.odds?.[x.mercado]?.[x.escolha]; return j && o ? { ...x, odd: o, ...(MERCADOS[x.mercado].linha ? { linha: j.odds[x.mercado].linha } : {}) } : null;
+      }).filter(Boolean));
       return s;
     } catch (e) { if (!stRef.current) setFalha(e.message || 'Sem conexão'); else avisar(e.message || 'Sem conexão'); }
   }
@@ -114,7 +122,33 @@ export default function Futebol() {
   const lista = liga ? jogos.filter(j => j.liga === liga) : jogos;
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
-  const naBil = (jogo, m, e) => bil.some(x => x.jogo === jogo && x.mercado === m && x.escolha === e);
+  const naBil = (jogo, m, e) => criar?.jogo === jogo ? criar.partes.some(p => p.mercado === m && p.escolha === e) : bil.some(x => x.jogo === jogo && x.mercado === m && x.escolha === e);
+  function parte(j, m, e) {           // Criar aposta: liga/desliga um palpite (um de cada tipo)
+    sfx('tick');
+    setCriar(c => {
+      const tem = c.partes.find(p => p.mercado === m);
+      const resto = c.partes.filter(p => p.mercado !== m);
+      if (tem && tem.escolha === e) return { ...c, partes: resto };
+      if (!tem && c.partes.length >= COMBO_MAX) { avisar(`No máximo ${COMBO_MAX} palpites`); return c; }
+      return { ...c, partes: [...resto, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }] };
+    });
+  }
+  // no Criar aposta: esse palpite não dá pra juntar com os que já estão escolhidos?
+  function impossivel(j, m, e) {
+    if (criar?.jogo !== j.id || !criar.partes.length || criar.partes.some(p => p.mercado === m)) return false;
+    const c = oddCombo([...criar.partes, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }], j.odds);
+    return !!c.erro && /impossível/.test(c.erro);
+  }
+  function abrirCriar(j) {            // toque no nome dos times: abre o Criar aposta do jogo
+    if (criar?.jogo === j.id) { setCriar(null); setAberto(null); return; }
+    setAberto(j.id); setCriar({ jogo: j.id, partes: [] });
+  }
+  function porCombo(j) {
+    const c = oddCombo(criar.partes, j.odds);
+    if (c.erro) return avisar(c.erro);
+    setBil(b => { const sem = b.filter(x => x.jogo !== j.id); if (sem.length >= MAX_SELECOES) { avisar(`No máximo ${MAX_SELECOES} jogos por bilhete`); return b; } return [...sem, { jogo: j.id, mercado: 'combo', escolha: 'combo', odd: c.odd, partes: c.partes }]; });
+    sfx('coin'); setCriar(null); avisar('Criar aposta no bilhete', true);
+  }
   function escolher(j, m, e) {
     const odd = j.odds?.[m]?.[e]; if (!odd) return;
     sfx('tick');
@@ -166,7 +200,7 @@ export default function Futebol() {
         {!bil.length && <div className="fb-vazio">Toque nas odds dos jogos pra montar seu bilhete. Escolha vários jogos pra fazer uma múltipla: as odds se multiplicam.</div>}
         {bil.map(x => { const j = J[x.jogo]; if (!j) return null; return (
           <div className="fb-sel" key={x.jogo}>
-            <div><small>{j.casa} x {j.fora}</small><b>{rotulo(x.mercado, x.escolha, j.casa, j.fora, x.linha)}</b><small>{MERCADOS[x.mercado].nome}</small></div>
+            <div><small>{j.casa} x {j.fora}</small><b>{rotuloSel(x, j.casa, j.fora)}</b><small>{nomeMerc(x.mercado)}{j.antecipa && x.mercado === '1x2' && x.escolha !== 'X' && ' · 💰 pagamento antecipado'}</small></div>
             <span className="fb-so">{f2(x.odd)}</span>
             <button onClick={() => setBil(b => b.filter(y => y.jogo !== x.jogo))}>✕</button>
           </div>); })}
@@ -203,6 +237,11 @@ export default function Futebol() {
 
       {aba === 'jogos' ? <div className="fb-main">
         <div className="fb-esq">
+          <div className="fb-novs">
+            <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Toque no nome dos times</small></button>
+            <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
+            <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
+          </div>
           <div className="fb-ligas">
             <button className={!liga ? 'on' : ''} onClick={() => setLiga(0)}>Todos</button>
             {ligas.map(([id, n]) => <button key={id} className={liga === id ? 'on' : ''} onClick={() => setLiga(id)}>{n}</button>)}
@@ -215,19 +254,32 @@ export default function Futebol() {
               <div className="fb-dia">{d.n}</div>
               {d.js.map(j => (
                 <div className="fb-jogo" key={j.id}>
-                  <div className="fb-info">
-                    <small>{hora(j.inicio)} · {j.ligaNome}</small>
+                  <div className="fb-info" onClick={() => abrirCriar(j)} title="Criar aposta com este jogo">
+                    <small>{hora(j.inicio)} · {j.ligaNome}{j.antecipa && <i className="fb-selo" title="Pagamento antecipado">💰 2 gols</i>}</small>
                     <div className="fb-time"><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span></div>
                     <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span></div>
                   </div>
                   <div className="fb-odds">
-                    {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} onClick={() => escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
-                    {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => setAberto(aberto === j.id ? null : j.id)}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - 1)}</button>}
+                    {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} disabled={impossivel(j, '1x2', e)} onClick={() => criar?.jogo === j.id ? parte(j, '1x2', e) : escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
+                    {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => { setAberto(aberto === j.id ? null : j.id); if (criar?.jogo === j.id) setCriar(null); }}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - 1)}</button>}
                   </div>
+                  {j.antecipa && criar?.jogo !== j.id && (() => { const x = bil.find(y => y.jogo === j.id && y.mercado === '1x2' && y.escolha !== 'X'); return x && <div className="fb-antaviso">💰 <b>Pagamento antecipado:</b> se o {x.escolha === '1' ? j.casa : j.fora} abrir <b>2 gols de vantagem</b>, você já ganha, mesmo que o outro time reaja.</div>; })()}
                   {aberto === j.id && <div className="fb-extra">
-                    {Object.keys(MERCADOS).filter(m => m !== '1x2' && j.odds[m]).map(m => <div key={m} className="fb-merc">
+                    <div className="fb-modo">
+                      <button className={criar?.jogo !== j.id ? 'on' : ''} onClick={() => setCriar(null)}>Palpites</button>
+                      <button className={'fb-cria' + (criar?.jogo === j.id ? ' on' : '')} onClick={() => setCriar({ jogo: j.id, partes: [] })}>🧩 Criar aposta<i>NOVO</i></button>
+                    </div>
+                    {criar?.jogo === j.id && <div className="fb-criar">{(() => {
+                      const c = criar.partes.length >= 2 ? oddCombo(criar.partes, j.odds) : null;
+                      return <>
+                        <span>{!criar.partes.length ? 'Escolha de 2 a 6 palpites deste jogo (inclusive o 1 X 2 lá em cima)' : criar.partes.map(p => rotulo(p.mercado, p.escolha, j.casa, j.fora, p.linha)).join(' + ')}</span>
+                        {c?.erro && <em>{c.erro}</em>}
+                        <button disabled={!c || !!c.erro} onClick={() => porCombo(j)}>{c && !c.erro ? `Pôr no bilhete · odd ${f2(c.odd)}` : 'Pôr no bilhete'}</button>
+                      </>;
+                    })()}</div>}
+                    {Object.keys(MERCADOS).filter(m => m !== '1x2' && j.odds[m] && !(criar?.jogo === j.id && FORA_DO_COMBO.includes(m))).map(m => <div key={m} className="fb-merc">
                       <span>{MERCADOS[m].nome}</span>
-                      <div className={m === 'placar' ? 'fb-grade' : ''}>{opcoes(m, j.odds).map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} onClick={() => escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
+                      <div className={m === 'placar' ? 'fb-grade' : ''}>{opcoes(m, j.odds).map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} disabled={impossivel(j, m, e)} onClick={() => criar?.jogo === j.id ? parte(j, m, e) : escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
                     </div>)}
                   </div>}
                 </div>
@@ -251,7 +303,7 @@ export default function Futebol() {
               <div className="fb-ap-s" key={i}>
                 <span className="fb-ap-ic">{SEL_ST[s.status] || (VIVO.includes(s.jogoStatus) ? '⚽' : '🕒')}</span>
                 <div><small>{s.casa} {s.placar ? <b>{s.placar[0]} x {s.placar[1]}</b> : 'x'} {s.fora} · <span className={VIVO.includes(s.jogoStatus) ? 'fb-vivo' : ''}>{quando(s)}</span></small>
-                  <b>{rotulo(s.mercado, s.escolha, s.casa, s.fora, s.linha)}{s.total != null && <i className="fb-tot"> · deu {s.total}</i>}{s.antecipado && <i className="fb-ant">💰 pago antecipado</i>}</b></div>
+                  <b>{s.mercado === 'combo' && '🧩 '}{rotuloSel(s, s.casa, s.fora)}{s.total != null && <i className="fb-tot"> · deu {s.total}</i>}{s.antecipado && <i className="fb-ant">💰 pago antecipado</i>}</b></div>
                 <span className="fb-so">{f2(s.odd)}</span>
               </div>))}
             <div className="fb-ap-r"><span>Aposta <b>{a.valor}</b></span><span>Odd <b>{f2(a.odd)}</b></span>
@@ -270,10 +322,11 @@ export default function Futebol() {
           <p>• Prêmio = aposta × odd total. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas. Prêmio máximo de {fichas(MAX_PREMIO)} fichas por bilhete.</p>
           <p>• Vale o resultado dos <b>90 minutos</b> (com acréscimos). Prorrogação e pênaltis não contam.</p>
           <p>• <b>1º tempo</b>: vale o placar do intervalo (paga já no intervalo). <b>Quem marca primeiro</b>: o time do 1º gol nos 90 minutos; "Sem gol" ganha no 0 x 0. <b>Handicap</b>: soma ou tira gols do time (ex.: Flamengo −1,5 precisa ganhar por 2 ou mais). <b>Placar exato</b>: o placar dos 90 minutos.</p>
+          <p>• <b>🧩 Criar aposta</b>: toque no nome dos times e junte de 2 a 6 palpites do mesmo jogo num só (um de cada tipo; placar exato fica só nos palpites normais). Palpites que não combinam com os já escolhidos ficam apagados. A odd é calculada pra todos acontecerem juntos, por isso é menor que multiplicar. Ganha só se todos acertarem; se um for anulado, o combo inteiro é anulado. Pode entrar numa múltipla com outros jogos.</p>
           <p>• <b>Escanteios</b> e <b>cartões</b>: total dos dois times no jogo. Nos cartões, amarelo e vermelho contam 1 cada. Jogo com prorrogação anula esses palpites. Esses palpites não têm cash out depois que o jogo começa.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
           <p>• As apostas fecham 1 minuto antes do jogo começar. O resultado é conferido sozinho e o prêmio cai no seu saldo.</p>
-          <p>• <b>Pagamento antecipado:</b> apostou na vitória de um time (1 ou 2) e ele abriu <b>2 gols de vantagem</b> no tempo normal? O palpite já conta como ganho, mesmo que o outro time reaja. Na simples o prêmio cai na hora.</p>
+          <p>• <b>Pagamento antecipado:</b> nos jogos com o selo <b>💰 2 gols</b>, apostou na vitória de um time (1 ou 2) e ele abriu <b>2 gols de vantagem</b> no tempo normal? O palpite já conta como ganho, mesmo que o outro time reaja. Na simples o prêmio cai na hora. Não vale no Brasileirão B e na Sul-Americana.</p>
           <p>• <b>Cash out:</b> em Minhas apostas dá pra encerrar o bilhete antes do fim e receber o valor mostrado na hora. O valor muda com o placar e o tempo de jogo.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Jogos e odds: API-Football. Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>
@@ -301,6 +354,11 @@ export default function Futebol() {
 .fb-dia{font:600 13px Oswald;letter-spacing:.5px;color:#fbbf24;text-transform:uppercase;padding:6px 4px 4px}
 .fb-jogo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#0b2416e6;border:1px solid #ffffff14;border-radius:14px;padding:8px 10px;margin-bottom:6px}
 .fb-info{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px}
+.fb-info{cursor:pointer}
+.fb-selo{font-style:normal;font:600 10px Rubik;color:#fde68a;background:#78350f;border-radius:7px;padding:0 5px;margin-left:6px}
+.fb-antaviso{flex-basis:100%;background:linear-gradient(90deg,#78350f,#451a03);border:1px solid #f59e0b88;border-radius:10px;padding:6px 9px;font:400 12px Rubik;color:#fde68a;line-height:1.35}
+.fb-antaviso b{color:#fff}
+.fb-info:active{opacity:.7}
 .fb-info small{font:400 11px Rubik;color:#86b39a}
 .fb-time{display:flex;align-items:center;gap:6px;font:500 14px Rubik;color:#fff;min-width:0}
 .fb-time span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -311,6 +369,7 @@ export default function Futebol() {
 .fb-odds button small,.fb-merc button small{font:500 10px Rubik;color:#86b39a}
 .fb-odds button.on,.fb-merc button.on{background:#fbbf24;color:#1a1300;border-color:#fde68a}
 .fb-odds button.on small,.fb-merc button.on small{color:#4a3500}
+.fb-odds button:disabled,.fb-merc button:disabled{opacity:.25}
 .fb-odds .fb-mais{width:38px;justify-content:center;font:600 14px Rubik;color:#a7f3d0}
 .fb-extra{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px 16px;border-top:1px dashed #ffffff22;padding-top:7px}
 .fb-merc{display:flex;flex-direction:column;gap:4px}
@@ -318,6 +377,25 @@ export default function Futebol() {
 .fb-merc>div{display:flex;gap:5px}
 .fb-merc>div.fb-grade{display:grid;grid-template-columns:repeat(4,auto);gap:5px}
 .fb-merc{max-width:100%}
+.fb-modo{flex-basis:100%;display:flex;gap:4px;background:#0008;border-radius:16px;padding:3px;width:max-content}
+.fb-modo button{border:none;background:none;color:#a7c4b0;font:500 13px Rubik;padding:4px 12px;border-radius:13px}
+.fb-modo button.on{background:#7e22ce;color:#fff}
+.fb-modo .fb-cria{position:relative;color:#fff;background:linear-gradient(90deg,#a855f7,#7e22ce);box-shadow:0 0 0 0 #c084fc;animation:fbpulse 1.6s infinite;font-weight:600}
+.fb-modo .fb-cria.on{animation:none;box-shadow:0 0 0 2px #f0abfc}
+.fb-cria i{font-style:normal;font:700 9px Rubik;background:#fbbf24;color:#1a1300;border-radius:6px;padding:1px 4px;margin-left:5px;vertical-align:middle}
+@keyframes fbpulse{0%{box-shadow:0 0 0 0 #c084fcaa}70%{box-shadow:0 0 0 8px #c084fc00}100%{box-shadow:0 0 0 0 #c084fc00}}
+.fb-novs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:none}
+.fb-novs button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid #ffffff22;border-radius:12px;padding:6px 8px;color:#fff;min-width:0}
+.fb-novs button:nth-child(1){background:linear-gradient(135deg,#7e22ce,#3b0764)}
+.fb-novs button:nth-child(2){background:linear-gradient(135deg,#b45309,#78350f)}
+.fb-novs button:nth-child(3){background:linear-gradient(135deg,#0e7490,#164e63)}
+.fb-novs b{font:600 13px Rubik;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fb-novs small{font:400 11px Rubik;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fb-criar{flex-basis:100%;display:flex;flex-direction:column;gap:5px;background:#3b0764aa;border:1px solid #c084fc66;border-radius:12px;padding:7px 9px}
+.fb-criar span{font:500 13px Rubik;color:#f3e8ff}
+.fb-criar em{font-style:normal;font:500 12px Rubik;color:#fca5a5}
+.fb-criar button{border:none;border-radius:12px;background:linear-gradient(180deg,#a855f7,#7e22ce);color:#fff;font:600 14px Rubik;padding:8px}
+.fb-criar button:disabled{opacity:.5}
 .fb-bil{flex:0 0 min(34%,330px);min-height:0;display:flex;flex-direction:column;background:#0b1f14;border:1px solid #4ade8044;border-radius:16px;overflow:hidden}
 .fb-bt{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#14532d;font:500 14px Rubik;color:#d1fae5}
 .fb-bt span{margin-right:auto;font-size:12px;color:#a7f3d0}
@@ -386,6 +464,7 @@ export default function Futebol() {
 .fb-odds button,.fb-merc button{width:48px;font-size:14px}
 .fb-odds .fb-mais{width:32px}
 .fb-minhas{grid-template-columns:1fr;padding:0 6px 10px}
+.fb-novs b{font-size:12px}.fb-novs small{font-size:10px}.fb-novs button{padding:5px 6px}
 }
 @media (orientation:landscape) and (max-height:520px){
 .fb-top{padding:3px 10px 2px}.fb-top .rbtn{width:32px;height:32px;font-size:14px}
