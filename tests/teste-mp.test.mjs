@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { memRepo, addUsers } from './memrepo.mjs';
+import { testeMp } from '../lib/teste-mp.js';
+process.env.MP_ACCESS_TOKEN = 'APP_USR-x'; process.env.SITE_URL = 'https://casa-de-jogos.netlify.app';
+const R = memRepo(); const [adm, u] = addUsers(R, 2);
+const calls = [];
+const f = async (url, o) => { calls.push([url, o?.method, o?.body && JSON.parse(o.body)]); return { ok: true, json: async () => url.includes('preferences') ? { init_point: 'https://mp/x' } : { id: 123, status: 'pending', transaction_amount: 1, date_created: '2026-11-13T19:00:00Z', point_of_interaction: { transaction_data: { qr_code: '000201...', qr_code_base64: 'iVBOR' } } } }; };
+await assert.rejects(testeMp(R, u, { op: 'pix', valor: 1, email: 'a@b.com' }, f), /administrador/);
+const r = await testeMp(R, adm, { op: 'pix', valor: 1, email: 'a@b.com' }, f);
+assert.equal(r.pix.qr, '000201...'); assert.equal(calls[0][2].payment_method_id, 'pix');
+const pr = await testeMp(R, adm, { op: 'pro', valor: 2.5, origem: 'https://deploy-preview-42--casa-de-jogos.netlify.app' }, f);
+assert.equal(pr.url, 'https://mp/x'); assert.equal(calls[1][2].back_urls.success, 'https://deploy-preview-42--casa-de-jogos.netlify.app/teste-mp');
+await testeMp(R, adm, { op: 'pro', valor: 2.5, origem: 'https://evil.com' }, f);
+assert.equal(calls[2][2].back_urls.success, 'https://casa-de-jogos.netlify.app/teste-mp');
+console.log('OK teste-mp');
