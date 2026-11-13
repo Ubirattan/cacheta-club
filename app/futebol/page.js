@@ -41,6 +41,7 @@ export default function Futebol() {
   const [maior, setMaior] = useState(null);
   const [aba, setAba] = useState('jogos');
   const [st, setSt] = useState(null);
+  const [falha, setFalha] = useState('');
   const [minhas, setMinhas] = useState(null);
   const [liga, setLiga] = useState(0);
   const [aberto, setAberto] = useState(null);           // jogo com os outros mercados à mostra
@@ -59,13 +60,13 @@ export default function Futebol() {
 
   async function carregar() {
     try {
-      const s = await chama({ op: 'jogos' });
-      stRef.current = s; setSt(s);
+      const s = await Promise.race([chama({ op: 'jogos' }), new Promise((_, r) => setTimeout(() => r(new Error('demorou demais')), 15000))]);
+      stRef.current = s; setSt(s); setFalha('');
       if (s.coins != null) setCoins(s.coins);
       // atualiza as odds do bilhete e tira jogo que já começou
       setBil(b => b.map(x => { const j = s.jogos.find(j => j.id === x.jogo); const o = j?.odds?.[x.mercado]?.[x.escolha]; return j && o ? { ...x, odd: o } : null; }).filter(Boolean));
       return s;
-    } catch (e) { avisar(e.message || 'Sem conexão'); }
+    } catch (e) { if (!stRef.current) setFalha(e.message || 'Sem conexão'); else avisar(e.message || 'Sem conexão'); }
   }
   async function carregarMinhas() {
     try { const m = await chama({ op: 'minhas' }); setMinhas(m.apostas); if (m.coins != null) setCoins(m.coins); } catch (e) { avisar(e.message || 'Sem conexão'); }
@@ -183,7 +184,8 @@ export default function Futebol() {
             {ligas.map(([id, n]) => <button key={id} className={liga === id ? 'on' : ''} onClick={() => setLiga(id)}>{n}</button>)}
           </div>
           <div className="fb-lista">
-            {!st && <div className="fb-vazio">Carregando os jogos…</div>}
+            {!st && !falha && <div className="fb-vazio">Carregando os jogos…</div>}
+            {!st && falha && <div className="fb-vazio">Não deu pra carregar os jogos ({falha}).<br /><button className="fb-tenta" onClick={() => { setFalha(''); carregar(); }}>Tentar de novo</button></div>}
             {st && !lista.length && <div className="fb-vazio">Nenhum jogo com odds agora. Os jogos dos próximos dias aparecem aqui assim que as casas abrem as odds.{st.admin && ' (admin: veja o aviso acima)'}</div>}
             {dias.map(d => <div key={d.n}>
               <div className="fb-dia">{d.n}</div>
@@ -310,6 +312,7 @@ export default function Futebol() {
 .fb-apostar:disabled{opacity:.6}
 .fb-vazio{font:400 13px Rubik;color:#86b39a;text-align:center;padding:16px 10px;line-height:1.4}
 .fb-flut{display:none}
+.fb-tenta{margin-top:10px;border:none;border-radius:16px;background:#16a34a;color:#fff;font:600 14px Rubik;padding:8px 18px}
 .fb-minhas{flex:1;min-height:0;overflow-y:auto;padding:0 10px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-content:start}
 .fb-ap{background:#0b2416e6;border:1px solid #ffffff14;border-left:4px solid var(--c);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:5px}
 .fb-ap-t{display:flex;align-items:center;gap:8px;font:400 12px Rubik;color:#86b39a}
