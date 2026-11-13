@@ -33,7 +33,11 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 - A atualização roda quando alguém abre o futebol (sem nada rodando no fundo): jogos de hoje e amanhã a cada 6 h (o plano grátis só libera de ontem a amanhã), odds aos poucos (cada jogo 1 vez por dia) e resultado só dos jogos que têm aposta. Conta as chamadas pra não passar de 95 por dia (plano grátis = 100).
 - O admin vê no topo da tela do futebol se falta a chave ou se a API deu erro, e quantas chamadas já foram no dia.
 - ⚠️ Rode uma vez o `supabase/futebol.sql` no SQL Editor e cadastre `APIFOOTBALL_KEY` no Netlify (marque **Contains secret values**).
-- No link de teste (deploy preview) sem login, a tela usa jogos de mentira que "acabam" 3 minutos depois de começar.
+- **Plano Pro da API (detectado sozinho):** placar ao vivo a cada ~1 min nos jogos com aposta, odds atualizadas a cada 3 h e jogos de até depois de amanhã.
+  - **Pagamento antecipado:** palpite no resultado final (1 ou 2) vira ganho quando o time abre 2 gols de vantagem no tempo normal. Na múltipla, aquele jogo conta como acertado.
+  - **Cash out:** em Minhas apostas, o bilhete pode ser encerrado pelo valor do momento (modelo de gols ajustado pelas odds de antes do jogo, menos 8% da casa; muda em `FUTEBOL_CASHOUT_MARGEM`). Indisponível se o placar estiver desatualizado ou na prorrogação.
+  - ⚠️ Rode também o `supabase/futebol-aovivo.sql` (minuto do jogo e status "cash out").
+- No link de teste (deploy preview) sem login, a tela usa jogos de mentira de 3 minutos (90' do jogo), com placar ao vivo, pagamento antecipado e cash out.
 
 ### Truco paulista (novo)
 - Botões **Cacheta** e **Truco** no topo da tela inicial, entre o perfil e o "online".

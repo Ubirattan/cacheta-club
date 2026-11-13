@@ -24,7 +24,13 @@ function nomeDia(t) {
   return s[0].toUpperCase() + s.slice(1);
 }
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
-const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'] };
+const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'] };
+const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
+function quando(s) {
+  if (VIVO.includes(s.jogoStatus)) return s.jogoStatus === 'HT' ? 'intervalo' : s.minuto ? `${s.minuto}'` : 'ao vivo';
+  if (FIMS.includes(s.jogoStatus) || (s.placar && !s.jogoStatus)) return 'encerrado';
+  return `${nomeDia(s.inicio)} ${hora(s.inicio)}`;
+}
 const SEL_ST = { ganhou: '✅', perdeu: '❌', anulada: '↩️' };
 
 function Escudo({ src, nome }) {
@@ -51,6 +57,8 @@ export default function Futebol() {
   const [aviso, setAviso] = useState(null);
   const [regras, setRegras] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [confirma, setConfirma] = useState(null);       // id da aposta esperando o 2º toque do cash out
+  const [encerrando, setEncerrando] = useState(false);
   const [bilAberto, setBilAberto] = useState(false);   // celular em pé: bilhete por cima
   const stRef = useRef(null);
 
@@ -68,6 +76,16 @@ export default function Futebol() {
       return s;
     } catch (e) { if (!stRef.current) setFalha(e.message || 'Sem conexão'); else avisar(e.message || 'Sem conexão'); }
   }
+  async function cashout(a) {
+    setEncerrando(true);
+    try {
+      const r = await chama({ op: 'cashout', id: a.id, valor: a.cashout });
+      sfx('win'); avisar(`Cash out feito: +${fichas(r.ganho)} fichas`, true);
+      if (r.coins != null) setCoins(r.coins);
+      reloadProfile && reloadProfile();
+    } catch (e) { sfx('err'); avisar(e.message || 'Erro'); }
+    setConfirma(null); setEncerrando(false); carregarMinhas();
+  }
   async function carregarMinhas() {
     try { const m = await chama({ op: 'minhas' }); setMinhas(m.apostas); if (m.coins != null) setCoins(m.coins); } catch (e) { avisar(e.message || 'Sem conexão'); }
   }
@@ -83,7 +101,13 @@ export default function Futebol() {
     const t = setInterval(() => { carregar(); atualizar(); if (abaRef.current === 'minhas') carregarMinhas(); }, 60000);
     return () => clearInterval(t);
   }, [maior, local, !!profile]); // eslint-disable-line
-  useEffect(() => { if (aba === 'minhas' && maior) carregarMinhas(); }, [aba, maior]); // eslint-disable-line
+  useEffect(() => {
+    if (aba !== 'minhas' || !maior) return;
+    carregarMinhas();
+    const t = setInterval(() => { atualizar(); carregarMinhas(); }, 20000);   // placar ao vivo e valor do cash out
+    return () => clearInterval(t);
+  }, [aba, maior]); // eslint-disable-line
+  useEffect(() => { if (!confirma) return; const t = setTimeout(() => setConfirma(null), 5000); return () => clearTimeout(t); }, [confirma]);
 
   const jogos = st?.jogos || [];
   const ligas = useMemo(() => { const m = new Map(); jogos.forEach(j => m.has(j.liga) || m.set(j.liga, j.ligaNome)); return [...m]; }, [jogos]);
@@ -225,13 +249,16 @@ export default function Futebol() {
             </div>
             {a.selecoes.map((s, i) => (
               <div className="fb-ap-s" key={i}>
-                <span className="fb-ap-ic">{SEL_ST[s.status] || (s.jogoStatus && s.jogoStatus !== 'NS' ? '⚽' : '🕒')}</span>
-                <div><small>{s.casa} {s.placar ? <b>{s.placar[0]} x {s.placar[1]}</b> : 'x'} {s.fora} · {s.placar ? (s.status || ['FT', 'AET', 'PEN'].includes(s.jogoStatus) ? 'encerrado' : 'ao vivo') : `${nomeDia(s.inicio)} ${hora(s.inicio)}`}</small>
-                  <b>{rotulo(s.mercado, s.escolha, s.casa, s.fora)}</b></div>
+                <span className="fb-ap-ic">{SEL_ST[s.status] || (VIVO.includes(s.jogoStatus) ? '⚽' : '🕒')}</span>
+                <div><small>{s.casa} {s.placar ? <b>{s.placar[0]} x {s.placar[1]}</b> : 'x'} {s.fora} · <span className={VIVO.includes(s.jogoStatus) ? 'fb-vivo' : ''}>{quando(s)}</span></small>
+                  <b>{rotulo(s.mercado, s.escolha, s.casa, s.fora)}{s.antecipado && <i className="fb-ant">💰 pago antecipado</i>}</b></div>
                 <span className="fb-so">{f2(s.odd)}</span>
               </div>))}
             <div className="fb-ap-r"><span>Aposta <b>{a.valor}</b></span><span>Odd <b>{f2(a.odd)}</b></span>
               <span>{a.status === 'aberta' ? 'Prêmio possível' : a.status === 'perdeu' ? 'Prêmio' : 'Recebeu'} <b className="fb-pr">{fichas(a.status === 'aberta' ? a.premio : a.ganho)}</b></span></div>
+            {a.status === 'aberta' && a.cashout != null && <button className={'fb-co' + (confirma === a.id ? ' sim' : '')} disabled={encerrando}
+              onClick={() => confirma === a.id ? cashout(a) : setConfirma(a.id)}>
+              {confirma === a.id ? `Confirmar cash out de ${f2(a.cashout)} fichas?` : `💸 Cash out ${f2(a.cashout)}`}</button>}
           </div>
         ))}
       </div>}
@@ -244,6 +271,8 @@ export default function Futebol() {
           <p>• Vale o resultado dos <b>90 minutos</b> (com acréscimos). Prorrogação e pênaltis não contam.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
           <p>• As apostas fecham 1 minuto antes do jogo começar. O resultado é conferido sozinho e o prêmio cai no seu saldo.</p>
+          <p>• <b>Pagamento antecipado:</b> apostou na vitória de um time (1 ou 2) e ele abriu <b>2 gols de vantagem</b> no tempo normal? O palpite já conta como ganho, mesmo que o outro time reaja. Na simples o prêmio cai na hora.</p>
+          <p>• <b>Cash out:</b> em Minhas apostas dá pra encerrar o bilhete antes do fim e receber o valor mostrado na hora. O valor muda com o placar e o tempo de jogo.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Jogos e odds: API-Football. Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
@@ -324,6 +353,11 @@ export default function Futebol() {
 .fb-ap-s small b{color:#fff}
 .fb-ap-s>div>b{font:500 13px Rubik;color:#fff}
 .fb-ap-ic{width:20px;text-align:center}
+.fb-vivo{color:#f87171;font-weight:600}
+.fb-ant{font-style:normal;font:600 11px Rubik;color:#fde68a;background:#78350f;border-radius:8px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+.fb-co{border:2px solid #c084fc88;border-radius:14px;background:linear-gradient(180deg,#7e22ce,#581c87);color:#fff;font:600 15px Rubik;padding:8px 6px}
+.fb-co.sim{background:linear-gradient(180deg,#f59e0b,#b45309);border-color:#fde68a}
+.fb-co:disabled{opacity:.6}
 .fb-ap-r{display:flex;justify-content:space-between;gap:6px;border-top:1px dashed #ffffff22;padding-top:5px;font:400 12px Rubik;color:#86b39a}
 .fb-ap-r b{font:600 14px Oswald;color:#fff}
 @media (orientation:portrait){
