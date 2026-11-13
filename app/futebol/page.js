@@ -323,6 +323,21 @@ export default function Futebol() {
 .fb-fecha{display:block}
 .fb-flut{display:block;position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:15;border:2px solid #fde68a;border-radius:22px;background:#fbbf24;color:#1a1300;font:700 15px Rubik;padding:9px 18px;box-shadow:0 6px 16px #000a}
 .fb-logo{display:none}
+.fb-top{gap:6px;padding:6px 8px 4px}
+.fb-abas{margin-left:0}
+.fb-abas button{padding:5px 10px;font-size:13px}
+.fb-saldo{font-size:14px;padding:3px 8px}
+.fb-top .rbtn{width:32px;height:32px;font-size:14px}
+.fb-top .rbtn[title="Comprar fichas"]{display:none}
+.fb-main{padding:0 6px 6px}
+.fb-lista{padding-bottom:64px}
+.fb-jogo{gap:6px;padding:7px 8px;margin-bottom:5px}
+.fb-info{min-width:0;flex:1 1 110px}
+.fb-time{font-size:13px}
+.fb-odds{gap:4px}
+.fb-odds button,.fb-merc button{width:48px;font-size:14px}
+.fb-odds .fb-mais{width:32px}
+.fb-minhas{grid-template-columns:1fr;padding:0 6px 10px}
 }
 @media (orientation:landscape) and (max-height:520px){
 .fb-top{padding:3px 10px 2px}.fb-top .rbtn{width:32px;height:32px;font-size:14px}
