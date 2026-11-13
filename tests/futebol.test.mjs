@@ -431,3 +431,12 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.equal(l.fora, 'Flamengo'); assert.equal(l.fora_logo, 'fla.png');
   console.log('OK — futebol: seleções em português com bandeira');
 }
+
+// amistosos não têm pagamento antecipado; competições oficiais têm
+{
+  const { temAntecipa } = await import('../lib/futebol.js');
+  assert.equal(temAntecipa({ liga: 10 }), false, 'amistoso sem antecipado');
+  assert.equal(temAntecipa({ liga: 5 }), true, 'Nations League com antecipado');
+  assert.equal(temAntecipa({ liga: 71 }), true, 'Brasileirão com antecipado');
+  console.log('OK — futebol: pagamento antecipado só em competições oficiais');
+}
