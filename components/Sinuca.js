@@ -7,8 +7,9 @@ import { W, H, R, POCKETS } from '../lib/sinuca.js';
 // taco do jogador (comprado na loja da sinuca): [ponteira, anel, corpo claro, corpo escuro, cabo]
 let TACO = null;
 export const setTaco = cols => { TACO = Array.isArray(cols) && cols.length === 5 ? cols : null; };
+export const tacoCores = () => TACO || ['#f1e6c8', '#1e3a8a', '#d9b26f', '#a8692e', '#3a1d0a'];
 export function tacoGrad(c, x1, y1, x2, y2) {
-  const [pt, an, c1, c2, cb] = TACO || ['#f1e6c8', '#1e3a8a', '#d9b26f', '#a8692e', '#3a1d0a'];
+  const [pt, an, c1, c2, cb] = tacoCores();
   const gr = c.createLinearGradient(x1, y1, x2, y2);
   gr.addColorStop(0, pt); gr.addColorStop(.03, pt); gr.addColorStop(.035, an); gr.addColorStop(.06, an); gr.addColorStop(.065, c1); gr.addColorStop(.6, c2); gr.addColorStop(.62, '#111'); gr.addColorStop(.64, cb); gr.addColorStop(1, cb);
   return gr;
@@ -124,8 +125,12 @@ export const SINUCA_CSS = `
 .sn-comeca{flex:none;width:64px;align-self:center;height:64px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#ffe08a,#c8901c);color:#3a2300;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 0 #6b4a05,0 6px 14px #0008;padding:0}
 .sn-comeca b{font:700 9px Oswald;letter-spacing:.3px}
 .sn-mesa{flex:1;min-width:0;position:relative;touch-action:none}
+.sn-olhov{position:absolute;inset:0;z-index:2;border-radius:12px;overflow:hidden;touch-action:none;background:#1a120b}
+.sn-olho-dica{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3;background:#000a;color:#fff;font:500 12px Rubik;padding:3px 10px;border-radius:12px;white-space:nowrap;pointer-events:none}
+.sn-olho{position:absolute;right:8px;top:8px;z-index:4;width:44px;height:44px;border-radius:50%;border:2px solid #f2c94c;background:#000b;font-size:22px;box-shadow:0 3px 8px #0008}
+.sn-olho.on{background:#14532d}
 .sn-mesa canvas{position:absolute;inset:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
-.sn-msg{position:absolute;left:50%;top:2px;transform:translateX(-50%);max-width:80%;pointer-events:none;font:500 clamp(11px,2.2vmin,14px) Oswald;color:#fff;background:#000a;border-radius:10px;padding:2px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sn-msg{position:absolute;z-index:3;left:50%;top:2px;transform:translateX(-50%);max-width:80%;pointer-events:none;font:500 clamp(11px,2.2vmin,14px) Oswald;color:#fff;background:#000a;border-radius:10px;padding:2px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sn-msg:empty{display:none}
 .sn-caiu{flex:none;width:22px;align-self:center;height:78%;max-height:380px;border-radius:11px;background:linear-gradient(90deg,#05080d,#1a2232,#05080d);border:2px solid #ffffff22;display:flex;flex-direction:column-reverse;align-items:center;gap:2px;padding:3px 0;overflow:hidden}
 .sn-caiu span{width:16px;height:16px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;box-shadow:inset -2px -3px 4px #0007}
