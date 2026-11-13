@@ -81,7 +81,7 @@ export default function Foguete() {
     }
     puxa();
     return () => { vivo = false; clearTimeout(timer); };
-  }, [maior, local]); // eslint-disable-line
+  }, [maior, local, !!profile]); // eslint-disable-line
 
   async function acao(slot, op, extra = {}) {
     if (busy.current[slot]) return; busy.current[slot] = true;

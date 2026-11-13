@@ -82,7 +82,7 @@ export default function Futebol() {
     carregar(); atualizar();
     const t = setInterval(() => { carregar(); atualizar(); if (abaRef.current === 'minhas') carregarMinhas(); }, 60000);
     return () => clearInterval(t);
-  }, [maior, local]); // eslint-disable-line
+  }, [maior, local, !!profile]); // eslint-disable-line
   useEffect(() => { if (aba === 'minhas' && maior) carregarMinhas(); }, [aba, maior]); // eslint-disable-line
 
   const jogos = st?.jogos || [];
