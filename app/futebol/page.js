@@ -263,7 +263,7 @@ export default function Futebol() {
 
   function abrirJogo(j) { setJogoAberto(j.id); setAbaM('principais'); setTodos({}); }
   function fecharJogo() { setJogoAberto(null); setCriar(c => c?.partes?.length ? c : null); }   // Criar aposta começado fica guardado
-  const GRUPOS = [['principais', 'Principais', ['1x2', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
+  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
     ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
     ['todos', 'Todos', ['1x2', 'dc', 'gols', 'ambos', 'ht', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
   const nl = l => String(l).replace('.', ',');
