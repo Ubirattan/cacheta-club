@@ -23,6 +23,18 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
   - Quem sai no meio é eliminado. O campeão leva o pote, e as estatísticas são atualizadas.
 - **Contra o computador:** o jogo da etapa 1 vem junto (`public/offline`). No site **cada partida custa 1 ficha**, cobrada no servidor (`/api/treino`) antes de dar as cartas.
 
+### Futebol (novo)
+- Cartão **⚽ Futebol** na tela inicial (abre direto, sem loja). Apostas só para maiores de 18, com fichas sem valor em dinheiro.
+- Jogos e odds de verdade vindos da **API-Football**: Brasileirão A e B, Copa do Brasil, Libertadores, Sul-Americana e Champions (dá pra trocar em `FUTEBOL_LIGAS`).
+- Mercados: resultado final (1 X 2), dupla chance, mais/menos de 2,5 gols e ambos marcam. Vale o placar dos 90 minutos.
+- **Simples ou múltipla** (até 10 jogos, um palpite por jogo, odds multiplicadas). Aposta de **5 a 1000 fichas**, prêmio máximo de 50.000 fichas por bilhete.
+- As apostas fecham 1 minuto antes do jogo. Se a odd mudar entre a tela e a aposta, o servidor recusa e a tela mostra a odd nova.
+- O resultado é conferido sozinho e o prêmio cai no saldo. Jogo cancelado ou adiado por mais de 2 dias é anulado (simples devolve, múltipla conta odd 1).
+- A atualização roda quando alguém abre o futebol (sem nada rodando no fundo): jogos a cada 6 h, odds aos poucos (cada jogo 1 vez por dia) e resultado só dos jogos que têm aposta. Conta as chamadas pra não passar de 95 por dia (plano grátis = 100).
+- O admin vê no topo da tela do futebol se falta a chave ou se a API deu erro, e quantas chamadas já foram no dia.
+- ⚠️ Rode uma vez o `supabase/futebol.sql` no SQL Editor e cadastre `APIFOOTBALL_KEY` no Netlify (marque **Contains secret values**).
+- No link de teste (deploy preview) sem login, a tela usa jogos de mentira que "acabam" 3 minutos depois de começar.
+
 ### Truco paulista (novo)
 - Botões **Cacheta** e **Truco** no topo da tela inicial, entre o perfil e o "online".
 - `/truco`: **contra o computador**, 1 contra 1 ou duplas (2x2), computador Fácil ou Esperto.
