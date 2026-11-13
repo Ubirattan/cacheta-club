@@ -63,7 +63,8 @@ export default function Foguete() {
         const t1 = Date.now();
         if (!vivo) return;
         const novo = s.agora - (t0 + t1) / 2;
-        off.current = stRef.current ? off.current * .7 + novo * .3 : novo;
+        if (!stRef.current || Math.abs(novo - off.current) > 1500) off.current = novo;
+        else if (Math.abs(novo - off.current) > 80) off.current += (novo - off.current) * .1;
         const f = s.rodada.fase;
         if (f !== faseAnt) {
           if (f === 'voando') sfx('turn');
@@ -105,7 +106,8 @@ export default function Foguete() {
   // desenho do voo
   useEffect(() => {
     if (!maior) return;
-    let raf, alive = true, parts = [], boom = null, ultimoTick = 0;
+    let raf, alive = true, parts = [], boom = null, ultimoTick = 0, elAnt = 0, numAnt = -1, escM = 2, escT = 8000;
+    const mc = t => Math.exp(K * Math.max(0, t) / 1000);   // curva contínua (sem arredondar) só pro desenho
     const stars = Array.from({ length: 70 }, () => [Math.random(), Math.random(), Math.random() * 1.5 + .3]);
     function draw() {
       if (!alive) return; raf = requestAnimationFrame(draw);
@@ -116,7 +118,8 @@ export default function Foguete() {
       const s = stRef.current, now = agora();
       const fase = s?.rodada.fase;
       let el = 0, m = 1;
-      if (fase === 'voando') { el = Math.max(0, now - s.rodada.start); m = multEm(el); }
+      if (s && s.rodada.num !== numAnt) { numAnt = s.rodada.num; elAnt = 0; escM = 2; escT = 8000; }
+      if (fase === 'voando') { el = Math.max(elAnt, now - s.rodada.start); elAnt = el; m = multEm(el); }   // o tempo nunca volta
       if (fase === 'explodiu') { m = s.rodada.crash; el = Math.log(m) / K * 1000; }
       // céu
       const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b1030'); g.addColorStop(1, '#1d0f3d');
@@ -129,22 +132,25 @@ export default function Foguete() {
       for (const [x, y, r] of stars) { c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.arc(((x * W - sp * r) % W + W) % W, (y * H + sp * r * .5) % H, r, 0, 6.3); c.fill(); }
       // curva e foguete
       const pad = 24, x0 = pad, y0 = H - pad;
-      const tMax = Math.max(8000, el * 1.15), mMax = Math.max(2, m * 1.2);
+      escT = Math.max(escT, el * 1.15); escM = Math.max(escM, mc(el) * 1.2);   // a escala só cresce
+      const tMax = escT, mMax = escM;
       const px = t => x0 + (t / tMax) * (W - pad * 2 - 40), py = mm => y0 - ((mm - 1) / (mMax - 1)) * (H - pad * 2 - 50);
       if (fase === 'voando' || fase === 'explodiu') {
         c.beginPath(); c.moveTo(x0, y0);
-        for (let i = 1; i <= 40; i++) { const t = el * i / 40; c.lineTo(px(t), py(multEm(t))); }
-        const ex = px(el), ey = py(m);
+        for (let i = 1; i <= 40; i++) { const t = el * i / 40; c.lineTo(px(t), py(mc(t))); }
+        const ex = px(el), ey = py(mc(el));
         c.lineTo(ex, y0); c.closePath();
         const gf = c.createLinearGradient(0, ey, 0, y0); gf.addColorStop(0, 'rgba(251,146,60,.45)'); gf.addColorStop(1, 'rgba(251,146,60,0)');
         c.fillStyle = gf; c.fill();
-        c.beginPath(); c.moveTo(x0, y0); for (let i = 1; i <= 40; i++) { const t = el * i / 40; c.lineTo(px(t), py(multEm(t))); }
+        c.beginPath(); c.moveTo(x0, y0); for (let i = 1; i <= 40; i++) { const t = el * i / 40; c.lineTo(px(t), py(mc(t))); }
         c.strokeStyle = '#fb923c'; c.lineWidth = 4; c.stroke();
         if (fase === 'voando') {
           boom = null;
-          const t2 = Math.max(0, el - 300), ang = Math.atan2(py(multEm(el)) - py(multEm(t2)), px(el) - px(t2));
+          // inclinação pela derivada da curva (lisa); limitada pra não ficar em pé de repente
+          const dx = (W - pad * 2 - 40) / tMax, dy = -(H - pad * 2 - 50) / (mMax - 1) * mc(el) * K / 1000;
+          const ang = Math.max(-1.25, Math.atan2(dy, dx));
           c.save(); c.translate(ex, ey); c.rotate(ang);
-          const fl = 10 + Math.random() * 8;
+          const fl = 13 + Math.sin(now / 45) * 3 + Math.sin(now / 17) * 1.5;
           c.fillStyle = '#facc15'; c.beginPath(); c.moveTo(-14, -5); c.lineTo(-14 - fl, 0); c.lineTo(-14, 5); c.fill();
           c.fillStyle = '#f97316'; c.beginPath(); c.moveTo(-14, -3); c.lineTo(-14 - fl * .6, 0); c.lineTo(-14, 3); c.fill();
           c.fillStyle = '#e5e7eb'; c.beginPath(); c.moveTo(18, 0); c.quadraticCurveTo(8, -9, -14, -7); c.lineTo(-14, 7); c.quadraticCurveTo(8, 9, 18, 0); c.fill();
