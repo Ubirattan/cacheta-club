@@ -62,17 +62,17 @@ export default function Home() {
       <style>{`
 .cj-logo{font:700 clamp(20px,4.6vmin,34px) Oswald;color:#fff;font-style:italic;letter-spacing:1px;text-shadow:0 2px 0 #000a;white-space:nowrap}
 .cj-logo b{color:var(--gold)}
-.cj-grade{flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(8px,1.6vw,18px);padding:clamp(8px,2vh,18px) clamp(10px,3vw,40px);align-content:center}
-.cj-jogo{position:relative;overflow:hidden;border-radius:22px;border:3px solid #ffffffcc;background:var(--g);box-shadow:0 6px 0 #0007,0 10px 24px #0009;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:10px 8px 14px;aspect-ratio:3/4;max-height:62vh;cursor:pointer;transition:transform .12s}
+.cj-grade{flex:1;min-height:0;display:grid;grid-template-columns:repeat(5,minmax(0,170px));grid-template-rows:minmax(0,1fr);justify-content:center;gap:clamp(8px,1.6vw,18px);padding:clamp(6px,1.5vh,14px) clamp(10px,3vw,40px)}
+.cj-jogo{position:relative;overflow:hidden;border-radius:22px;border:3px solid #ffffffcc;background:var(--g);box-shadow:0 6px 0 #0007,0 10px 24px #0009;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:8px 6px 12px;height:100%;max-height:230px;align-self:center;min-height:0;cursor:pointer;transition:transform .12s}
 .cj-jogo:active{transform:translateY(4px) scale(.98);box-shadow:0 2px 0 #0007}
 .cj-brilho{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#ffffff55,transparent 55%),repeating-linear-gradient(115deg,#ffffff10 0 12px,transparent 12px 26px);pointer-events:none}
-.cj-em{position:absolute;left:0;right:0;top:12%;display:flex;justify-content:center;font-size:clamp(46px,11vmin,96px);filter:drop-shadow(0 6px 6px #0008);line-height:1}
-.cj-gude{border-radius:50%;background:radial-gradient(circle at 32% 30%,#fff 0 14%,#93c5fd 22%,#2563eb 58%,#0b2a6b);box-shadow:2px 4px 8px rgba(0,0,0,.5);display:inline-block;width:clamp(46px,11vmin,92px)!important;height:clamp(46px,11vmin,92px)!important}
-.cj-jogo b{position:relative;font:700 clamp(17px,3.4vmin,26px) Oswald;font-style:italic;text-shadow:0 2px 0 #0008;text-align:center;line-height:1.05}
-.cj-jogo small{position:relative;font:500 clamp(10px,1.9vmin,13px) Rubik;opacity:.92;text-align:center;line-height:1.2}
+.cj-em{position:absolute;left:0;right:0;top:10%;display:flex;justify-content:center;font-size:clamp(34px,8vmin,70px);filter:drop-shadow(0 6px 6px #0008);line-height:1}
+.cj-gude{border-radius:50%;background:radial-gradient(circle at 32% 30%,#fff 0 14%,#93c5fd 22%,#2563eb 58%,#0b2a6b);box-shadow:2px 4px 8px rgba(0,0,0,.5);display:inline-block;width:clamp(34px,8vmin,68px)!important;height:clamp(34px,8vmin,68px)!important}
+.cj-jogo b{position:relative;font:700 clamp(15px,3vmin,22px) Oswald;font-style:italic;text-shadow:0 2px 0 #0008;text-align:center;line-height:1.05}
+.cj-jogo small{position:relative;font:500 clamp(9px,1.7vmin,12px) Rubik;opacity:.92;text-align:center;line-height:1.2}
 .cj-jogo em{position:absolute;top:10px;right:-30px;transform:rotate(35deg);background:#facc15;color:#3a2300;font:700 11px Oswald;font-style:normal;padding:2px 34px;box-shadow:0 2px 4px #0006}
 .cj-acoes{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:0 10px 8px}
-@media (orientation:portrait){.cj-grade{grid-template-columns:1fr 1fr;align-content:start}.cj-jogo{aspect-ratio:1}}
+@media (orientation:portrait){.cj-grade{grid-template-columns:1fr 1fr;grid-template-rows:none;align-content:start}.cj-jogo{height:auto;aspect-ratio:1}}
 `}</style>
     </div>
   );
