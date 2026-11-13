@@ -133,6 +133,10 @@ export default function Futebol() {
       return { ...c, partes: [...resto, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }] };
     });
   }
+  function abrirCriar(j) {            // toque no nome dos times: abre o Criar aposta do jogo
+    if (criar?.jogo === j.id) { setCriar(null); setAberto(null); return; }
+    setAberto(j.id); setCriar({ jogo: j.id, partes: [] });
+  }
   function porCombo(j) {
     const c = oddCombo(criar.partes, j.odds);
     if (c.erro) return avisar(c.erro);
@@ -227,6 +231,11 @@ export default function Futebol() {
 
       {aba === 'jogos' ? <div className="fb-main">
         <div className="fb-esq">
+          <div className="fb-novs">
+            <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Toque no nome dos times</small></button>
+            <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Abriu 2 gols, já ganhou</small></button>
+            <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
+          </div>
           <div className="fb-ligas">
             <button className={!liga ? 'on' : ''} onClick={() => setLiga(0)}>Todos</button>
             {ligas.map(([id, n]) => <button key={id} className={liga === id ? 'on' : ''} onClick={() => setLiga(id)}>{n}</button>)}
@@ -239,7 +248,7 @@ export default function Futebol() {
               <div className="fb-dia">{d.n}</div>
               {d.js.map(j => (
                 <div className="fb-jogo" key={j.id}>
-                  <div className="fb-info">
+                  <div className="fb-info" onClick={() => abrirCriar(j)} title="Criar aposta com este jogo">
                     <small>{hora(j.inicio)} · {j.ligaNome}</small>
                     <div className="fb-time"><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span></div>
                     <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span></div>
@@ -251,7 +260,7 @@ export default function Futebol() {
                   {aberto === j.id && <div className="fb-extra">
                     <div className="fb-modo">
                       <button className={criar?.jogo !== j.id ? 'on' : ''} onClick={() => setCriar(null)}>Palpites</button>
-                      <button className={criar?.jogo === j.id ? 'on' : ''} onClick={() => setCriar({ jogo: j.id, partes: [] })}>🧩 Criar aposta</button>
+                      <button className={'fb-cria' + (criar?.jogo === j.id ? ' on' : '')} onClick={() => setCriar({ jogo: j.id, partes: [] })}>🧩 Criar aposta<i>NOVO</i></button>
                     </div>
                     {criar?.jogo === j.id && <div className="fb-criar">{(() => {
                       const c = criar.partes.length >= 2 ? oddCombo(criar.partes, j.odds) : null;
@@ -338,6 +347,8 @@ export default function Futebol() {
 .fb-dia{font:600 13px Oswald;letter-spacing:.5px;color:#fbbf24;text-transform:uppercase;padding:6px 4px 4px}
 .fb-jogo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#0b2416e6;border:1px solid #ffffff14;border-radius:14px;padding:8px 10px;margin-bottom:6px}
 .fb-info{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px}
+.fb-info{cursor:pointer}
+.fb-info:active{opacity:.7}
 .fb-info small{font:400 11px Rubik;color:#86b39a}
 .fb-time{display:flex;align-items:center;gap:6px;font:500 14px Rubik;color:#fff;min-width:0}
 .fb-time span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -358,6 +369,17 @@ export default function Futebol() {
 .fb-modo{flex-basis:100%;display:flex;gap:4px;background:#0008;border-radius:16px;padding:3px;width:max-content}
 .fb-modo button{border:none;background:none;color:#a7c4b0;font:500 13px Rubik;padding:4px 12px;border-radius:13px}
 .fb-modo button.on{background:#7e22ce;color:#fff}
+.fb-modo .fb-cria{position:relative;color:#fff;background:linear-gradient(90deg,#a855f7,#7e22ce);box-shadow:0 0 0 0 #c084fc;animation:fbpulse 1.6s infinite;font-weight:600}
+.fb-modo .fb-cria.on{animation:none;box-shadow:0 0 0 2px #f0abfc}
+.fb-cria i{font-style:normal;font:700 9px Rubik;background:#fbbf24;color:#1a1300;border-radius:6px;padding:1px 4px;margin-left:5px;vertical-align:middle}
+@keyframes fbpulse{0%{box-shadow:0 0 0 0 #c084fcaa}70%{box-shadow:0 0 0 8px #c084fc00}100%{box-shadow:0 0 0 0 #c084fc00}}
+.fb-novs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:none}
+.fb-novs button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1px solid #ffffff22;border-radius:12px;padding:6px 8px;color:#fff;min-width:0}
+.fb-novs button:nth-child(1){background:linear-gradient(135deg,#7e22ce,#3b0764)}
+.fb-novs button:nth-child(2){background:linear-gradient(135deg,#b45309,#78350f)}
+.fb-novs button:nth-child(3){background:linear-gradient(135deg,#0e7490,#164e63)}
+.fb-novs b{font:600 13px Rubik;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.fb-novs small{font:400 11px Rubik;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .fb-criar{flex-basis:100%;display:flex;flex-direction:column;gap:5px;background:#3b0764aa;border:1px solid #c084fc66;border-radius:12px;padding:7px 9px}
 .fb-criar span{font:500 13px Rubik;color:#f3e8ff}
 .fb-criar em{font-style:normal;font:500 12px Rubik;color:#fca5a5}
@@ -431,6 +453,7 @@ export default function Futebol() {
 .fb-odds button,.fb-merc button{width:48px;font-size:14px}
 .fb-odds .fb-mais{width:32px}
 .fb-minhas{grid-template-columns:1fr;padding:0 6px 10px}
+.fb-novs b{font-size:12px}.fb-novs small{font-size:10px}.fb-novs button{padding:5px 6px}
 }
 @media (orientation:landscape) and (max-height:520px){
 .fb-top{padding:3px 10px 2px}.fb-top .rbtn{width:32px;height:32px;font-size:14px}
