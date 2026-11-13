@@ -346,7 +346,7 @@ export default function Futebol() {
             <div className="fb-time"><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span><b className="fb-gol">{j.placar[0]}</b></div>
             <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span><b className="fb-gol">{j.placar[1]}</b></div>
           </div>
-          {!j.odds ? <div className="fb-trava">🔒 Apostas travadas no momento</div> : <div className="fb-odds">
+          {!j.odds ? <div className="fb-trava">{(j.status === '2H' && Number(j.minuto) >= 90) || ['ET', 'BT', 'P'].includes(j.status) ? '⏱ Apostas encerradas (90\'+)' : j.status === 'HT' ? '⏸ Intervalo · apostas voltam no 2º tempo' : '🔒 Apostas travadas no momento'}</div> : <div className="fb-odds">
             {j.odds['1x2'] ? ['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} onClick={() => escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>) : <span className="fb-trava">🔒 Resultado travado</span>}
             {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => setAberto(aberto === j.id ? null : j.id)}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - (j.odds['1x2'] ? 1 : 0))}</button>}
           </div>}
