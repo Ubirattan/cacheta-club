@@ -8,6 +8,11 @@ import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx, soundOn, setSound, audioCtx } from '../../lib/sfx.js';
 import { multEm, ganhoDe, MIN_APOSTA, MAX_APOSTA, MAX_MULT, K } from '../../lib/foguete.js';
+import { criarTeste } from '../../lib/foguete-teste.js';
+
+// link de teste do Netlify: abre sem login, com rodadas no próprio celular e fichas de mentira
+const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
+let teste = null;
 
 const fx = m => m.toFixed(2) + 'x';
 const corHist = m => m < 2 ? '#38bdf8' : m < 10 ? '#a78bfa' : '#f472b6';
@@ -26,7 +31,9 @@ function estouro() {
 
 export default function Foguete() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth();
+  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const local = TESTE && !profile;
+  const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/foguete', b);
   const [maior, setMaior] = useState(null);
   const [st, setSt] = useState(null);
   const [som, setSom] = useState(true);
@@ -47,12 +54,12 @@ export default function Foguete() {
 
   // consulta o servidor: rápido enquanto voa, mais devagar no resto
   useEffect(() => {
-    if (!maior || !profile) return;
+    if (!maior || (!profile && !TESTE)) return;
     let vivo = true, timer = null, faseAnt = null;
     async function puxa() {
       const t0 = Date.now();
       try {
-        const s = await api('/api/foguete', { op: 'estado' });
+        const s = await chama({ op: 'estado' });
         const t1 = Date.now();
         if (!vivo) return;
         const novo = s.agora - (t0 + t1) / 2;
@@ -65,22 +72,23 @@ export default function Foguete() {
           if (f === 'apostas') filaAposta(s);
           faseAnt = f;
         }
+        if (s.coins != null) setCoins(s.coins);
         stRef.current = s; setSt(s);
       } catch (e) { if (vivo) avisar(e.message || 'Sem conexão'); }
       if (vivo) timer = setTimeout(puxa, stRef.current?.rodada.fase === 'voando' ? 450 : 1000);
     }
     puxa();
     return () => { vivo = false; clearTimeout(timer); };
-  }, [maior, !!profile]); // eslint-disable-line
+  }, [maior, local]); // eslint-disable-line
 
   async function acao(slot, op, extra = {}) {
     if (busy.current[slot]) return; busy.current[slot] = true;
     try {
-      const r = await api('/api/foguete', { op, slot, ...extra });
+      const r = await chama({ op, slot, ...extra });
       if (r.coins != null) setCoins(r.coins);
       if (op === 'sacar') { sfx('win'); avisar(`Sacou em ${fx(r.mult)}: +${r.ganho} fichas`); }
       if (op === 'apostar') sfx('coin');
-      const s = await api('/api/foguete', { op: 'estado' }); stRef.current = s; setSt(s);
+      const s = await chama({ op: 'estado' }); stRef.current = s; setSt(s);
       reloadProfile && reloadProfile();
     } catch (e) { sfx('err'); avisar(e.message || 'Erro'); }
     busy.current[slot] = false;
