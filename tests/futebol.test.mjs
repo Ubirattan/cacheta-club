@@ -3,7 +3,9 @@
 import assert from 'node:assert/strict';
 import { memRepo, addUsers } from './memrepo.mjs';
 import { lerOdds, lerJogo, acertou, fechar, conferirBilhete, premioDe, oddTotal, MAX_PREMIO } from '../lib/futebol.js';
-import { futebol, usarApi, sincronizar, CFG } from '../lib/futebol-service.js';
+import { futebol as fb, usarApi, sincronizar, CFG } from '../lib/futebol-service.js';
+// como o celular faz: manda 'atualizar' e depois lê
+const futebol = async (R, u, b, t) => { if (b.op !== 'apostar') await fb(R, u, { op: 'atualizar' }, t); return fb(R, u, b, t); };
 
 // ---- regras puras ----
 assert.equal(acertou('1x2', '1', 2, 1), true); assert.equal(acertou('1x2', 'X', 1, 1), true); assert.equal(acertou('1x2', '2', 1, 1), false);

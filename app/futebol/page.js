@@ -70,12 +70,18 @@ export default function Futebol() {
   async function carregarMinhas() {
     try { const m = await chama({ op: 'minhas' }); setMinhas(m.apostas); if (m.coins != null) setCoins(m.coins); } catch (e) { avisar(e.message || 'Sem conexão'); }
   }
+  // pede pro servidor buscar novidades na API sem travar a tela; se mudou algo, recarrega
+  const abaRef = useRef(aba); abaRef.current = aba;
+  async function atualizar() {
+    if (local) return;
+    try { const r = await chama({ op: 'atualizar' }); if (r.mudou) { carregar(); if (abaRef.current === 'minhas') carregarMinhas(); } } catch {}
+  }
   useEffect(() => {
     if (!maior || (!profile && !TESTE)) return;
-    carregar();
-    const t = setInterval(() => { carregar(); if (aba === 'minhas') carregarMinhas(); }, 60000);
+    carregar(); atualizar();
+    const t = setInterval(() => { carregar(); atualizar(); if (abaRef.current === 'minhas') carregarMinhas(); }, 60000);
     return () => clearInterval(t);
-  }, [maior, local, aba]); // eslint-disable-line
+  }, [maior, local]); // eslint-disable-line
   useEffect(() => { if (aba === 'minhas' && maior) carregarMinhas(); }, [aba, maior]); // eslint-disable-line
 
   const jogos = st?.jogos || [];
