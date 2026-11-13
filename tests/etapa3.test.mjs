@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { memRepo, addUsers } from './memrepo.mjs';
 import * as S from '../lib/service.js';
 import * as TT from '../lib/tournament.js';
-import { buy, equip, dailyBonus } from '../lib/shop.js';
+import { buy, equip, dailyBonus, resgatarLivre } from '../lib/shop.js';
 import { adminOp as adminOpRaw } from '../lib/admin.js';
 // faz login no painel (cria o login na primeira vez) antes de cada operação
 const tokens = new WeakMap();
@@ -162,4 +162,18 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   p = await R.getProfile('u1'); assert.equal(p.coins, 50); assert.ok(!p.owned.includes('tr-bronze'));
   assert.equal((await A('resgates')).resgates.length, 0);
   console.log('OK — resgate de troféu: pedido pendente, admin libera ou recusa (devolve fichas)');
+  // resgate livre: digita o valor, vira Troféu de Ouro com esse valor no painel
+  await R.adjustProfile('u1', 0.5, 0, 0);
+  await assert.rejects(resgatarLivre(R, U[1], '0,5'), /a partir/);
+  await assert.rejects(resgatarLivre(R, U[1], 'abc'), /a partir/);
+  await assert.rejects(resgatarLivre(R, U[1], 60), /insuficientes/);
+  await assert.rejects(resgatarLivre(R, U[1], '37,5'), /inteiro/);
+  const rl = await resgatarLivre(R, U[1], '37'); assert.equal(rl.valor, 37);
+  assert.equal((await R.getProfile('u1')).coins, 13.5);
+  await assert.rejects(buy(R, U[1], 'tr-livre'), /indisponível/, 'não sai pela loja');
+  lst = (await A('resgates')).resgates; assert.equal(lst.length, 1);
+  assert.equal(lst[0].item, 'Troféu de Ouro'); assert.equal(lst[0].coins, 37); assert.ok(lst[0].ouro);
+  await A('liberarResgate', { id: lst[0].id });
+  assert.ok((await R.getProfile('u1')).owned.includes('tr-livre'));
+  console.log('OK — resgate livre: Troféu de Ouro com o valor digitado');
 }
