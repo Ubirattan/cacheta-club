@@ -140,26 +140,28 @@ for (const [n, size] of [[9, 4], [5, 2], [2, 9], [13, 3]]) {
   const R = memRepo(); const U = addUsers(R, 2, 120);
   R.T.profiles.find(x => x.id === 'u0').is_admin = true;
   const av0 = (await R.getProfile('u1')).avatar;
-  const r = await buy(R, U[1], 'tr-prata'); assert.ok(r.pending);
+  // troféus antigos e avatares pagos saíram da venda
+  await assert.rejects(buy(R, U[1], 'tr-prata'), /indisponível/); await assert.rejects(buy(R, U[1], 'av-fogo'), /indisponível/);
+  const r = await resgatarLivre(R, U[1], 100); assert.ok(r.pending);
   let p = await R.getProfile('u1');
-  assert.equal(p.coins, 20); assert.ok(!(p.owned || []).includes('tr-prata'), 'ainda não liberado'); assert.equal(p.avatar, av0);
-  await assert.rejects(buy(R, U[1], 'tr-prata'), /insuficientes/); // pode pedir de novo, mas aqui falta ficha
-  await assert.rejects(buy(R, U[1], 'tr-ouro'), /insuficientes/);
+  assert.equal(p.coins, 20); assert.ok(!(p.owned || []).includes('tr-livre'), 'ainda não liberado'); assert.equal(p.avatar, av0);
+  await assert.rejects(resgatarLivre(R, U[1], 100), /insuficientes/); // pode pedir de novo, mas aqui falta ficha
+  await assert.rejects(resgatarLivre(R, U[1], 150), /insuficientes/);
   const A = (op, b = {}) => adminOp(R, U[0], { op, ...b });
-  let lst = (await A('resgates')).resgates; assert.equal(lst.length, 1); assert.equal(lst[0].item, 'Troféu Prata');
+  let lst = (await A('resgates')).resgates; assert.equal(lst.length, 1); assert.equal(lst[0].item, 'Troféu de Ouro');
   assert.equal((await A('sales')).pendentes, 1);
   await A('liberarResgate', { id: lst[0].id });
-  p = await R.getProfile('u1'); assert.ok(p.owned.includes('tr-prata')); assert.equal(p.coins, 20);
+  p = await R.getProfile('u1'); assert.ok(p.owned.includes('tr-livre')); assert.equal(p.coins, 20);
   await assert.rejects(A('liberarResgate', { id: lst[0].id }), /resolvido/);
   // troféu acumula: com fichas, resgata o mesmo de novo
   await R.adjustProfile('u1', 100, 0, 0);
-  const r2 = await buy(R, U[1], 'tr-prata'); assert.ok(r2.pending); assert.equal((await R.getProfile('u1')).coins, 20);
+  const r2 = await resgatarLivre(R, U[1], 100); assert.ok(r2.pending); assert.equal((await R.getProfile('u1')).coins, 20);
   lst = (await A('resgates')).resgates; assert.equal(lst.length, 1); await A('liberarResgate', { id: lst[0].id });
   // recusar devolve as fichas
   await A('coins', { uid: 'u1', delta: 30 });
-  await buy(R, U[1], 'tr-bronze'); assert.equal((await R.getProfile('u1')).coins, 0);
+  await resgatarLivre(R, U[1], 50); assert.equal((await R.getProfile('u1')).coins, 0);
   lst = (await A('resgates')).resgates; await A('recusarResgate', { id: lst[0].id });
-  p = await R.getProfile('u1'); assert.equal(p.coins, 50); assert.ok(!p.owned.includes('tr-bronze'));
+  p = await R.getProfile('u1'); assert.equal(p.coins, 50);
   assert.equal((await A('resgates')).resgates.length, 0);
   console.log('OK — resgate de troféu: pedido pendente, admin libera ou recusa (devolve fichas)');
   // resgate livre: digita o valor, vira Troféu de Ouro com esse valor no painel
