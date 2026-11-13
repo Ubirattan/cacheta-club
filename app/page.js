@@ -17,9 +17,12 @@ const JOGOS = [
   { id: 'pipa', nome: 'Pipa', sub: 'Corta, apara e manda busca', em: '🪁', href: '/pipa', g: 'linear-gradient(160deg,#fbbf24,#ea7a0a 55%,#9a3412)' },
 ];
 
+// link de teste do Netlify (deploy-preview-N--...): abre sem login
+const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
+
 export default function Home() {
   const router = useRouter();
-  const { user, profile, reloadProfile } = useAuth();
+  const { user, profile, reloadProfile } = useAuth({ required: !TESTE });
   const online = useOnline(user, profile, 'inicio');
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');

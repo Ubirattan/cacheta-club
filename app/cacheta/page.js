@@ -18,9 +18,12 @@ function Art({ cards, em, big }) {
   );
 }
 
+// link de teste do Netlify (deploy-preview-N--...): abre sem login
+const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
+
 export default function Cacheta() {
   const router = useRouter();
-  const { user, profile, reloadProfile } = useAuth();
+  const { user, profile, reloadProfile } = useAuth({ required: !TESTE });
   const online = useOnline(user, profile, 'inicio');
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');
