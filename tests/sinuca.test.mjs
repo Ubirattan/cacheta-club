@@ -1,11 +1,15 @@
 // Sinuca: as 3 modalidades sempre terminam (computador contra computador)
 import assert from 'node:assert/strict';
-import { newSinuca, stepSinuca, tacar, jogadaComputador, computadorColoca, grupoDe } from '../lib/sinuca.js';
+import { newSinuca, stepSinuca, tacar, jogadaComputador, computadorColoca, grupoDe, arrumaBola, comecaLisa, W } from '../lib/sinuca.js';
 for (const modo of ['bola8', 'lisa', 'bolinho']) {
   const w = [0, 0]; let tac = 0, fr = 0, jogos = 0;
   for (let g = 0; g < 30; g++) {
     const S = newSinuca({ level: g % 2 ? 'dificil' : 'medio', modo }); let n = 0;
-    if (modo === 'lisa') { assert.equal(S.balls.filter(b => grupoDe(b.n) === 'verm').length, 5); assert.ok(!S.balls.some(b => b.n === 0), 'sem branca'); }
+    if (modo === 'lisa') {
+      assert.equal(S.balls.filter(b => grupoDe(b.n) === 'verm').length, 5); assert.ok(!S.balls.some(b => b.n === 0), 'sem branca');
+      assert.equal(S.phase, 'monta'); assert.ok(!arrumaBola(S, 0, W * .8, 250), 'não põe no lado dele'); assert.ok(arrumaBola(S, 0, 200, 200), 'arruma no seu lado');
+      assert.ok(!tacar(S, 0, .5), 'não taca arrumando'); comecaLisa(S); assert.ok(!arrumaBola(S, 0, 220, 200), 'depois de começar não mexe');
+    }
     while (S.phase !== 'over' && n < 500) {
       if (S.naMao) computadorColoca(S);
       const j = jogadaComputador(S); assert.ok(tacar(S, j.ang, j.forca), 'tacou'); tac++; n++;

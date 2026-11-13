@@ -9,7 +9,7 @@ import { Modal, Seg, toast } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio, audioCtx } from '../../lib/sfx.js';
-import { W, H, R, POCKETS, NIVEIS, MODOS, BOLINHO_JOGOS, escolhe, podeEscolher, newSinuca, stepSinuca, tacar, colocaBranca, podeColocar, branca, alvos, restantes, grupoDe, primeiraBola, ateTabela, jogadaComputador, computadorColoca } from '../../lib/sinuca.js';
+import { W, H, R, POCKETS, NIVEIS, MODOS, BOLINHO_JOGOS, escolhe, podeEscolher, arrumaBola, comecaLisa, newSinuca, stepSinuca, tacar, colocaBranca, podeColocar, branca, alvos, restantes, grupoDe, primeiraBola, ateTabela, jogadaComputador, computadorColoca } from '../../lib/sinuca.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱']];
@@ -85,7 +85,7 @@ export default function Sinuca() {
   const [rules, setRules] = useState(false);
   const [semFichas, setSemFichas] = useState(false);
   const [som, setSom] = useState(true);
-  const cvRef = useRef(null), boxRef = useRef(null), barRef = useRef(null);
+  const cvRef = useRef(null), boxRef = useRef(null), barRef = useRef(null), comecarRef = useRef(null);
 
   useEffect(() => { setSom(soundOn()); try { const l = localStorage.getItem('sn_level'); if (NIVEIS.some(x => x[0] === l)) setLevel(l); const m = localStorage.getItem('sn_modo'); if (MODOS.some(x => x[0] === m)) setModo(m); } catch {} }, []);
   useEffect(() => { try { localStorage.setItem('sn_level', level); localStorage.setItem('sn_modo', modo); } catch {} }, [level, modo]);
@@ -97,7 +97,7 @@ export default function Sinuca() {
     try {
       if (!TESTE) { await api('/api/treino', { jogo: 'sinuca' }); reloadProfile && reloadProfile(); }
       setGame({ id: Date.now(), bot: BOTS[(Math.random() * BOTS.length) | 0], level, modo });
-      setMsg(modo === 'lisa' ? 'Você é das VERMELHAS: toque numa bola sua, arraste pra mirar e puxe a força' : 'Você começa: arraste na mesa pra mirar e puxe a força pra tacar');
+      setMsg(modo === 'lisa' ? 'Arrume as suas 5 bolas vermelhas no seu lado (metade da esquerda) e toque em COMEÇAR' : 'Você começa: arraste na mesa pra mirar e puxe a força pra tacar');
     } catch (e) { if (/fichas/i.test(e.message)) setSemFichas(true); else toast(e.message); }
     finally { setBusy(false); }
   }
@@ -107,7 +107,7 @@ export default function Sinuca() {
     const box = boxRef.current, cv = cvRef.current, bar = barRef.current, c = cv.getContext('2d');
     const S = newSinuca({ level: game.level, names: ['Você', game.bot[0]], modo: game.modo });
     let alive = true, raf, acc = 0, last = performance.now(), view = { s: 1, ox: 0, oy: 0, dpr: 1 };
-    let ang = 0, forca = 0, puxando = false, arrastaBranca = false, mirando = false;
+    let ang = 0, forca = 0, puxando = false, arrastaBranca = false, mirando = false, arrastaLisa = -1;
     let bot = null;   // animação da jogada do computador { t0, de, para, forca }
     const sync = () => setHud({ modo: S.modo, jogo: S.jogo, placar: [...S.placar], turn: S.turn, grupos: [...S.grupos], naMao: S.naMao, phase: S.phase, winner: S.winner,
       rest: [0, 1].map(p => (S.grupos[p] ? restantes(S, S.grupos[p]) : 7)), mesa: S.balls.filter(b => !b.in && b.n).map(b => b.n), caidas: S.balls.filter(b => b.in && b.n).map(b => b.n) });
@@ -134,6 +134,7 @@ export default function Sinuca() {
         if (e.type === 'falta') { setMsg(e.semMao ? `${e.motivo}: passou a vez` : `Falta: ${e.motivo}. ${e.p === 0 ? `${game.bot[0]} joga com a bola na mão` : 'Bola na mão: arraste a branca pra onde quiser'}`); sfx('err'); }
         if (e.type === 'vez') setMsg(e.p === 0 ? 'Sua vez' : `Vez do ${game.bot[0]}`);
         if (e.type === 'boa') { setMsg(e.p === 0 ? 'Boa! Joga de novo' : `${game.bot[0]} encaçapou e joga de novo`); if (e.p === 0) sfx('coin'); }
+        if (e.type === 'comecou') setMsg('Começou! Ninguém mexe mais nas bolas. Toque numa bola sua, mire e puxe a força');
         if (e.type === 'jogo') { setMsg(`Jogo ${e.jogo}: ${e.winner === 0 ? 'você ganhou' : game.bot[0] + ' ganhou'} (${e.why})`); sfx(e.winner === 0 ? 'coin' : 'err'); }
         if (e.type === 'fim') { setMsg(e.winner === 0 ? `Você ganhou: ${e.why}!` : `${game.bot[0]} ganhou (${e.why})`); setTimeout(() => sfx(e.winner === 0 ? 'win' : 'lose'), 400); }
       }
@@ -162,6 +163,11 @@ export default function Sinuca() {
       c.setTransform(dpr * s, 0, 0, dpr * s, dpr * ox, dpr * oy);
       mesa(c);
       const cb = branca(S);
+      if (S.phase === 'monta') {   // bola lisa: arrumando as bolas no seu lado
+        c.fillStyle = `rgba(255,255,255,${.06 + Math.sin(now / 300) * .03})`; c.fillRect(0, 0, W / 2, H);
+        c.strokeStyle = 'rgba(255,255,255,.5)'; c.setLineDash([8, 8]); c.lineWidth = 2; c.beginPath(); c.moveTo(W / 2, 0); c.lineTo(W / 2, H); c.stroke(); c.setLineDash([]);
+        c.fillStyle = 'rgba(255,255,255,.35)'; c.font = '600 22px Oswald, sans-serif'; c.textAlign = 'center'; c.fillText('SEU LADO', W / 4, H / 2); c.fillText('LADO DELE', W * .75, H / 2);
+      }
       // área livre pra branca (bola na mão)
       if (S.phase === 'aim' && S.naMao && S.turn === 0 && !cb.in) {
         c.strokeStyle = `rgba(255,255,255,${.5 + Math.sin(now / 200) * .3})`; c.lineWidth = 2; c.setLineDash([5, 5]);
@@ -212,6 +218,12 @@ export default function Sinuca() {
 
     // toques na mesa: mirar (ou arrastar a branca, com a bola na mão)
     function down(e) {
+      if (S.phase === 'monta') {
+        const [x, y] = toMesa(e);
+        arrastaLisa = S.balls.findIndex(b => b.n > 100 && b.n < 200 && Math.hypot(x - b.x, y - b.y) < R * 2.4);
+        if (arrastaLisa >= 0) try { cv.setPointerCapture(e.pointerId); } catch {}
+        return;
+      }
       if (S.phase !== 'aim' || S.turn !== 0) return;
       const [x, y] = toMesa(e), cb = branca(S);
       try { cv.setPointerCapture(e.pointerId); } catch {}
@@ -223,12 +235,14 @@ export default function Sinuca() {
       mirando = true; ang = Math.atan2(y - cb.y, x - cb.x);
     }
     function move(e) {
+      if (S.phase === 'monta') { if (arrastaLisa >= 0) { const [x, y] = toMesa(e); arrumaBola(S, arrastaLisa, x, y); } return; }
       if (S.phase !== 'aim' || S.turn !== 0) return;
       const [x, y] = toMesa(e), cb = branca(S);
       if (arrastaBranca) { if (podeColocar(S, x, y)) colocaBranca(S, x, y); return; }
       if (mirando) ang = Math.atan2(y - cb.y, x - cb.x);
     }
-    const up = () => { arrastaBranca = false; mirando = false; };
+    const up = () => { arrastaBranca = false; mirando = false; arrastaLisa = -1; };
+    comecarRef.current = () => { if (comecaLisa(S)) { const b = branca(S); ang = Math.atan2(H / 2 - b.y, W * .75 - b.x); sync(); } };
     // barra de força: puxa pra baixo e solta
     let y0 = 0;
     function bDown(e) { if (S.phase !== 'aim' || S.turn !== 0) return; puxando = true; y0 = e.clientY; try { bar.setPointerCapture(e.pointerId); } catch {} e.stopPropagation(); }
@@ -257,7 +271,7 @@ export default function Sinuca() {
         {TESTE && <p className="hint" style={{ color: '#fbbf24', textAlign: 'center' }}>🧪 MODO TESTE · sem login e sem fichas</p>}
         <div className="sn-prev">{[1, 9, 8, 3, 11].map(n => <span key={n} style={{ background: n > 8 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }}><b>{n}</b></span>)}</div>
         <Seg label="Modalidade" value={modo} onChange={setModo} options={MODOS} />
-        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Você taca uma bola sua. Quem matar as 5 primeiro ganha.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
+        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Arrume as suas no seu lado, depois taque uma bola sua. Quem matar as 5 primeiro ganha.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
         <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '1 ficha'}`}</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
@@ -296,7 +310,8 @@ export default function Sinuca() {
       </div>
       <div className="sn-area">
         <div className="sn-bar" ref={barRef}><i /><span>FORÇA</span></div>
-        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} /></div>
+        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} />
+          {h.phase === 'monta' && <button className="go sn-comeca" onClick={() => comecarRef.current && comecarRef.current()}>▶ COMEÇAR</button>}</div>
       </div>
       <div id="msg">{msg || ' '}</div>
       {h.phase === 'over' && <Modal><h2>{h.winner === 0 ? '🏆 Você ganhou!' : `${game.bot[0]} ganhou`}</h2>
@@ -318,7 +333,7 @@ function Regras({ onClose }) {
         <p>• Encaçapou uma bola sua: <b>joga de novo</b>.</p>
         <p>• <b>Falta</b> (branca na caçapa, não encostar em nada ou bater primeiro na bola do outro): o adversário joga com a <b>bola na mão</b> e coloca a branca onde quiser.</p>
         <p>• <b>A 8 é a última.</b> Matou a 8 depois de limpar as suas: ganhou. Matou antes da hora: perdeu.</p>
-        <p><b>Bola lisa:</b> sem a branca. Você é das vermelhas, o computador das amarelas. Toque numa bola sua pra tacar com ela. Encaçapou bola sua: joga de novo. Quem matar as 5 primeiro ganha.</p>
+        <p><b>Bola lisa:</b> sem a branca. Você é das vermelhas, o computador das amarelas. Antes de começar, cada um arruma as suas 5 bolas onde quiser, no seu lado da mesa (você arrasta as suas na metade da esquerda). Depois de COMEÇAR ninguém mexe mais. Toque numa bola sua pra tacar com ela. Encaçapou bola sua: joga de novo. Quem matar as 5 primeiro ganha.</p>
         <p><b>Bolinho:</b> 3 bolas na mesa por jogo (são 5 jogos com as 15 bolas). Quem matar a última ganha o jogo. Se cegar (não encostar em nenhuma) ou a branca cair, perde o jogo. Sempre se jogam os 5 jogos: quem ganhar mais leva a partida.</p>
       </div>
       <button className="go" onClick={onClose}>Entendi</button>
@@ -358,5 +373,6 @@ const CSS = `
 .sn-bar i{position:absolute;left:0;right:0;top:0;height:0;background:#000b;border-bottom:3px solid #fff;transition:height .03s}
 .sn-bar span{position:relative;writing-mode:vertical-rl;transform:rotate(180deg);font:600 12px Oswald;color:#fff;letter-spacing:2px;margin-bottom:10px;text-shadow:0 1px 2px #000;pointer-events:none}
 .sn-mesa{flex:1;min-width:0;position:relative;touch-action:none}
+.sn-comeca{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:auto;padding:10px 28px;z-index:2}
 .sn-mesa canvas{position:absolute;inset:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
 `;
