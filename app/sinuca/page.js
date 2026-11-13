@@ -1,5 +1,5 @@
 'use client';
-// SINUCA (bola 8) contra o computador. Cada partida custa 1 ficha (cobrada no servidor: /api/treino).
+// SINUCA (bola 8) contra o computador. Cada partida custa 2 fichas (cobrada no servidor: /api/treino).
 // Mesa vista de cima. Arraste na mesa pra mirar; puxe a barra de força (à esquerda) pra baixo e solte pra tacar.
 // Bola na mão: arraste a branca pra onde quiser. Desenho e regras nossos (lib/sinuca.js).
 import { useEffect, useRef, useState } from 'react';
@@ -47,7 +47,7 @@ export default function Sinuca() {
 
   async function start() {
     if ((!profile && !TESTE) || busy) return;
-    if (!TESTE && (profile.coins || 0) < 1) return setSemFichas(true);
+    if (!TESTE && (profile.coins || 0) < 2) return setSemFichas(true);
     unlockAudio(); setBusy(true);
     try {
       if (!TESTE) { await api('/api/treino', { jogo: 'sinuca' }); reloadProfile && reloadProfile(); }
@@ -252,14 +252,14 @@ export default function Sinuca() {
         <Seg label="Modalidade" value={modo} onChange={setModo} options={MODOS} />
         <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Arrume as suas no seu lado e taque com elas pra matar as do outro. Quem ficar sem bolas perde.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
-        <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '1 ficha'}`}</button>
+        <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '2 fichas'}`}</button>
         <button className="sec" onClick={() => router.push('/lobby?jogo=sinuca')}>🌐 Jogar online (1 contra 1, valendo fichas)</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
-        <p className="hint" style={{ textAlign: 'center' }}>Contra o computador: cada partida custa 1 ficha.</p>
+        <p className="hint" style={{ textAlign: 'center' }}>Contra o computador: cada partida custa 2 fichas.</p>
       </div>
       {rules && <Regras onClose={() => setRules(false)} />}
       {semFichas && <Modal onClose={() => setSemFichas(false)}><h2>Sem fichas</h2>
-        <p>Cada partida contra o computador custa 1 ficha. Compre fichas pra jogar.</p>
+        <p>Cada partida contra o computador custa 2 fichas. Compre fichas pra jogar.</p>
         <button className="go" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas com Pix</button>
         <button className="sec" onClick={() => setSemFichas(false)}>Fechar</button></Modal>}
       <style>{CSS}</style>
@@ -284,7 +284,7 @@ export default function Sinuca() {
   return (
     <div className="page sn">
       <div className="sn-top">
-        <button className="rbtn" title="Voltar" onClick={() => { if (h.phase === 'over' || confirm('Sair da partida? A ficha já foi usada.')) setGame(null); }}>↩</button>
+        <button className="rbtn" title="Voltar" onClick={() => { if (h.phase === 'over' || confirm('Sair da partida? As fichas já foram usadas.')) setGame(null); }}>↩</button>
         {jog(0)}<div className="sn-vs">{h.modo === 'bolinho' ? <>JOGO<br />{Math.min(h.jogo + 1, BOLINHO_JOGOS)}/{BOLINHO_JOGOS}</> : 'VS'}</div>{jog(1)}
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
       </div>
@@ -299,7 +299,7 @@ export default function Sinuca() {
       </div>
       {h.phase === 'over' && <Modal><h2>{h.winner === 0 ? '🏆 Você ganhou!' : `${game.bot[0]} ganhou`}</h2>
         <p>{msg}</p>
-        <button className="go" disabled={busy} onClick={start}>🎱 Jogar de novo · {TESTE ? 'teste grátis' : '1 ficha'}</button>
+        <button className="go" disabled={busy} onClick={start}>🎱 Jogar de novo · {TESTE ? 'teste grátis' : '2 fichas'}</button>
         <button className="sec" onClick={() => setGame(null)}>Voltar ao menu</button></Modal>}
       <style>{CSS}</style>
     </div>

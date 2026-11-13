@@ -14,4 +14,11 @@ await assert.rejects(cobrarTreino(repo, b, { jogo: 'poker' }), /inválido/, 'jog
 repo.T.profiles.find(p => p.id === b.id).blocked = true;
 await assert.rejects(cobrarTreino(repo, b, { jogo: 'cacheta' }), e => e.status === 403, 'conta bloqueada');
 assert.equal(repo.T.profiles.find(p => p.id === b.id).coins, 2, 'bloqueada não é cobrada');
-console.log('treino ok: 1 ficha por partida contra o computador');
+// sinuca custa 2 fichas; pipa 1
+const repo2 = memRepo(); const [c] = addUsers(repo2, 1, 3);
+const r3 = await cobrarTreino(repo2, c, { jogo: 'sinuca' });
+assert.equal(r3.coins, 1, 'sinuca gastou 2'); assert.equal(r3.cost, 2);
+await assert.rejects(cobrarTreino(repo2, c, { jogo: 'sinuca' }), e => e.status === 402, 'com 1 ficha não joga sinuca');
+const r4 = await cobrarTreino(repo2, c, { jogo: 'pipa' });
+assert.equal(r4.coins, 0, 'pipa gastou 1');
+console.log('treino ok: 1 ficha (sinuca 2) por partida contra o computador');
