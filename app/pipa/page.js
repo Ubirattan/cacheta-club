@@ -20,6 +20,10 @@ import { foto } from '../../lib/gude-view.js';
 import { ITEMS } from '../../lib/shop-items.js';
 import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib/pipa-cenarios.js';
 
+// gírias de pipa: o que você grita ao cortar e o que o computador grita quando cruza com você
+const GRITO_CORTE = ['Heeelooou!', 'Heeelooou, manda busca!'];
+const PROVOCA = ['Vem medroso!', 'Manda busca!', 'Descarrega, vem!', 'Vem, vem, vem!'];
+const sorteia = l => l[(Math.random() * l.length) | 0];
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
 const PIPAS = ITEMS.filter(i => i.slot === 'pipa');
@@ -218,6 +222,7 @@ export default function Pipa() {
     const ctl = { x: 0, y: 0, solta: false, puxa: false }; ctlRef.current = ctl;
     let raf, alive = true, acc = 0, last = performance.now(), lastHud = 0, wasCross = false, v3 = null;
     const som3 = createSom();
+    let ultProvoca = 0;
     const sync = () => setHud({ cortou: G.cortou[0], aparou: G.aparou[0], espera: !!G.espera, score: [...G.score], hp: G.k.map(k => Math.max(0, k.hp)), cut: G.k.map(k => k.cut), over: G.over, round: G.round, phase: G.phase, cross: crossOf(G, 0).length > 0 });
 
     /* ---- tela 2D (reserva) ---- */
@@ -249,10 +254,17 @@ export default function Pipa() {
     function events() {
       for (const e of G.events) {
         if (e.type === 'go') setMsg(game.n > 2 ? 'Já! Corte todo mundo e seja o último no céu' : 'Já! Cruze a linha e puxe pra cortar');
-        if (e.type === 'cruzou' && (e.a === 0 || e.b === 0)) { sfx('tick'); try { navigator.vibrate && navigator.vibrate(15); } catch {} }
+        if (e.type === 'cruzou' && (e.a === 0 || e.b === 0)) {
+          sfx('tick'); try { navigator.vibrate && navigator.vibrate(15); } catch {}
+          const quem = e.a === 0 ? e.b : e.a, agora = performance.now();
+          if (agora - ultProvoca > 5000 && Math.random() < .7) {   // o computador provoca (no máximo a cada 5 s)
+            ultProvoca = agora; const f = sorteia(PROVOCA); som3.grito(f, { voz: 'outro' }); setMsg(`🗣 ${names[quem]}: "${f}"`);
+          }
+        }
         if (e.type === 'corte' || e.type === 'caiu') {
           popTxt(e.type === 'corte' ? (e.winner === 0 ? 'HEEELOOOU!' : 'CORTOU!') : 'CAIU!', e.x, e.y);
-          if (e.type === 'corte' && e.winner === 0) { som3.grito('Êêêêêêlôôôôu!'); somaTot('cortou'); }
+          if (e.type === 'corte' && e.winner === 0) { som3.grito(sorteia(GRITO_CORTE)); somaTot('cortou'); }
+          if (e.type === 'corte' && e.loser === 0 && e.winner != null) { ultProvoca = performance.now(); som3.grito('Heeelooou!', { voz: 'outro' }); }
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0) && v3) v3.shake(e.loser === 0 ? .2 : .1);
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0)) try { navigator.vibrate && navigator.vibrate(e.winner === 0 ? [30, 40, 60] : 120); } catch {}
           const quem = names[e.loser], por = e.winner != null ? names[e.winner] : null;
@@ -503,7 +515,7 @@ function Regras({ onClose }) {
         <p>• <b>✊ Puxar</b> (botão da esquerda): estica a linha, a pipa sobe e vem pra perto.</p>
         <p>• <b>🧵 Descarregar</b> (botão da direita): a linha corre e a pipa vai pra longe, lá no fundo do céu.</p>
         <p>• <b>Cruze a sua linha com a do adversário</b> e segure PUXAR ou DESCARREGAR: assim você corta muito mais rápido. Só mexendo, a linha corta fraco.</p>
-        <p>• Linha acabou = pipa cortada. Pipa que encosta no telhado <b>cai</b>. Rodada de até 1 minuto: se ninguém cortar, ganha quem tem mais linha.</p>
+        <p>• Linha acabou = pipa cortada. A borda de baixo da tela é parede: a pipa encosta e fica, não cai. Rodada de até 1 minuto: se ninguém cortar, ganha quem tem mais linha.</p>
         <p>• <b>Várias pipas no céu:</b> todo mundo corta todo mundo. A rodada é de quem ficar por último no céu. Se a sua cair, a rodada acaba.</p>
         <p>• <b>Aparar:</b> pipa que tomou relo cai devagar. Encoste a sua linha nela: ela fica presa pela rabiola na sua linha e conta no placar APAROU.</p>
         <p>• <b>Quem ganhar 2 rodadas primeiro leva.</b> No computador: setas pra mexer, W pra puxar e espaço pra descarregar.</p>
