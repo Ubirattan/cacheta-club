@@ -63,7 +63,7 @@ export default function Roleta() {
       <div className="rlp-box" ref={boxRef} />
       {regras && <Modal onClose={() => setRegras(false)}><h2>Como jogar</h2>
         <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
-          <p>• Escolha o valor da ficha (1, 5, 10 ou 25) e <b>toque na mesa</b> onde quer apostar. Pode apostar em vários lugares. Depois toque em <b>GIRAR</b>.</p>
+          <p>• Escolha o valor da ficha (1, 5, 10, 25 ou 100) e <b>toque na mesa</b> onde quer apostar. Pode apostar em vários lugares. Depois toque em <b>GIRAR</b>.</p>
           <p>• <b>Número cheio</b> paga 35 pra 1 · <b>dúzia</b> e <b>coluna (2:1)</b> pagam 2 pra 1 · <b>vermelho/preto, par/ímpar, 1-18/19-36</b> pagam 1 pra 1.</p>
           <p>• Roleta europeia, com um zero só. Se der <b>0</b>, só ganha quem apostou no 0.</p>
           <p>• Máximo de <b>{MAX_APOSTA} fichas</b> por rodada. <b>Repetir</b> coloca a última aposta de novo.</p>

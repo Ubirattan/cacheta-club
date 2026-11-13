@@ -35,7 +35,7 @@ assert.equal(conferir({ vermelho: 25, n0: 25 }).total, 50);
   assert.equal(r.numero, 7); assert.equal(r.volta, 72 + 6); assert.equal(coins(), 30 - 5 + 78); assert.equal(r.coins, coins());
   r = await girar(R, u, { apostas: { preto: 10 } }, () => 0);
   assert.equal(r.volta, 0); assert.equal(coins(), 103 - 10);
-  await assert.rejects(girar(R, u, { apostas: { preto: 51 } }), /máximo/);
+  await assert.rejects(girar(R, u, { apostas: { preto: 501 } }), /máximo/);
   R.T.profiles[0].coins = 4;
   await assert.rejects(girar(R, u, { apostas: { preto: 5 } }), /insuficientes/);
   assert.equal(coins(), 4, 'sem saldo não desconta');
