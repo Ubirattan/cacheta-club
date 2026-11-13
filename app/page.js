@@ -55,7 +55,7 @@ export default function Home() {
       <style>{`
 .cj-logo{font:700 clamp(20px,4.6vmin,34px) Oswald;color:#fff;font-style:italic;letter-spacing:1px;text-shadow:0 2px 0 #000a;white-space:nowrap}
 .cj-logo b{color:var(--gold)}
-.cj-grade{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,150px));grid-template-rows:minmax(0,1fr);justify-content:center;gap:clamp(8px,1.6vw,18px);padding:clamp(6px,1.5vh,14px) clamp(10px,3vw,40px)}
+.cj-grade{flex:1;min-height:0;display:grid;grid-template-columns:repeat(6,minmax(0,160px));grid-template-rows:minmax(0,1fr);justify-content:center;gap:clamp(8px,1.6vw,18px);padding:clamp(6px,1.5vh,14px) clamp(10px,3vw,40px)}
 .cj-jogo{position:relative;overflow:hidden;border-radius:22px;border:3px solid #ffffffcc;background:var(--g);box-shadow:0 6px 0 #0007,0 10px 24px #0009;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;padding:8px 6px 12px;height:100%;max-height:230px;align-self:center;min-height:0;cursor:pointer;transition:transform .12s}
 .cj-jogo:active{transform:translateY(4px) scale(.98);box-shadow:0 2px 0 #0007}
 .cj-brilho{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#ffffff55,transparent 55%),repeating-linear-gradient(115deg,#ffffff10 0 12px,transparent 12px 26px);pointer-events:none}

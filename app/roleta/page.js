@@ -47,7 +47,7 @@ export default function Roleta() {
       <p>Jogo só para <b>maiores de 18 anos</b>.</p>
       <p style={{ fontSize: 13, color: 'var(--mut)' }}>As fichas da Casa de Jogos são para diversão: <b>não valem dinheiro</b> e não podem ser trocadas por dinheiro.</p>
       <button className="go" onClick={() => { try { localStorage.setItem('rl_18', '1'); } catch {} setMaior(true); }}>Tenho 18 anos ou mais</button>
-      <button className="sec" onClick={() => router.push('/jogos/roleta')}>Voltar</button>
+      <button className="sec" onClick={() => router.push('/jogos/cassino')}>Voltar</button>
     </div></div></div>
   );
 
@@ -58,7 +58,7 @@ export default function Roleta() {
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
         <button className="rbtn" title="Loja" onClick={() => router.push('/loja#comprar')}>💰</button>
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/roleta')}>↩</button>
+        <button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/cassino')}>↩</button>
       </div>
       <div className="rlp-box" ref={boxRef} />
       {regras && <Modal onClose={() => setRegras(false)}><h2>Como jogar</h2>
