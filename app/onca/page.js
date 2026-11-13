@@ -16,6 +16,7 @@ const f2 = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 
 const aleat = () => 1 + Math.floor(Math.random() * (SIMBOLOS.length - 1));
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const coluna = (g, c) => [g[c], g[c + 3], g[c + 6]];
+const MSGS = ['Ganhe até 1000x!', 'Rodada da Onça: ganho garantido!', 'Tela cheia multiplica por x10!', 'A onça é coringa!', 'Faça 3 iguais numa das 5 linhas'];
 const PONTO = c => [16.67 + (c % 3) * 33.33, 16.67 + Math.floor(c / 3) * 33.33];
 
 export default function Onca() {
@@ -39,6 +40,8 @@ export default function Onca() {
   const [auto, setAuto] = useState(0);
   const [turbo, setTurbo] = useState(false);
   const [erro, setErro] = useState('');
+  const [msg, setMsg] = useState(0);
+  useEffect(() => { const t = setInterval(() => setMsg(m => (m + 1) % MSGS.length), 3500); return () => clearInterval(t); }, []);
   const ocupado = useRef(false), autoRef = useRef(0), testeCoins = useRef(1000), gradeRef = useRef(grade), coinsRef = useRef(null), turboRef = useRef(false), apostaRef = useRef(5);
   autoRef.current = auto; gradeRef.current = grade; coinsRef.current = coins; turboRef.current = turbo; apostaRef.current = aposta;
 
@@ -132,58 +135,57 @@ export default function Onca() {
   return (
     <div className="page lounge onp">
       <OncaDefs />
-      <div className="on-top">
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
-        <div className="on-logo">ONÇA DA SORTE</div>
-        <button className="rbtn" title="Prêmios" onClick={() => setRegras(true)}>📖</button>
-        <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
-      </div>
-      <div className="on-main">
-        <div className="on-maq">
-          <div className="on-cab">
-            <div className={'on-masc' + (res && res.ganho > 0 ? ' feliz' : '') + (rodada ? ' rodada' : '')}><svg viewBox="0 0 100 100"><Rosto grande={!!(res && res.ganho > 0) || !!rodada} /></svg></div>
-            <div className="on-x10">x{MULT_CHEIA}</div>
-          </div>
-          <div className="on-moldura">
-            <div className="on-grade">
-              {[0, 1, 2].map(c => (
-                <div key={c} className="on-col">
-                  {tiras[c] ? (
-                    <div className="on-tira" style={{ transform: `translateY(${tiras[c].y}%)`, transition: tiras[c].dur ? `transform ${tiras[c].dur}ms cubic-bezier(.18,.62,.28,1.07)` : 'none', height: `${tiras[c].simb.length * 100 / 3}%` }}>
-                      {tiras[c].simb.map((s, k) => <div key={k} className="on-cel"><Icone s={s} /></div>)}
-                    </div>
-                  ) : [0, 1, 2].map(rw => {
-                    const i = rw * 3 + c, s = grade[i];
-                    const cls = 'on-cel' + (ganhas.has(i) ? ' ganha' : '') + (res && res.ganho > 0 && !ganhas.has(i) ? ' apaga' : '') + (presas.has(i) && rodada ? ' presa' : '') + (caindo.cel.has(i) ? ' cai' : '');
-                    return <div key={rw + '-' + (caindo.cel.has(i) ? caindo.n : 0)} className={cls}><Icone s={s} /></div>;
-                  })}
-                </div>))}
-              {res && res.linhas.length > 0 && <svg className="on-linhas" viewBox="0 0 100 100" preserveAspectRatio="none">
-                {res.linhas.map((l, k) => { const [a, , c] = LINHAS[l.linha].map(PONTO); const d = l.linha === 3 ? 10 : l.linha === 4 ? -10 : 0; return <line key={k} x1={a[0] - 10} y1={a[1] - d} x2={c[0] + 10} y2={c[1] + d} />; })}
-              </svg>}
-              {intro != null && <div className="on-intro"><svg viewBox="0 0 100 100" className="on-intro-masc"><Rosto grande /></svg><b>RODADA DA ONÇA!</b><div className="on-intro-s"><Icone s={intro} /></div></div>}
-            </div>
-          </div>
-          <div className={'on-barra' + (res && res.ganho > 0 ? ' ganhou' : '')}>
-            {erro ? <span style={{ color: '#fecaca' }}>{erro}</span>
-              : res && res.ganho > 0 ? <>Ganho <b>{f2(res.ganho)}</b></>
-              : rodada && rodando ? <>Rodada da Onça · só <span className="on-mini-ic"><Icone s={rodada} /></span> e coringa</>
-              : 'Faça 3 iguais numa das 5 linhas'}
-          </div>
+      <div className="on-cel-tela">
+        <div className="on-top">
+          <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
+          <div className="on-logo">ONÇA DA SORTE</div>
+          <button className="rbtn" title="Prêmios" onClick={() => setRegras(true)}>📖</button>
+          <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
         </div>
-        <div className="on-ctl">
-          <div className="on-info">
-            <div><small>Saldo{local ? ' (teste)' : ''}</small><b>{coins == null ? '–' : fichas(coins)}</b></div>
-            <div><small>Aposta</small><b>{aposta}</b></div>
-            <div><small>Ganho</small><b>{res ? f2(res.ganho) : '0,00'}</b></div>
+        <div className="on-cena">
+          <div className="on-arco" />
+          <div className={'on-masc' + (res && res.ganho > 0 ? ' feliz' : '') + (rodada || intro != null ? ' rodada' : '')}><svg viewBox="0 0 100 100"><Rosto grande={!!(res && res.ganho > 0) || !!rodada || intro != null} /></svg></div>
+          <div className={'on-x10' + (rodada || intro != null ? ' on' : '')}>x{MULT_CHEIA}</div>
+        </div>
+        <div className="on-maq">
+          <div className="on-pilar">{[4, 2, 1, 3, 5].map(n => <i key={n}>{n}</i>)}</div>
+          <div className="on-grade">
+            {[0, 1, 2].map(c => (
+              <div key={c} className={'on-col' + (rodada && c !== 1 && rodando ? ' fundo' : '')}>
+                {tiras[c] ? (
+                  <div className="on-tira" style={{ transform: `translateY(${tiras[c].y}%)`, transition: tiras[c].dur ? `transform ${tiras[c].dur}ms cubic-bezier(.18,.62,.28,1.07)` : 'none', height: `${tiras[c].simb.length * 100 / 3}%` }}>
+                    {tiras[c].simb.map((s, k) => <div key={k} className="on-cel"><Icone s={s} /></div>)}
+                  </div>
+                ) : [0, 1, 2].map(rw => {
+                  const i = rw * 3 + c, s = grade[i];
+                  const cls = 'on-cel' + (ganhas.has(i) ? ' ganha' : '') + (res && res.ganho > 0 && !ganhas.has(i) ? ' apaga' : '') + (presas.has(i) && rodada ? ' presa' : '') + (caindo.cel.has(i) ? ' cai' : '');
+                  return <div key={rw + '-' + (caindo.cel.has(i) ? caindo.n : 0)} className={cls}><Icone s={s} /></div>;
+                })}
+              </div>))}
+            {res && res.linhas.length > 0 && <svg className="on-linhas" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {res.linhas.map((l, k) => { const [a, , c] = LINHAS[l.linha].map(PONTO); const d = l.linha === 3 ? 10 : l.linha === 4 ? -10 : 0; return <line key={k} x1={a[0] - 10} y1={a[1] - d} x2={c[0] + 10} y2={c[1] + d} />; })}
+            </svg>}
+            {intro != null && <div className="on-intro"><b>RODADA DA ONÇA!</b><div className="on-intro-s"><Icone s={intro} /></div><small>ganho garantido</small></div>}
           </div>
-          <div className="on-bts">
-            <button className={'on-mini' + (turbo ? ' on' : '')} onClick={() => setTurbo(!turbo)}>⚡<small>Turbo</small></button>
-            <button className="on-menos" disabled={rodando || auto > 0 || idx <= 0} onClick={() => setAposta(APOSTAS[idx - 1])}>−</button>
-            <button className={'on-gira' + (rodando ? ' rodando' : '')} disabled={rodando || auto > 0} onClick={rodar}><span>↻</span></button>
-            <button className="on-menos" disabled={rodando || auto > 0 || idx >= APOSTAS.length - 1} onClick={() => setAposta(APOSTAS[idx + 1])}>+</button>
-            <button className={'on-mini' + (auto ? ' on' : '')} onClick={() => { if (auto) setAuto(0); else { setAuto(10); setTimeout(rodar, 50); } }}>{auto ? auto : '🔁'}<small>{auto ? 'Parar' : 'Auto'}</small></button>
-          </div>
+          <div className="on-pilar">{[4, 2, 1, 3, 5].map(n => <i key={n}>{n}</i>)}</div>
+        </div>
+        <div className={'on-barra' + (res && res.ganho > 0 ? ' ganhou' : '')}>
+          {erro ? <span style={{ color: '#fecaca' }}>{erro}</span>
+            : res && res.ganho > 0 ? <span>Ganho <b>{f2(res.ganho)}</b></span>
+            : rodada && rodando ? <span>Rodada da Onça · só <span className="on-mini-ic"><Icone s={rodada} /></span> e coringa</span>
+            : <span className="on-letreiro" key={msg}>{MSGS[msg]}</span>}
+        </div>
+        <div className="on-info">
+          <div><i>💰</i><b>{coins == null ? '–' : f2(coins)}</b>{local && <small>teste</small>}</div>
+          <div><i>🎯</i><b>{f2(aposta)}</b></div>
+          <div><i>🏆</i><b>{res ? f2(res.ganho) : '0,00'}</b></div>
+        </div>
+        <div className="on-bts">
+          <button className={'on-mini' + (turbo ? ' on' : '')} title="Turbo" onClick={() => setTurbo(!turbo)}>⚡</button>
+          <button className="on-menos" disabled={rodando || auto > 0 || idx <= 0} onClick={() => setAposta(APOSTAS[idx - 1])}>−</button>
+          <button className={'on-gira' + (rodando ? ' rodando' : '')} disabled={rodando || auto > 0} onClick={rodar}><span>↻</span></button>
+          <button className="on-menos" disabled={rodando || auto > 0 || idx >= APOSTAS.length - 1} onClick={() => setAposta(APOSTAS[idx + 1])}>+</button>
+          <button className={'on-mini' + (auto ? ' on' : '')} title="Automático" onClick={() => { if (auto) setAuto(0); else { setAuto(10); setTimeout(rodar, 50); } }}>{auto ? auto : '🔁'}</button>
         </div>
       </div>
       {grande && <div className="on-grande" onClick={() => setGrande(null)}><GrandeGanho {...grande} onFim={() => setGrande(null)} /></div>}
@@ -199,61 +201,63 @@ export default function Onca() {
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
       <style>{`
-.onp{overflow:hidden!important;height:100dvh;background:radial-gradient(circle at 50% 25%,#dc2626,#7f1d1d 55%,#3b0a0a)}
-.on-top{display:flex;align-items:center;gap:8px;padding:6px 10px 0}
-.on-logo{flex:1;text-align:center;font:700 clamp(18px,4.6vmin,28px) Oswald;color:#fde68a;font-style:italic;letter-spacing:2px;text-shadow:0 2px 0 #7c2d12,0 0 12px #f59e0b88}
-.on-top .rbtn{width:36px;height:36px;font-size:15px}
-.on-main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:2px 10px 8px}
-.on-maq{flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center}
-.on-cab{position:relative;height:clamp(54px,11vh,96px);aspect-ratio:1;margin-bottom:-14px;z-index:2}
-.on-masc{width:100%;height:100%;filter:drop-shadow(0 4px 4px #0008)}
+.onp{overflow:hidden!important;height:100dvh;background:#3b0a0a;align-items:center}
+.on-cel-tela{position:relative;height:100%;width:100%;max-width:min(100vw,62vh);display:flex;flex-direction:column;background:linear-gradient(180deg,#b91c1c,#7f1d1d 60%,#5b0f0f);box-shadow:0 0 40px #000}
+.on-top{display:flex;align-items:center;gap:6px;padding:4px 8px 0;position:relative;z-index:3}
+.on-logo{flex:1;text-align:center;font:700 clamp(15px,2.6vh,22px) Oswald;color:#fde68a;font-style:italic;letter-spacing:2px;text-shadow:0 2px 0 #7c2d12}
+.on-top .rbtn{width:30px;height:30px;font-size:13px}
+.on-cena{position:relative;flex:0 0 19%;display:flex;justify-content:center;align-items:flex-end;overflow:hidden;background:radial-gradient(ellipse at 50% 110%,#fde68a,#f59e0b 35%,#dc2626 70%,#7f1d1d)}
+.on-arco{position:absolute;left:4%;right:4%;bottom:-40%;height:150%;border-radius:50% 50% 0 0;border:7px solid #fbbf24;border-bottom:none;box-shadow:inset 0 0 0 4px #7f1d1d,0 0 0 4px #7f1d1d;background:repeating-conic-gradient(from 0deg at 50% 100%,#ffffff22 0 6deg,transparent 6deg 12deg)}
+.on-masc{position:relative;height:96%;aspect-ratio:1;filter:drop-shadow(0 4px 4px #0008);z-index:1}
 .on-masc svg{width:100%;height:100%}
-.on-masc.feliz,.on-masc.rodada{animation:onmasc .5s 4 alternate}
-@keyframes onmasc{to{transform:translateY(-6px) rotate(-6deg) scale(1.08)}}
-.on-x10{position:absolute;left:100%;top:30%;font:700 clamp(18px,4vh,30px) Oswald;font-style:italic;color:#fde68a;text-shadow:0 2px 0 #b45309,0 0 8px #f59e0b;white-space:nowrap}
-.on-moldura{flex:1;min-height:0;display:flex;justify-content:center;width:100%}
-.on-grade{position:relative;height:100%;max-width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:10px;border-radius:24px;background:linear-gradient(180deg,#fde68a,#d97706 40%,#92400e);box-shadow:0 0 0 4px #7f1d1d,0 0 0 7px #fbbf24,0 12px 30px #000b}
-.on-col{position:relative;overflow:hidden;border-radius:14px;background:linear-gradient(180deg,#fff7ed,#fde68a);display:flex;flex-direction:column;box-shadow:inset 0 0 12px #b4530966}
+.on-masc.feliz,.on-masc.rodada{animation:onmasc .45s 6 alternate}
+@keyframes onmasc{to{transform:translateY(-6%) rotate(-7deg) scale(1.08)}}
+.on-x10{position:absolute;right:16%;top:22%;font:700 clamp(20px,4vh,34px) Oswald;font-style:italic;color:#fde68a;text-shadow:0 2px 0 #b45309,0 0 8px #f59e0b;opacity:.75;z-index:2}
+.on-x10.on{opacity:1;animation:onx10 .4s 6 alternate}
+@keyframes onx10{to{transform:scale(1.35) rotate(-6deg)}}
+.on-maq{flex:1;min-height:0;display:flex;gap:0;padding:0 4px;background:linear-gradient(180deg,#fbbf24,#b45309);border-top:4px solid #7f1d1d;border-bottom:4px solid #7f1d1d}
+.on-pilar{flex:0 0 7%;display:flex;flex-direction:column;justify-content:space-around;align-items:center;background:linear-gradient(90deg,#991b1b,#dc2626,#991b1b);border-left:2px solid #fbbf24;border-right:2px solid #fbbf24}
+.on-pilar i{font:700 clamp(10px,1.7vh,15px) Oswald;font-style:normal;color:#fde68a}
+.on-grade{position:relative;flex:1;min-width:0;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:6px 4px}
+.on-col{position:relative;overflow:hidden;border-radius:6px;background:linear-gradient(180deg,#fff4dc,#f8dcae);display:flex;flex-direction:column;box-shadow:inset 0 0 10px #b4530955;transition:filter .3s}
+.on-col.fundo{filter:brightness(.92)}
 .on-tira{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;will-change:transform}
-.on-cel{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;padding:9%;transition:opacity .25s}
-.on-cel.ganha{animation:onpulse .55s 4 alternate;z-index:1}
+.on-cel{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;padding:8%;transition:opacity .25s}
+.on-cel.ganha{animation:onpulse .5s 4 alternate;z-index:1;background:radial-gradient(circle,#fef08a99,transparent 70%)}
 .on-cel.apaga{opacity:.35}
-.on-cel.presa{background:radial-gradient(circle,#fde68a,transparent 70%)}
+.on-cel.presa{background:radial-gradient(circle,#fde68aaa,transparent 70%)}
 .on-cel.cai{animation:oncai .35s cubic-bezier(.2,.7,.3,1.2)}
-@keyframes onpulse{to{transform:scale(1.14)}}
+@keyframes onpulse{to{transform:scale(1.13)}}
 @keyframes oncai{from{transform:translateY(-110%);opacity:.3}}
-.on-linhas{position:absolute;inset:10px;width:calc(100% - 20px);height:calc(100% - 20px);pointer-events:none;z-index:2}
-.on-linhas line{stroke:#fde047;stroke-width:2;stroke-linecap:round;filter:drop-shadow(0 0 2px #b45309)}
-.on-intro{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#7f1d1dcc;border-radius:24px;animation:onpop .4s}
-.on-intro b{font:700 clamp(20px,5vh,34px) Oswald;font-style:italic;color:#fde68a;text-shadow:0 2px 0 #7c2d12}
-.on-intro-masc{width:38%;animation:onmasc .4s 4 alternate}
-.on-intro-s{width:22%;aspect-ratio:1}
+.on-linhas{position:absolute;inset:6px 4px;width:calc(100% - 8px);height:calc(100% - 12px);pointer-events:none;z-index:2}
+.on-linhas line{stroke:#fde047;stroke-width:1.8;stroke-linecap:round;filter:drop-shadow(0 0 2px #b45309)}
+.on-intro{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:radial-gradient(circle,#facc15ee,#b45309ee 70%);animation:onpop .4s}
+.on-intro b{font:700 clamp(22px,4.5vh,38px) Oswald;font-style:italic;color:#fff;text-shadow:0 3px 0 #9a3412}
+.on-intro small{font:600 clamp(13px,2.2vh,18px) Oswald;color:#7c2d12}
+.on-intro-s{width:42%;aspect-ratio:1;animation:onpulse .5s infinite alternate}
 @keyframes onpop{from{transform:scale(.5);opacity:0}}
-.on-barra{margin-top:10px;min-width:60%;text-align:center;font:600 clamp(14px,3.4vmin,19px) Oswald;color:#fde68a;background:linear-gradient(180deg,#991b1b,#7f1d1d);border:2px solid #fbbf24;border-radius:20px;padding:4px 16px;display:flex;align-items:center;justify-content:center;gap:6px}
-.on-barra b{font-size:1.25em;color:#fff}
-.on-barra.ganhou{background:linear-gradient(180deg,#d946ef,#a21caf);animation:onpop .3s}
-.on-mini-ic{display:inline-block;width:22px;height:22px}
-.on-ctl{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:460px}
-.on-info{display:flex;gap:6px;width:100%}
-.on-info div{flex:1;display:flex;flex-direction:column;align-items:center;background:#0006;border-radius:12px;padding:3px 0;line-height:1.1}
-.on-info small{font:500 11px Rubik;color:#fecaca}.on-info b{font:700 17px Oswald;color:#fde68a}
-.on-bts{display:flex;align-items:center;gap:12px}
-.on-gira{width:82px;height:82px;border-radius:50%;border:4px solid #fde68a;background:radial-gradient(circle at 40% 30%,#4ade80,#16a34a 55%,#14532d);color:#fff;font:700 42px Rubik;box-shadow:0 6px 0 #052e16,0 10px 22px #000a;display:flex;align-items:center;justify-content:center}
-.on-gira:active{transform:translateY(4px);box-shadow:0 2px 0 #052e16}
+.on-barra{flex:none;margin:6px 8px 0;text-align:center;font:600 clamp(14px,2.5vh,20px) Oswald;font-style:italic;color:#fde68a;background:linear-gradient(180deg,#b91c1c,#7f1d1d);border:2px solid #fbbf24;border-radius:10px;padding:4px 10px;overflow:hidden;white-space:nowrap;display:flex;align-items:center;justify-content:center;min-height:clamp(28px,4.4vh,40px)}
+.on-barra b{font-size:1.2em;color:#fff}
+.on-barra.ganhou{background:linear-gradient(180deg,#e879f9,#a21caf);animation:onpop .3s}
+.on-letreiro{display:inline-block;animation:onletreiro 3.5s linear}
+@keyframes onletreiro{0%{transform:translateX(70%);opacity:0}12%{transform:translateX(0);opacity:1}88%{transform:translateX(0);opacity:1}100%{transform:translateX(-70%);opacity:0}}
+.on-mini-ic{display:inline-block;width:1.3em;height:1.3em;vertical-align:middle}
+.on-info{flex:none;display:flex;gap:6px;margin:6px 8px 0}
+.on-info div{flex:1;display:flex;align-items:center;justify-content:center;gap:4px;background:#450a0a;border:1px solid #fbbf2466;border-radius:18px;padding:3px 6px;line-height:1.1}
+.on-info i{font-style:normal;font-size:13px}.on-info b{font:600 clamp(13px,2.2vh,17px) Oswald;color:#fde68a}.on-info small{font:500 10px Rubik;color:#fca5a5}
+.on-bts{flex:none;display:flex;align-items:center;justify-content:space-evenly;padding:6px 8px 10px}
+.on-gira{width:clamp(64px,11vh,96px);height:clamp(64px,11vh,96px);border-radius:50%;border:5px solid #fbbf24;background:radial-gradient(circle at 40% 30%,#86efac,#22c55e 40%,#15803d 70%,#14532d);color:#fff;font:700 clamp(30px,5vh,46px) Rubik;box-shadow:0 0 0 3px #7f1d1d,0 6px 0 #450a0a,0 0 22px #facc1566;display:flex;align-items:center;justify-content:center}
+.on-gira:active{transform:translateY(3px)}
 .on-gira.rodando span{animation:ongiro .6s linear infinite;display:inline-block}
 @keyframes ongiro{to{transform:rotate(360deg)}}
-.on-menos{width:42px;height:42px;border-radius:50%;border:2px solid #fbbf24;background:#7f1d1d;color:#fde68a;font-size:24px}
+.on-menos{width:clamp(36px,5.5vh,46px);height:clamp(36px,5.5vh,46px);border-radius:50%;border:2px solid #fbbf24;background:#7f1d1d;color:#fde68a;font-size:24px}
 .on-menos:disabled{opacity:.4}
-.on-mini{width:50px;height:50px;border-radius:50%;border:2px solid #ffffff44;background:#0007;color:#fff;font-size:17px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.on-mini small{font:500 10px Rubik}
+.on-mini{width:clamp(34px,5vh,44px);height:clamp(34px,5vh,44px);border-radius:50%;border:2px solid #ffffff44;background:#0006;color:#fff;font-size:16px}
 .on-mini.on{background:#ca8a04;border-color:#fde68a}
-.on-loja{border:none;background:none;color:#fecaca;font:500 12px Rubik;text-decoration:underline}
 .on-grande{position:fixed;inset:0;z-index:50;background:radial-gradient(circle,#facc15ee,#b45309ee 50%,#450a0aee);display:flex;align-items:center;justify-content:center;animation:onpop .3s}
 .on-tab{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin:6px 0 10px}
 .on-tab div{display:flex;justify-content:space-between;align-items:center;background:#0005;border-radius:8px;padding:3px 8px}
 .on-tab-ic{display:flex;gap:2px}.on-tab-ic svg{width:20px;height:20px}
-@media (orientation:landscape){.on-main{flex-direction:row;justify-content:center;gap:18px}.on-maq{flex:1 1 auto;min-width:0;height:100%;width:auto}.on-ctl{flex:none;width:250px;align-self:center}.on-barra{margin-top:6px}}
-@media (orientation:landscape) and (max-height:520px){.on-cab{height:44px;margin-bottom:-10px}.on-gira{width:70px;height:70px;font-size:34px}.on-mini{width:44px;height:44px}.on-menos{width:38px;height:38px}.on-top .rbtn{width:30px;height:30px}}
 `}</style>
     </div>
   );
