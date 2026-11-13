@@ -285,19 +285,19 @@ export default function Foguete() {
 .fg-hist i{font:600 12px Oswald;font-style:normal;background:#0008;border-radius:10px;padding:1px 7px}
 .fgp{overflow-y:auto!important}
 .fg-main{display:flex;flex-direction:column;gap:8px;padding:0 8px 6px}
-.fg-ceu{position:relative;flex:none;height:clamp(190px,36vh,360px);border-radius:16px;overflow:hidden;border:1px solid #ffffff22}
+.fg-ceu{position:relative;flex:none;height:clamp(150px,36vh,360px);border-radius:16px;overflow:hidden;border:1px solid #ffffff22}
 .fg-ceu canvas{position:absolute;inset:0;width:100%;height:100%}
 .fg-aviso{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#000c;border:1px solid #fb923c;border-radius:14px;padding:5px 12px;font:500 14px Oswald;color:#fff;white-space:nowrap;z-index:2}
 .fg-qtd{position:absolute;right:10px;bottom:8px;font:500 13px Rubik;color:#e2e8f0;background:#000a;border-radius:14px;padding:3px 10px}
 .fg-lado{display:flex;flex-direction:column;gap:8px}
 .fg-paineis{display:flex;flex-direction:column;gap:8px}
-@media (orientation:landscape) and (min-width:760px){.fg-paineis{flex-direction:row}.fg-painel{flex:1}}
-.fg-painel{background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px}
+@media (orientation:landscape) and (min-width:600px){.fg-paineis{flex-direction:row}.fg-painel{flex:1 1 0}}
+.fg-painel{min-width:0;overflow:hidden;background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px}
 .fg-abas{align-self:center;display:flex;background:#0b0e22;border-radius:20px;padding:3px}
 .fg-abas button{border:none;background:none;color:#94a3b8;font:500 15px Rubik;padding:5px 26px;border-radius:17px}
 .fg-abas button.on{background:#2a3052;color:#fff}
-.fg-corpo{display:flex;gap:12px;align-items:stretch}
-.fg-val{flex:0 0 42%;display:flex;flex-direction:column;gap:6px}
+.fg-corpo{display:flex;gap:10px;align-items:stretch;min-width:0}
+.fg-val{flex:0 0 46%;min-width:0;display:flex;flex-direction:column;gap:6px}
 .fg-row{display:flex;align-items:center;gap:6px;background:#0b0e22;border-radius:22px;padding:4px}
 .fg-row button{width:34px;height:34px;flex:none;border-radius:50%;border:none;background:#2a3052;color:#fff;font-size:20px}
 .fg-row input{flex:1;min-width:0;text-align:center;background:none;border:none;color:#fff;font:700 20px Oswald;height:34px}
@@ -306,8 +306,8 @@ export default function Foguete() {
 .fg-auto{display:flex;align-items:center;justify-content:center;gap:6px;font:500 14px Rubik;color:#cbd5e1}
 .fg-auto input[type=checkbox]{width:18px;height:18px}
 .fg-auto input[inputmode]{width:64px;background:#0b0e22;border:1px solid #ffffff22;border-radius:10px;color:#fff;text-align:center;font:600 16px Oswald;height:32px}
-.fg-btn{flex:1;border:2px solid #ffffff30;border-radius:20px;color:#fff;font:600 clamp(24px,6.5vw,34px) Rubik;padding:10px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:0 5px 0 #0007;min-height:112px}
-.fg-btn small{font:500 clamp(18px,4.8vw,26px) Rubik;opacity:.97}
+.fg-btn{flex:1 1 0;min-width:0;overflow:hidden;border:2px solid #ffffff30;border-radius:20px;color:#fff;font:600 clamp(20px,6vmin,34px) Rubik;padding:10px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:0 5px 0 #0007;min-height:clamp(84px,24vmin,112px)}
+.fg-btn small{font:500 clamp(13px,4vmin,24px) Rubik;opacity:.97;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .fg-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #0007}
 .fg-btn.green{background:linear-gradient(180deg,#2bb514,#1c8a0a)}
 .fg-btn.orange{background:linear-gradient(180deg,#fb923c,#d9550c)}
@@ -322,6 +322,15 @@ export default function Foguete() {
 .fg-li.lost{opacity:.5}
 .fg-vazio{font:500 13px Rubik;color:#64748b;text-align:center;padding:12px}
 .fg-rod{font:400 10px Rubik;color:#64748b;text-align:center;padding:0 0 8px}
+@media (orientation:landscape) and (max-height:520px){
+.fg-top{padding:3px 10px 0}.fg-top .rbtn{width:32px;height:32px;font-size:14px}
+.fg-ceu{height:42vh}
+.fg-painel{padding:6px 8px 8px;gap:6px}
+.fg-abas button{padding:3px 18px;font-size:13px}
+.fg-row button{width:28px;height:28px;font-size:17px}.fg-row input{height:28px;font-size:17px}
+.fg-q{gap:4px}.fg-q button{padding:4px 0;font-size:13px}
+.fg-btn{min-height:0;padding:6px 4px;border-radius:16px}
+}
 `}</style>
     </div>
   );
