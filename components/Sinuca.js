@@ -4,6 +4,15 @@ import { Modal } from './ui.js';
 import { audioCtx, soundOn } from '../lib/sfx.js';
 import { W, H, R, POCKETS } from '../lib/sinuca.js';
 
+// taco do jogador (comprado na loja da sinuca): [ponteira, anel, corpo claro, corpo escuro, cabo]
+let TACO = null;
+export const setTaco = cols => { TACO = Array.isArray(cols) && cols.length === 5 ? cols : null; };
+export function tacoGrad(c, x1, y1, x2, y2) {
+  const [pt, an, c1, c2, cb] = TACO || ['#f1e6c8', '#1e3a8a', '#d9b26f', '#a8692e', '#3a1d0a'];
+  const gr = c.createLinearGradient(x1, y1, x2, y2);
+  gr.addColorStop(0, pt); gr.addColorStop(.03, pt); gr.addColorStop(.035, an); gr.addColorStop(.06, an); gr.addColorStop(.065, c1); gr.addColorStop(.6, c2); gr.addColorStop(.62, '#111'); gr.addColorStop(.64, cb); gr.addColorStop(1, cb);
+  return gr;
+}
 export const RAIL = 34;                 // largura da tabela (madeira) em volta da área de jogo
 export const COR = { 1: '#f5c518', 2: '#1d4ed8', 3: '#dc2626', 4: '#6d28d9', 5: '#f97316', 6: '#15803d', 7: '#7f1d1d', 8: '#111' };
 export const corBola = n => (n > 200 ? '#facc15' : n > 100 ? '#dc2626' : COR[n > 8 ? n - 8 : n] || '#fff');

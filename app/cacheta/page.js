@@ -35,10 +35,9 @@ export default function Cacheta() {
         right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button></>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
-        <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking?jogo=cacheta')}>🏆 Ranking <small>da semana</small></button>
-        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#c084fc,#7e22ce)' }} onClick={() => router.push('/loja#itens')}>✨ Loja <small>baralhos e avatares</small></button>
+        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#c084fc,#7e22ce)' }} onClick={() => router.push('/loja?jogo=cacheta')}>✨ Loja <small>baralhos e avatares</small></button>
       </div>
       <div className="modes" style={{ flex: 1, display: 'grid', gap: 'clamp(10px,2vw,22px)', alignContent: 'center', padding: '10px clamp(12px,4vw,48px)' }}>
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#38b6ff,#1565d8 60%,#0a3fa8)' }} onClick={() => router.push('/lobby')}>

@@ -19,6 +19,8 @@ function PipaSwatch({ id }) {
 
 function Swatch({ it }) {
   if (it.slot === 'pipa') return <PipaSwatch id={it.id} />;
+  if (it.slot === 'taco') { const [pt, an, c1, c2, cb] = it.colors; return <div className="swatch" style={{ display: 'grid', placeItems: 'center', background: 'radial-gradient(circle,#14532d,#052e16)', borderColor: '#f2c94c' }}><div style={{ width: '88%', height: 9, borderRadius: 6, transform: 'rotate(-28deg)', boxShadow: '0 3px 4px #0008', background: `linear-gradient(90deg,${pt} 0 4%,${an} 4% 8%,${c1} 8% 40%,${c2} 62%,${cb} 64% 100%)` }} /></div>; }
+  if (it.slot === 'bola') { const [m, cl, es] = it.colors; return <div className="swatch" style={{ display: 'grid', placeItems: 'center', background: 'radial-gradient(circle,#a0714a,#5a3a1f)', borderColor: '#f2c94c' }}><div style={{ width: 52, height: 52, borderRadius: '50%', boxShadow: '3px 5px 8px #0008', background: it.tipo === 'leiteira' ? 'radial-gradient(circle at 35% 30%,#fff,#e2e8f0 60%,#94a3b8)' : `radial-gradient(circle at 35% 30%,#fff 0 8%,${cl} 22%,${m} 55%,${es})` }} /></div>; }
   if (it.slot === 'avatar') return <div className="swatch" style={{ display: 'grid', placeItems: 'center', fontSize: 40, background: 'radial-gradient(circle,#3a2f1d,#120e08)', borderColor: '#f2c94c' }}>{it.em}</div>;
   if (it.slot === 'felt') return <div className="swatch felt" style={{ background: `radial-gradient(ellipse at 50% 45%,${it.colors[0]},${it.colors[1]} 45%,${it.colors[2]})` }} />;
   return <div className="swatch" style={{ background: `repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 3px,transparent 3px 7px),linear-gradient(135deg,${it.colors[0]},${it.colors[1]})`, borderColor: it.gold ? '#f2c94c' : '#fff' }} />;
@@ -98,7 +100,7 @@ function Body({ profile, reloadProfile, user }) {
       <p style={{ color: 'var(--gold)' }}>⏳ Aguardando pagamento…</p>
       <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
     </Modal>}
-    <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
+    {!jogo && <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
       <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} ficha</b>: o valor do Pix vira a mesma quantidade de fichas. Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
       {welcome && <div className="item" style={{ border: '2px solid #f2c94c', background: 'linear-gradient(135deg,#3a2a08,#120e08)', flexDirection: 'row', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
         <span style={{ fontSize: 44 }}>🎁</span>
@@ -119,25 +121,24 @@ function Body({ profile, reloadProfile, user }) {
       {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
         <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>
           <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div></>}
-    </div>
-    <div className="vipbox">
+    </div>}
+    {(!jogo || jogo === 'cacheta') && <div className="vipbox">
       <h3 style={{ margin: 0, font: '700 24px Oswald', color: 'var(--gold)' }}>👑 VIP {vip && <small style={{ fontSize: 14, color: '#fff' }}>ativo até {new Date(profile.vip_until).toLocaleDateString('pt-BR')}</small>}</h3>
       <ul>{VIP_PERKS.map(p => <li key={p}>{p}</li>)}</ul>
       <button className="go" disabled={busy || profile.coins < vipItem.price} onClick={() => call({ op: 'buy', item: vipItem.id }, 'VIP ativado! 👑')}>{vip ? 'Renovar' : 'Ativar'} 30 dias · 💰 {fmt(vipItem.price)}</button>
-    </div>
+    </div>}
     {jogo && JOGOS[jogo] && <div className="panel" style={{ textAlign: 'center', borderColor: 'var(--gold)' }}><h3 style={{ fontSize: 22, margin: 0 }}>{JOGOS[jogo].em || '🔵'} Loja: {JOGOS[jogo].nome}</h3>
-      {(jogo === 'sinuca' || jogo === 'gude') && <p className="hint" style={{ margin: '6px 0 0' }}>Itens próprios {jogo === 'sinuca' ? 'da sinuca (tacos e mesas)' : 'da gude (bolinhas)'} chegando em breve. Por enquanto: avatares.</p>}
       <button className="sec" style={{ marginTop: 8 }} onClick={() => { location.href = JOGOS[jogo].href; }}>↩ Voltar pro jogo</button></div>}
-    {(jogo && JOGOS[jogo] ? JOGOS[jogo].loja : ['avatar', 'pipa', 'back', 'felt']).map(slot => (
+    {(jogo && JOGOS[jogo] ? (JOGOS[jogo].loja || []) : []).map(slot => (
       <div key={slot} id={slot === 'avatar' ? 'itens' : undefined} className="panel"><h3 style={{ fontSize: 20 }}>{LOJA_TITULO[slot]}</h3>
         <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot && (!i.exclusive || owned.includes(i.id))).map(it => {
-          const isEq = slot === 'avatar' ? profile.avatar === it.em : (eq[slot] || (slot === 'back' ? 'back-azul' : slot === 'pipa' ? 'pipa-classica' : 'felt-verde')) === it.id;
+          const isEq = slot === 'avatar' ? profile.avatar === it.em : (eq[slot] || ({ back: 'back-azul', pipa: 'pipa-classica', felt: 'felt-verde', taco: 'taco-classico', bola: 'bola-leiteira' }[slot])) === it.id;
           const has = it.price === 0 && !it.vipOnly || owned.includes(it.id) || (it.vipOnly && vip);
           return (
             <div key={it.id} className={`item ${isEq ? 'eq' : ''}`}>
               <Swatch it={it} /><b>{it.name}</b>
               {isEq ? <span className="won">✓ Em uso</span>
-                : has ? <button className="pillbtn dark" disabled={busy} onClick={() => call({ op: 'equip', item: it.id }, slot === 'pipa' ? 'Pronto, essa é a sua pipa agora' : 'Pronto, já está na sua mesa')}>Usar</button>
+                : has ? <button className="pillbtn dark" disabled={busy} onClick={() => call({ op: 'equip', item: it.id }, slot === 'pipa' ? 'Pronto, essa é a sua pipa agora' : slot === 'taco' ? 'Pronto, esse é o seu taco agora' : slot === 'bola' ? 'Pronto, essa é a sua bolinha agora' : 'Pronto, já está na sua mesa')}>Usar</button>
                 : it.vipOnly ? <span className="hint">Só para VIP</span>
                 : <button className="pillbtn" disabled={busy || profile.coins < it.price} onClick={() => call({ op: 'buy', item: it.id }, 'Comprado e equipado!')}>💰 {fmt(it.price)}</button>}
             </div>);

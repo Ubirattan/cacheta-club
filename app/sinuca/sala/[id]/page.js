@@ -9,7 +9,8 @@ import { useAuth, useOnline } from '../../../../components/useAuth.js';
 import { Header, Modal, toast } from '../../../../components/ui.js';
 import Chat from '../../../../components/Chat.js';
 import { sendInvite } from '../../../../components/Convites.js';
-import { RAIL, corBola, toc, bola, mesa, Regras, SINUCA_CSS } from '../../../../components/Sinuca.js';
+import { RAIL, corBola, toc, bola, mesa, Regras, SINUCA_CSS , tacoGrad, setTaco } from '../../../../components/Sinuca.js';
+import { itemById } from '../../../../lib/shop-items.js';
 import { modeName, isSinucaMode, fmt } from '../../../../lib/modes.js';
 import { premioOnline } from '../../../../lib/taxa.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../../../lib/sfx.js';
@@ -120,7 +121,7 @@ function Mesa({ srv, me, onShot, onMonta, onMsg, onView }) {
         const x1 = cb.x - dx * (R + pux), y1 = cb.y - dy * (R + pux), x2 = x1 - dx * Lt, y2 = y1 - dy * Lt;
         c.lineCap = 'round';
         c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 9; c.beginPath(); c.moveTo(x1 + 4, y1 + 5); c.lineTo(x2 + 4, y2 + 5); c.stroke();
-        const gr = c.createLinearGradient(x1, y1, x2, y2); gr.addColorStop(0, '#f1e6c8'); gr.addColorStop(.03, '#f1e6c8'); gr.addColorStop(.035, '#1e3a8a'); gr.addColorStop(.06, '#1e3a8a'); gr.addColorStop(.065, '#d9b26f'); gr.addColorStop(.6, '#a8692e'); gr.addColorStop(.62, '#111'); gr.addColorStop(1, '#3a1d0a');
+        const gr = tacoGrad(c, x1, y1, x2, y2);
         c.strokeStyle = gr; c.lineWidth = 7; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
       }
       const pin = bar.querySelector('i'); if (pin) pin.style.height = (T.forca * 100) + '%';
@@ -220,6 +221,7 @@ export default function SinucaSala() {
   const router = useRouter();
   const { user, profile, reloadProfile } = useAuth();
   const online = useOnline(user, profile, 'sala');
+  useEffect(() => { setTaco(itemById(profile?.equipped?.taco)?.colors); }, [profile?.equipped?.taco]); // eslint-disable-line
   const [room, setRoom] = useState(undefined);
   const [players, setPlayers] = useState([]);
   const [srv, setSrv] = useState(null);
