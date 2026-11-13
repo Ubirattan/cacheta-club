@@ -2,7 +2,7 @@
 // resultado (tempo normal), anulado, cota de chamadas e pagamento uma vez só.
 import assert from 'node:assert/strict';
 import { memRepo, addUsers } from './memrepo.mjs';
-import { lerOdds, lerJogo, acertou, fechar, conferirBilhete, premioDe, oddTotal, MAX_PREMIO } from '../lib/futebol.js';
+import { lerOdds, lerJogo, acertou, fechar, conferirBilhete, premioDe, oddTotal, MAX_PREMIO, r2 } from '../lib/futebol.js';
 import { futebol as fb, usarApi, sincronizar, CFG } from '../lib/futebol-service.js';
 // como o celular faz: manda 'atualizar' e depois lê
 const futebol = async (R, u, b, t) => { if (b.op !== 'apostar') await fb(R, u, { op: 'atualizar' }, t); return fb(R, u, b, t); };
@@ -107,7 +107,7 @@ const f = fechar({ valor: 10, selecoes: [sel(5, '1x2', '1', 2), sel(6, '1x2', '1
 assert.equal(f.status, 'ganhou'); assert.equal(f.ganho, 20);
 
 // cota do dia: passou do limite, não chama mais
-const R2 = memRepo(); Object.assign(R2.T, { futebol_jogos: [], futebol_apostas: [], futebol_sync: [{ chave: 'cota', v: 1, em: 0, valor: { dia: '2026-11-15', n: CFG.limiteDia() } }] });
+const R2 = memRepo(); Object.assign(R2.T, { futebol_jogos: [], futebol_apostas: [], futebol_sync: [{ chave: 'cota', v: 1, em: 0, valor: { dia: '2026-11-15', n: 95, lim: 100 } }] });
 addUsers(R2, 1); const n0 = chamadas.length;
 await futebol(R2, { id: 'u0' }, { op: 'jogos' }, T0);
 assert.equal(chamadas.length, n0, 'cota acabou: nenhuma chamada');
@@ -121,3 +121,73 @@ usarApi(null);
 assert.equal(lerJogo(fx(9, 71, 'A', 'B', T0, 'PEN', [1, 1])).gols_casa, 1);
 assert.equal(conferirBilhete([sel(1, 'xx', '1', 2)], { 1: { status: 'NS', inicio: new Date(T0 + H).toISOString(), odds: {} } }, T0).erro, 'Palpite inválido');
 console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jogo começado, tempo normal, cancelado, cota e pagamento único');
+
+// ---- plano Pro: placar ao vivo, pagamento antecipado (2 gols) e cash out ----
+{
+  const { antecipa, cashOut, chance } = await import('../lib/futebol.js');
+  const T = Date.UTC(2026, 10, 15, 12, 0), H = 3600e3, odds = { bookmakers: ODDS };
+  const vivo = {
+    10: fx(10, 71, 'Flamengo', 'Palmeiras', T + 2 * H), 11: fx(11, 71, 'Santos', 'Grêmio', T + 2 * H), 12: fx(12, 71, 'Bahia', 'Vitória', T + 2 * H),
+  };
+  let chamadasPro = 0;
+  usarApi(async (caminho, p) => {
+    chamadasPro++;
+    let r = [];
+    if (caminho === 'fixtures' && p.date) r = p.date === '2026-11-15' ? Object.values(vivo) : [];
+    if (caminho === 'fixtures' && p.ids) r = p.ids.split('-').map(id => vivo[id]).filter(Boolean);
+    if (caminho === 'odds') r = [{ fixture: { id: p.fixture }, bookmakers: odds.bookmakers }];
+    r.limite = 7500; return r;
+  });
+  const R = memRepo(); Object.assign(R.T, { futebol_jogos: [], futebol_apostas: [], futebol_sync: [] });
+  const [u] = addUsers(R, 1, 1000);
+  const fb2 = async (b, t) => { if (b.op !== 'apostar' && b.op !== 'cashout') await fb(R, u, { op: 'atualizar' }, t); return fb(R, u, b, t); };
+  let l = await fb2({ op: 'jogos' }, T);
+  l = await fb2({ op: 'jogos' }, T + 4 * 60e3);            // 2ª rodada de odds/ plano detectado
+  assert.equal(l.admin.pro, true, 'detecta o plano Pro pela resposta da API');
+  assert.ok(l.admin.limite > 7000);
+  const sim = await fb2({ op: 'apostar', valor: 100, selecoes: [sel(10, '1x2', '1', 2.1)] }, T + 5 * 60e3);
+  const mul = await fb2({ op: 'apostar', valor: 10, selecoes: [sel(10, '1x2', '1', 2.1), sel(11, '1x2', '2', 3.6)] }, T + 5 * 60e3);
+  const co = await fb2({ op: 'apostar', valor: 50, selecoes: [sel(12, 'gols', 'mais', 1.95)] }, T + 5 * 60e3);
+  // antes do jogo: cash out abaixo da aposta
+  let m = await fb2({ op: 'minhas' }, T + 6 * 60e3);
+  const c0 = m.apostas.find(a => a.id === sim.id).cashout;
+  assert.ok(c0 > 70 && c0 < 100, 'cash out antes do jogo: ' + c0);
+  // jogo rolando: Flamengo 2x0 aos 30' → pagamento antecipado
+  const rola = (id, st, min, h, a) => { vivo[id] = fx(id, 71, vivo[id].teams.home.name, vivo[id].teams.away.name, T + 2 * H, st); vivo[id].fixture.status.elapsed = min; vivo[id].goals = { home: h, away: a }; };
+  rola(10, '1H', 30, 2, 0); rola(11, '1H', 30, 0, 0); rola(12, '1H', 30, 1, 1);
+  const antes = R.T.profiles[0].coins;
+  m = await fb2({ op: 'minhas' }, T + 2 * H + 31 * 60e3);
+  const bs = id => m.apostas.find(a => a.id === id);
+  assert.equal(bs(sim.id).status, 'ganhou', 'simples paga na hora com 2 gols de vantagem');
+  assert.equal(R.T.profiles[0].coins, antes + 210);
+  assert.equal(bs(mul.id).status, 'aberta'); assert.equal(bs(mul.id).selecoes[0].status, 'ganhou'); assert.equal(bs(mul.id).selecoes[0].antecipado, true);
+  assert.equal(bs(mul.id).selecoes[1].minuto, 30);
+  // depois o Palmeiras empata: o palpite antecipado continua ganho
+  rola(10, '2H', 80, 2, 2); rola(11, '2H', 80, 0, 1); rola(12, '2H', 80, 1, 1);
+  m = await fb2({ op: 'minhas' }, T + 2 * H + 82 * 60e3);
+  assert.equal(bs(mul.id).selecoes[0].status, 'ganhou', 'antecipado não volta atrás');
+  // cash out: 1x1 aos 80' com "mais de 2,5" precisa de mais 1 gol → vale menos que a aposta
+  const cv = bs(co.id).cashout;
+  assert.ok(cv > 0 && cv < 50, 'cash out ' + cv);
+  await assert.rejects(fb2({ op: 'cashout', id: co.id, valor: cv * 1.2 }, T + 2 * H + 82 * 60e3), /valor mudou/);
+  const cAntes = R.T.profiles[0].coins;
+  const pago = await fb2({ op: 'cashout', id: co.id, valor: cv }, T + 2 * H + 82 * 60e3);
+  assert.equal(pago.ganho, cv); assert.equal(R.T.profiles[0].coins, r2(cAntes + cv));
+  await assert.rejects(fb2({ op: 'cashout', id: co.id, valor: cv }, T + 2 * H + 82 * 60e3), /já foi encerrada/);
+  // o jogo termina 3x1 (teria ganho): o cash out não paga de novo
+  rola(12, 'FT', 90, 3, 1); vivo[12].score.fulltime = { home: 3, away: 1 };
+  rola(11, 'FT', 90, 0, 1); vivo[11].score.fulltime = { home: 0, away: 1 };
+  rola(10, 'FT', 90, 2, 2); vivo[10].score.fulltime = { home: 2, away: 2 };
+  const fim = R.T.profiles[0].coins;
+  m = await fb2({ op: 'minhas' }, T + 2 * H + 120 * 60e3);
+  assert.equal(bs(co.id).status, 'cashout');
+  assert.equal(bs(mul.id).status, 'ganhou', 'múltipla: 1º jogo antecipado + 2º acertado');
+  assert.equal(R.T.profiles[0].coins, r2(fim + 10 * oddTotal([2.1, 3.6])));
+  // regras puras
+  assert.equal(antecipa({ mercado: '1x2', escolha: '2' }, { status: '2H', ao_vivo_casa: 0, ao_vivo_fora: 2 }), true);
+  assert.equal(antecipa({ mercado: '1x2', escolha: '1' }, { status: 'ET', ao_vivo_casa: 3, ao_vivo_fora: 1 }), false, 'prorrogação não conta');
+  assert.equal(antecipa({ mercado: 'dc', escolha: '1X' }, { status: '2H', ao_vivo_casa: 2, ao_vivo_fora: 0 }), false, 'só resultado final');
+  assert.equal(cashOut({ valor: 10, selecoes: [{ jogo: 1, mercado: '1x2', escolha: '1', odd: 2, status: 'perdeu' }] }, {}), null);
+  usarApi(null);
+  console.log('OK — futebol Pro: placar ao vivo, pagamento antecipado com 2 gols e cash out (' + chamadasPro + ' chamadas)');
+}

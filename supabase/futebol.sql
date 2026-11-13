@@ -15,6 +15,7 @@ create table if not exists public.futebol_jogos (
   gols_fora    integer,
   ao_vivo_casa integer,
   ao_vivo_fora integer,
+  minuto       integer,
   odds         jsonb,
   odds_em      bigint,
   atualizado   timestamptz not null default now()
@@ -28,7 +29,7 @@ create table if not exists public.futebol_apostas (
   odd          numeric(12,2) not null,
   premio       numeric(12,2) not null,
   selecoes     jsonb not null,
-  status       text not null default 'aberta' check (status in ('aberta','ganhou','perdeu','devolvida')),
+  status       text not null default 'aberta' check (status in ('aberta','ganhou','perdeu','devolvida','cashout')),
   ganho        numeric(12,2) not null default 0,
   created_at   timestamptz not null default now(),
   liquidada_em timestamptz
