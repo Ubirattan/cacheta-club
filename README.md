@@ -31,6 +31,12 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 - O motor fica em `lib/truco.js` e já está pronto pra rodar no servidor quando vier o truco online.
 - A página do truco só é baixada quando o jogador toca no botão: a tela inicial continua leve.
 
+### Pipa (novo)
+- Botão **🪁 Pipa** no topo da tela inicial: **batalha de cortar** contra o computador (Fácil, Esperto ou Difícil), melhor de 3 rodadas.
+- **Segure o dedo pra puxar** (a pipa vai pra onde o bico aponta) e **solte pra dar linha** (ela gira e o vento leva).
+- Linhas cruzadas se gastam; quem está puxando corta mais rápido. Pipa que encosta no telhado cai.
+- Cada partida contra o computador custa **1 ficha** (cobrada no servidor pela rota `/api/treino`).
+
 ### Bolinha de gude (novo)
 - Botão **Gude** no topo da tela inicial. Três modos:
   - **Triângulo:** tire as 10 bolinhas do triângulo. Tirou, joga de novo. Ganha quem tirar mais.
