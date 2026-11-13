@@ -391,3 +391,26 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   usarApi(null);
   console.log('OK — futebol ao vivo: odds ao vivo, espera de 7 s, gol/odd caiu/trava recusam e devolvem, próximo gol');
 }
+
+// ---- todas as linhas ("Mostrar todos") ----
+{
+  const F = await import('../lib/futebol.js');
+  const bk = [{ id: 8, bets: [{ id: 1, name: 'Match Winner', values: [v('Home', 2), v('Draw', 3.3), v('Away', 3.8)] },
+    { id: 5, name: 'Goals Over/Under', values: [v('Over 0.5', 1.07), v('Under 0.5', 8), v('Over 1.5', 1.3), v('Under 1.5', 3.4), v('Over 2.5', 1.95), v('Under 2.5', 1.85), v('Over 3.5', 3.2), v('Under 3.5', 1.33), v('Over 3.0', 2.5), v('Under 3.0', 1.5)] },
+    { id: 45, name: 'Corners Over Under', values: [v('Over 8.5', 1.5), v('Under 8.5', 2.5), v('Over 9.5', 1.85), v('Under 9.5', 1.9), v('Over 10.5', 2.4), v('Under 10.5', 1.5)] }] }];
+  const o = F.lerOdds({ bookmakers: bk });
+  assert.deepEqual(Object.keys(o.linhas.gols), ['0.5', '1.5', '2.5', '3.5'], 'só linhas ,5');
+  assert.deepEqual(F.todasLinhas(o, 'escanteios').map(x => x[0]), [8.5, 9.5, 10.5]);
+  assert.equal(F.oddDe(o, 'escanteios', 'mais', 10.5), 2.4); assert.equal(F.oddDe(o, 'gols', 'mais', null), 1.95); assert.equal(F.oddDe(o, 'gols', 'menos', 1.5), 3.4);
+  const T = Date.UTC(2026, 10, 15, 12, 0);
+  const j = { status: 'NS', inicio: new Date(T + 3600e3).toISOString(), odds: o, casa: 'A', fora: 'B' };
+  const b = F.conferirBilhete([{ jogo: 1, mercado: 'escanteios', escolha: 'mais', odd: 2.4, linha: 10.5 }, ], { 1: j }, T);
+  assert.equal(b.odd, 2.4); assert.equal(b.selecoes[0].linha, 10.5);
+  assert.equal(F.situacao(b.selecoes[0], { status: 'FT', escanteios: 10, inicio: j.inicio }), 'perdeu');
+  const g = F.conferirBilhete([{ jogo: 1, mercado: 'gols', escolha: 'menos', odd: 3.4, linha: 1.5 }], { 1: j }, T).selecoes[0];
+  assert.equal(F.situacao(g, { status: 'FT', gols_casa: 1, gols_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao(g, { status: 'FT', gols_casa: 1, gols_fora: 1 }), 'perdeu');
+  const c = F.oddCombo([{ mercado: '1x2', escolha: '1' }, { mercado: 'gols', escolha: 'mais', linha: 1.5 }], o);
+  assert.ok(c.odd > 1.5 && c.odd < 2 * 1.3, 'combo com linha 1,5: ' + c.odd);
+  console.log('OK — futebol: todas as linhas de gols, escanteios e handicap');
+}

@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
+import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, COM_LINHA, linhaPrincipal, oddDe, todasLinhas, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
 import { criarTeste } from '../../lib/futebol-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -54,7 +54,11 @@ export default function Futebol() {
   const [minhas, setMinhas] = useState(null);
   const [liga, setLiga] = useState(0);
   const [aberto, setAberto] = useState(null);           // jogo com os outros mercados à mostra
-  const [criar, setCriar] = useState(null);             // Criar aposta: { jogo, partes: [{ mercado, escolha, linha }] }
+  const [criar, setCriar] = useState(null);
+  const [jogoAberto, setJogoAberto] = useState(null);   // página do jogo (antes do jogo)
+  const [abaM, setAbaM] = useState('principais');
+  const [fechados, setFechados] = useState({});          // cartões de palpite fechados
+  const [todos, setTodos] = useState({});                // "Mostrar todos" abertos             // Criar aposta: { jogo, partes: [{ mercado, escolha, linha }] }
   const [bilPre, setBilPre] = useState([]);             // bilhete antes do jogo [{ jogo, mercado, escolha, odd }]
   const [bilVivo, setBilVivo] = useState([]);           // bilhete ao vivo (sempre separado)
   const [vivoSt, setVivoSt] = useState(null);           // jogos rolando agora
@@ -84,7 +88,7 @@ export default function Futebol() {
       setBilPre(b => b.map(x => {
         const j = s.jogos.find(j => j.id === x.jogo);
         if (j && x.mercado === 'combo') { const c = oddCombo(x.partes, j.odds); return c.erro ? null : { ...x, odd: c.odd, partes: c.partes }; }
-        const o = j?.odds?.[x.mercado]?.[x.escolha]; return j && o ? { ...x, odd: o, ...(MERCADOS[x.mercado].linha ? { linha: j.odds[x.mercado].linha } : {}) } : null;
+        const o = j && oddDe(j.odds, x.mercado, x.escolha, x.linha); return o ? { ...x, odd: o } : null;
       }).filter(Boolean));
       return s;
     } catch (e) { if (!stRef.current) setFalha(e.message || 'Sem conexão'); else avisar(e.message || 'Sem conexão'); }
@@ -145,41 +149,50 @@ export default function Futebol() {
   const lista = liga ? jogos.filter(j => j.liga === liga) : jogos;
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
-  const naBil = (jogo, m, e) => criar?.jogo === jogo ? criar.partes.some(p => p.mercado === m && p.escolha === e) : bil.some(x => x.jogo === jogo && x.mercado === m && x.escolha === e);
-  function parte(j, m, e) {           // Criar aposta: liga/desliga um palpite (um de cada tipo)
+  const igualL = (a, b) => (a == null && b == null) || Number(a) === Number(b);
+  // linha do palpite: a que veio do botão, ou a principal das odds do jogo
+  const lin = (j, m, l) => l != null ? Number(l) : COM_LINHA.includes(m) ? (j.odds?.[m]?.linha != null ? Number(j.odds[m].linha) : linhaPrincipal(j.odds, m)) : null;
+  const naBil = (jogo, m, e, l) => {
+    const lista = criar?.jogo === jogo ? criar.partes : bil.filter(x => x.jogo === jogo);
+    return lista.some(p => p.mercado === m && p.escolha === e && (l == null || !COM_LINHA.includes(m) || igualL(p.linha, l)));
+  };
+  function parte(j, m, e, l) {        // Criar aposta: liga/desliga um palpite (um de cada tipo)
     sfx('tick');
+    const linha = lin(j, m, l);
     setCriar(c => {
       const tem = c.partes.find(p => p.mercado === m);
       const resto = c.partes.filter(p => p.mercado !== m);
-      if (tem && tem.escolha === e) return { ...c, partes: resto };
+      if (tem && tem.escolha === e && igualL(tem.linha ?? null, linha)) return { ...c, partes: resto };
       if (!tem && c.partes.length >= COMBO_MAX) { avisar(`No máximo ${COMBO_MAX} palpites`); return c; }
-      return { ...c, partes: [...resto, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }] };
+      return { ...c, partes: [...resto, { mercado: m, escolha: e, ...(linha != null ? { linha } : {}) }] };
     });
   }
-  // no Criar aposta: esse palpite não dá pra juntar com os que já estão escolhidos?
-  function impossivel(j, m, e) {
-    if (criar?.jogo !== j.id || !criar.partes.length || criar.partes.some(p => p.mercado === m)) return false;
-    const c = oddCombo([...criar.partes, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }], j.odds);
+  // no Criar aposta: esse palpite fica travado? (outro do mesmo tipo já escolhido, ou não combina com os escolhidos)
+  function travado(j, m, e, l) {
+    if (criar?.jogo !== j.id || !criar.partes.length) return false;
+    const linha = lin(j, m, l);
+    const mesmo = criar.partes.find(p => p.mercado === m);
+    if (mesmo) return !(mesmo.escolha === e && igualL(mesmo.linha ?? null, linha));
+    const c = oddCombo([...criar.partes, { mercado: m, escolha: e, ...(linha != null ? { linha } : {}) }], j.odds);
     return !!c.erro && /impossível/.test(c.erro);
   }
-  function abrirCriar(j) {            // toque no nome dos times: abre o Criar aposta do jogo
-    if (criar?.jogo === j.id) { setCriar(null); setAberto(null); return; }
-    setAberto(j.id); setCriar({ jogo: j.id, partes: [] });
-  }
+  const impossivel = travado;
+  function abrirCriar(j) { setJogoAberto(j.id); setCriar({ jogo: j.id, partes: [] }); }
   function porCombo(j) {
     const c = oddCombo(criar.partes, j.odds);
     if (c.erro) return avisar(c.erro);
     setBil(b => { const sem = b.filter(x => x.jogo !== j.id); if (sem.length >= MAX_SELECOES) { avisar(`No máximo ${MAX_SELECOES} jogos por bilhete`); return b; } return [...sem, { jogo: j.id, mercado: 'combo', escolha: 'combo', odd: c.odd, partes: c.partes }]; });
     sfx('coin'); setCriar(null); avisar('Criar aposta no bilhete', true);
   }
-  function escolher(j, m, e) {
-    const odd = j.odds?.[m]?.[e]; if (!odd) return;
+  function escolher(j, m, e, l) {
+    const linha = lin(j, m, l);
+    const odd = vivoAba ? j.odds?.[m]?.[e] : oddDe(j.odds, m, e, linha); if (!odd) return;
     sfx('tick');
     setBil(b => {
-      if (b.some(x => x.jogo === j.id && x.mercado === m && x.escolha === e)) return b.filter(x => x.jogo !== j.id);
+      if (b.some(x => x.jogo === j.id && x.mercado === m && x.escolha === e && igualL(x.linha ?? null, linha))) return b.filter(x => x.jogo !== j.id);
       const sem = b.filter(x => x.jogo !== j.id);
       if (sem.length >= MAX_SELECOES) { avisar(`No máximo ${MAX_SELECOES} jogos por bilhete`); return b; }
-      return [...sem, { jogo: j.id, mercado: m, escolha: e, odd, ...(j.odds[m].linha != null ? { linha: j.odds[m].linha } : {}) }];
+      return [...sem, { jogo: j.id, mercado: m, escolha: e, odd, ...(linha != null ? { linha } : {}) }];
     });
   }
   const odd = bil.length ? oddTotal(bil.map(x => x.odd)) : 0;
@@ -233,6 +246,76 @@ export default function Futebol() {
     </div></div></div>
   );
 
+  function abrirJogo(j) { setJogoAberto(j.id); setAbaM('principais'); setCriar(null); setTodos({}); }
+  function fecharJogo() { setJogoAberto(null); setCriar(null); }
+  const GRUPOS = [['principais', 'Principais', ['1x2', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
+    ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
+    ['todos', 'Todos', ['1x2', 'dc', 'gols', 'ambos', 'ht', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
+  const nl = l => String(l).replace('.', ',');
+  const sn = l => (l > 0 ? '+' : '') + nl(l);
+  const curtoNome = n => n.length > 12 ? n.slice(0, 11) + '.' : n;
+  function nomeOp(j, m, e, l) {
+    if (m === '1x2' || m === 'ht') return e;
+    if (m === 'dc') return ({ '1X': '1 ou empate', '12': '1 ou 2', X2: '2 ou empate' })[e];
+    if (m === 'ambos') return e === 'sim' ? 'Sim' : 'Não';
+    if (m === 'primeiro') return e === 'casa' ? curtoNome(j.casa) : e === 'fora' ? curtoNome(j.fora) : 'Sem gol';
+    if (m === 'placar') return e.replace(':', ' x ');
+    if (m === 'handicap') return e === 'casa' ? `${curtoNome(j.casa)} ${sn(l)}` : `${curtoNome(j.fora)} ${sn(-l)}`;
+    return `${e === 'mais' ? 'Mais' : 'Menos'} de ${nl(l)}`;
+  }
+  function botao(j, m, e, l, odd) {
+    const trav = travado(j, m, e, l), on = naBil(j.id, m, e, l);
+    return <button key={e + ':' + l} className={'fb-op' + (on ? ' on' : '')} disabled={trav || !odd}
+      onClick={() => criar?.jogo === j.id ? parte(j, m, e, l) : escolher(j, m, e, l)}>
+      <span>{nomeOp(j, m, e, l)}</span><b>{trav || !odd ? '🔒' : f2(odd)}</b></button>;
+  }
+  function paginaJogo(j) {
+    const ca = criar?.jogo === j.id;
+    const tem = m => !!j.odds[m] && !(ca && FORA_DO_COMBO.includes(m));
+    const grupos = GRUPOS.filter(g => g[2].some(tem));
+    const g = grupos.find(x => x[0] === abaM) || grupos[0];
+    const combo = ca && criar.partes.length >= 2 ? oddCombo(criar.partes, j.odds) : null;
+    const xAnt = j.antecipa && !ca && bil.find(y => y.jogo === j.id && y.mercado === '1x2' && y.escolha !== 'X');
+    return <div className="fb-lista fb-pag">
+      <div className="fb-jh">
+        <button className="fb-volta" onClick={fecharJogo}>← Jogos</button>
+        <small>{j.ligaNome} · {nomeDia(j.inicio)} · {hora(j.inicio)}{j.antecipa && <i className="fb-selo">💰 2 gols</i>}</small>
+        <div className="fb-jt">
+          <div><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span></div>
+          <b>x</b>
+          <div><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span></div>
+        </div>
+      </div>
+      <div className="fb-mtabs">
+        <div className="fb-mtab-l">{grupos.map(x => <button key={x[0]} className={g?.[0] === x[0] ? 'on' : ''} onClick={() => setAbaM(x[0])}>{x[1]}</button>)}</div>
+        <button className={'fb-sw' + (ca ? ' on' : '')} onClick={() => setCriar(ca ? null : { jogo: j.id, partes: [] })}><span>CRIAR<br />APOSTA</span><i /></button>
+      </div>
+      {ca && <div className="fb-caviso"><i>CA</i><span>Combine palpites do mesmo jogo! Com o <b>Criar aposta</b> ligado, junte de 2 a 6 palpites deste jogo. Os que não combinam ficam com 🔒.</span></div>}
+      {xAnt && <div className="fb-antaviso">💰 <b>Pagamento antecipado:</b> se o {xAnt.escolha === '1' ? j.casa : j.fora} abrir <b>2 gols de vantagem</b>, você já ganha, mesmo que o outro time reaja.</div>}
+      {g && g[2].filter(tem).map(m => {
+        const fechado = fechados[m], comL = COM_LINHA.includes(m), ls = comL ? todasLinhas(j.odds, m) : [];
+        const lp = comL ? linhaPrincipal(j.odds, m) : null;
+        const linhasVer = comL ? (todos[m] ? ls : ls.filter(([l]) => l === lp)) : [];
+        const ops = opcoes(m, j.odds);
+        return <div className="fb-mc" key={m}>
+          <div className="fb-mc-t" onClick={() => setFechados(f => ({ ...f, [m]: !f[m] }))}>
+            <b>{MERCADOS[m].nome}</b>
+            <span className="fb-tags"><i className="t-co" title="Tem cash out">$</i>{!FORA_DO_COMBO.includes(m) && <i className="t-ca" title="Entra no Criar aposta">CA</i>}</span>
+            <em>{fechado ? '⌄' : '⌃'}</em>
+          </div>
+          {!fechado && <div className="fb-mc-c">
+            {comL ? linhasVer.map(([l, par]) => <div key={l} className="fb-ops c2">{ops.map(e => botao(j, m, e, l, par[e]))}</div>)
+              : <div className={'fb-ops c' + (m === 'placar' ? 3 : ops.length)}>{ops.map(e => botao(j, m, e, null, j.odds[m][e]))}</div>}
+            {comL && ls.length > 1 && <button className="fb-todos" onClick={() => setTodos(t => ({ ...t, [m]: !t[m] }))}>{todos[m] ? 'MOSTRAR MENOS ⌃' : `MOSTRAR TODOS (${ls.length}) ⌄`}</button>}
+          </div>}
+        </div>;
+      })}
+      {ca && <div className="fb-cbar">
+        <span>🧩 {criar.partes.length} {criar.partes.length === 1 ? 'palpite' : 'palpites'}{combo?.erro ? <em>{combo.erro}</em> : combo ? <b> · odd {f2(combo.odd)}</b> : <em> · escolha pelo menos 2</em>}</span>
+        <button disabled={!combo || !!combo.erro} onClick={() => porCombo(j)}>Pôr no bilhete</button>
+      </div>}
+    </div>;
+  }
   function listaVivo() {
     const vs = vivoSt?.jogos || [];
     return <div className="fb-lista">
@@ -307,9 +390,9 @@ export default function Futebol() {
       {confirmando && <div className="fb-conf"><div className="fb-conf-c"><span className="fb-ponto" /> Confirmando sua aposta ao vivo… <b>{Math.max(0, Math.ceil((confirmando.fim - Date.now()) / 1000))}</b><small>Se sair gol ou a odd cair nesse tempo, a aposta é recusada e as fichas voltam.</small></div></div>}
 
       {aba !== 'minhas' ? <div className="fb-main">
-        <div className="fb-esq">{vivoAba ? listaVivo() : <>
+        <div className="fb-esq">{vivoAba ? listaVivo() : jogoAberto && J[jogoAberto] ? paginaJogo(J[jogoAberto]) : <>
           <div className="fb-novs">
-            <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Toque no nome dos times</small></button>
+            <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Abra o jogo e ligue a chave</small></button>
             <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
             <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
           </div>
@@ -325,41 +408,23 @@ export default function Futebol() {
               <div className="fb-dia">{d.n}</div>
               {d.js.map(j => (
                 <div className="fb-jogo" key={j.id}>
-                  <div className="fb-info" onClick={() => abrirCriar(j)} title="Criar aposta com este jogo">
+                  <div className="fb-info" onClick={() => abrirJogo(j)} title="Ver todos os palpites">
                     <small>{hora(j.inicio)} · {j.ligaNome}{j.antecipa && <i className="fb-selo" title="Pagamento antecipado">💰 2 gols</i>}</small>
                     <div className="fb-time"><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span></div>
                     <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span></div>
                   </div>
                   <div className="fb-odds">
-                    {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} disabled={impossivel(j, '1x2', e)} onClick={() => criar?.jogo === j.id ? parte(j, '1x2', e) : escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
-                    {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => { setAberto(aberto === j.id ? null : j.id); if (criar?.jogo === j.id) setCriar(null); }}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - 1)}</button>}
+                    {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} onClick={() => escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
+                    {Object.keys(j.odds).filter(k => k !== 'linhas').length > 1 && <button className="fb-mais" onClick={() => abrirJogo(j)}>{'+' + (Object.keys(j.odds).filter(k => k !== 'linhas').length - 1)}</button>}
                   </div>
-                  {j.antecipa && criar?.jogo !== j.id && (() => { const x = bil.find(y => y.jogo === j.id && y.mercado === '1x2' && y.escolha !== 'X'); return x && <div className="fb-antaviso">💰 <b>Pagamento antecipado:</b> se o {x.escolha === '1' ? j.casa : j.fora} abrir <b>2 gols de vantagem</b>, você já ganha, mesmo que o outro time reaja.</div>; })()}
-                  {aberto === j.id && <div className="fb-extra">
-                    <div className="fb-modo">
-                      <button className={criar?.jogo !== j.id ? 'on' : ''} onClick={() => setCriar(null)}>Palpites</button>
-                      <button className={'fb-cria' + (criar?.jogo === j.id ? ' on' : '')} onClick={() => setCriar({ jogo: j.id, partes: [] })}>🧩 Criar aposta<i>NOVO</i></button>
-                    </div>
-                    {criar?.jogo === j.id && <div className="fb-criar">{(() => {
-                      const c = criar.partes.length >= 2 ? oddCombo(criar.partes, j.odds) : null;
-                      return <>
-                        <span>{!criar.partes.length ? 'Escolha de 2 a 6 palpites deste jogo (inclusive o 1 X 2 lá em cima)' : criar.partes.map(p => rotulo(p.mercado, p.escolha, j.casa, j.fora, p.linha)).join(' + ')}</span>
-                        {c?.erro && <em>{c.erro}</em>}
-                        <button disabled={!c || !!c.erro} onClick={() => porCombo(j)}>{c && !c.erro ? `Pôr no bilhete · odd ${f2(c.odd)}` : 'Pôr no bilhete'}</button>
-                      </>;
-                    })()}</div>}
-                    {Object.keys(MERCADOS).filter(m => m !== '1x2' && j.odds[m] && !(criar?.jogo === j.id && FORA_DO_COMBO.includes(m))).map(m => <div key={m} className="fb-merc">
-                      <span>{MERCADOS[m].nome}</span>
-                      <div className={m === 'placar' ? 'fb-grade' : ''}>{opcoes(m, j.odds).map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} disabled={impossivel(j, m, e)} onClick={() => criar?.jogo === j.id ? parte(j, m, e) : escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
-                    </div>)}
-                  </div>}
+                  {j.antecipa && (() => { const x = bil.find(y => y.jogo === j.id && y.mercado === '1x2' && y.escolha !== 'X'); return x && <div className="fb-antaviso">💰 <b>Pagamento antecipado:</b> se o {x.escolha === '1' ? j.casa : j.fora} abrir <b>2 gols de vantagem</b>, você já ganha, mesmo que o outro time reaja.</div>; })()}
                 </div>
               ))}
             </div>)}
           </div>
         </>}</div>
         {bilhete}
-        {bil.length > 0 && !bilAberto && <button className="fb-flut" onClick={() => setBilAberto(true)}>🎟️ {bil.length} · odd {f2(odd)}</button>}
+        {bil.length > 0 && !bilAberto && <button className="fb-flut" onClick={() => setBilAberto(true)}>🎟️ {bil.length} {bil.length === 1 ? 'palpite' : 'palpites'} · odd {f2(odd)} <span style={{ float: 'right' }}>⌃</span></button>}
       </div> : <div className="fb-minhas">
         {!minhas && <div className="fb-vazio">Carregando…</div>}
         {minhas && !minhas.length && <div className="fb-vazio">Você ainda não fez nenhuma aposta no futebol.</div>}
@@ -395,7 +460,7 @@ export default function Futebol() {
           <p>• Vale o resultado dos <b>90 minutos</b> (com acréscimos). Prorrogação e pênaltis não contam.</p>
           <p>• <b>1º tempo</b>: vale o placar do intervalo (paga já no intervalo). <b>Quem marca primeiro</b>: o time do 1º gol nos 90 minutos; "Sem gol" ganha no 0 x 0. <b>Handicap</b>: soma ou tira gols do time (ex.: Flamengo −1,5 precisa ganhar por 2 ou mais). <b>Placar exato</b>: o placar dos 90 minutos.</p>
           <p>• <b>🔴 Ao vivo</b>: aposte com o jogo rolando, com as odds do momento. A aposta leva <b>7 segundos</b> pra ser confirmada: se sair gol, a odd cair ou o mercado travar 🔒 nesse tempo, ela é recusada e as fichas voltam. Não aceita depois dos 85 minutos. Aposta ao vivo fica num bilhete separado e <b>não tem pagamento antecipado</b>. <b>Próximo gol</b>: o time que marcar o próximo gol depois da sua aposta.</p>
-          <p>• <b>🧩 Criar aposta</b>: toque no nome dos times e junte de 2 a 6 palpites do mesmo jogo num só (um de cada tipo; placar exato fica só nos palpites normais). Palpites que não combinam com os já escolhidos ficam apagados. A odd é calculada pra todos acontecerem juntos, por isso é menor que multiplicar. Ganha só se todos acertarem; se um for anulado, o combo inteiro é anulado. Pode entrar numa múltipla com outros jogos.</p>
+          <p>• <b>🧩 Criar aposta</b>: abra o jogo, ligue a chave <b>Criar aposta</b> e junte de 2 a 6 palpites do mesmo jogo num só (um de cada tipo; placar exato fica só nos palpites normais). Palpites que não combinam com os já escolhidos ficam apagados. A odd é calculada pra todos acontecerem juntos, por isso é menor que multiplicar. Ganha só se todos acertarem; se um for anulado, o combo inteiro é anulado. Pode entrar numa múltipla com outros jogos.</p>
           <p>• <b>Escanteios</b> e <b>cartões</b>: total dos dois times no jogo. Nos cartões, amarelo e vermelho contam 1 cada. Jogo com prorrogação anula esses palpites. Esses palpites não têm cash out depois que o jogo começa.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
           <p>• As apostas fecham 1 minuto antes do jogo começar. O resultado é conferido sozinho e o prêmio cai no seu saldo.</p>
@@ -411,6 +476,46 @@ export default function Futebol() {
 .fb-abas{display:flex;background:#0008;border-radius:20px;padding:3px;margin-right:auto;margin-left:6px}
 .fb-abas button{position:relative;border:none;background:none;color:#a7c4b0;font:500 14px Rubik;padding:5px 14px;border-radius:17px;white-space:nowrap}
 .fb-abas button.on{background:#16a34a;color:#fff}
+.fb-pag{padding-bottom:70px}
+.fb-jh{background:linear-gradient(180deg,#14532d,#0b2416);border:1px solid #ffffff1a;border-radius:16px;padding:8px 10px 12px;margin-bottom:8px;text-align:center;position:relative}
+.fb-volta{position:absolute;left:8px;top:6px;border:none;background:#0006;color:#d1fae5;font:500 13px Rubik;border-radius:12px;padding:4px 10px}
+.fb-jh small{display:block;font:400 12px Rubik;color:#a7c4b0;padding:4px 70px 0}
+.fb-jt{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-top:8px}
+.fb-jt>div{display:flex;flex-direction:column;align-items:center;gap:5px;font:600 15px Rubik;color:#fff;min-width:0}
+.fb-jt>div span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-jt .fb-esc{width:46px;height:46px;font-size:20px}
+.fb-jt>b{font:600 16px Rubik;color:#86b39a}
+.fb-mtabs{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:6px;background:#062915;padding:4px 0 6px;margin-bottom:6px}
+.fb-mtab-l{flex:1;min-width:0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.fb-mtab-l::-webkit-scrollbar{display:none}
+.fb-mtab-l button{flex:none;border:none;background:#0007;color:#a7c4b0;font:500 13px Rubik;border-radius:12px;padding:6px 11px}
+.fb-mtab-l button.on{background:#16a34a;color:#fff}
+.fb-sw{flex:none;display:flex;align-items:center;gap:6px;border:none;border-radius:14px;padding:4px 6px 4px 9px;background:linear-gradient(90deg,#a855f7,#6b21a8);color:#fff;animation:fbpulse 1.6s infinite}
+.fb-sw span{font:800 9px Rubik;line-height:1.05;text-align:left;font-style:italic}
+.fb-sw i{position:relative;width:34px;height:20px;border-radius:10px;background:#0006}
+.fb-sw i::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#e9d5ff;transition:left .15s}
+.fb-sw.on{animation:none}.fb-sw.on i{background:#fbbf24}.fb-sw.on i::after{left:16px;background:#fff}
+.fb-caviso{display:flex;gap:8px;align-items:center;background:#2e1065;border:1px solid #c084fc66;border-radius:12px;padding:8px 10px;margin-bottom:8px;font:400 12px Rubik;color:#f3e8ff;line-height:1.35}
+.fb-caviso>i,.t-ca{font-style:normal;font:800 10px Rubik;background:#a855f7;color:#fff;border-radius:6px;padding:2px 5px}
+.fb-caviso>i{font-size:12px;padding:4px 7px}
+.fb-mc{background:#0b2416e6;border:1px solid #ffffff14;border-radius:14px;margin-bottom:7px;overflow:hidden}
+.fb-mc-t{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer}
+.fb-mc-t b{font:500 14px Rubik;color:#fff;margin-right:auto}
+.fb-tags{display:flex;gap:4px}
+.t-co{font-style:normal;font:800 11px Rubik;background:#16a34a;color:#fff;border-radius:6px;padding:1px 6px}
+.fb-mc-t em{font-style:normal;color:#86b39a;width:14px;text-align:center}
+.fb-mc-c{padding:0 9px 9px;display:flex;flex-direction:column;gap:5px}
+.fb-ops{display:grid;gap:5px}.fb-ops.c2{grid-template-columns:1fr 1fr}.fb-ops.c3{grid-template-columns:1fr 1fr 1fr}
+.fb-op{display:flex;align-items:center;justify-content:space-between;gap:6px;border:1px solid #ffffff1a;background:#14321f;color:#d1fae5;border-radius:10px;padding:9px 10px;min-width:0}
+.fb-op span{font:400 13px Rubik;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.fb-op b{font:600 15px Oswald;color:#fbbf24;flex:none}
+.fb-op.on{background:#fbbf24;border-color:#fde68a}.fb-op.on span,.fb-op.on b{color:#1a1300}
+.fb-op:disabled{opacity:.45}.fb-op:disabled b{color:#94a3b8}
+.fb-todos{border:none;background:none;color:#a7f3d0;font:600 12px Rubik;letter-spacing:.5px;padding:6px}
+.fb-cbar{position:sticky;bottom:0;z-index:4;display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#7e22ce,#581c87);border:1px solid #c084fc;border-radius:14px;padding:8px 10px;margin-top:6px;box-shadow:0 -6px 18px #000a;color:#fff;font:500 14px Rubik}
+.fb-cbar span{flex:1;min-width:0}.fb-cbar em{font-style:normal;font-size:12px;color:#fca5a5;display:block}
+.fb-cbar button{flex:none;border:none;border-radius:12px;background:#fbbf24;color:#1a1300;font:700 14px Rubik;padding:9px 12px}
+.fb-cbar button:disabled{opacity:.5}
 .fb-tvivo{display:inline-flex;align-items:center;gap:5px}
 .fb-ponto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 #ef4444;animation:fbvivo 1.2s infinite;vertical-align:middle}
 @keyframes fbvivo{0%{box-shadow:0 0 0 0 #ef4444cc}70%{box-shadow:0 0 0 6px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
@@ -533,7 +638,8 @@ export default function Futebol() {
 .fb-bil{position:fixed;left:0;right:0;bottom:0;max-height:78dvh;z-index:20;border-radius:18px 18px 0 0;transform:translateY(105%);transition:transform .2s}
 .fb-bil.aberto{transform:none}
 .fb-fecha{display:block}
-.fb-flut{display:block;position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:15;border:2px solid #fde68a;border-radius:22px;background:#fbbf24;color:#1a1300;font:700 15px Rubik;padding:9px 18px;box-shadow:0 6px 16px #000a}
+.fb-flut{display:block;position:fixed;left:8px;right:8px;bottom:8px;z-index:15;border:none;border-radius:14px;background:linear-gradient(90deg,#ea580c,#f97316);color:#fff;font:700 16px Rubik;padding:12px 16px;text-align:left;box-shadow:0 6px 16px #000a}
+.fb-cbar{bottom:60px}
 .fb-logo{display:none}
 .fb-top{gap:6px;padding:6px 8px 4px}
 .fb-abas{margin-left:0}
