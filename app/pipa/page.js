@@ -270,7 +270,10 @@ export default function Pipa() {
         if (e.type === 'corte' || e.type === 'caiu') {
           popTxt(e.type === 'corte' ? (e.winner === 0 ? sorteia(['HEEELOOOU!', 'RÉÉÉLO!']) : 'CORTOU!') : 'CAIU!', e.x, e.y);
           if (e.type === 'corte' && e.winner === 0) { som3.grito(sorteia(GRITO_CORTE)); somaTot('cortou'); }
-          if (e.type === 'corte' && e.loser === 0 && e.winner != null) { ultProvoca = performance.now(); som3.grito(sorteia(GRITO_CORTE), { voz: 'outro' }); }
+          if (e.type === 'corte' && e.loser === 0 && e.winner != null) {   // cortaram a sua: ele grita, você responde "parei"
+            ultProvoca = performance.now(); som3.grito(sorteia(['Eeei, tomou réééélo!', 'Heeeeelooooou!', 'Coloca outraaa!']), { voz: 'outro' });
+            setTimeout(() => { if (alive) som3.grito('Pareeei!'); }, 1900);
+          }
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0) && v3) v3.shake(e.loser === 0 ? .2 : .1);
           if (e.type === 'corte' && (e.winner === 0 || e.loser === 0)) try { navigator.vibrate && navigator.vibrate(e.winner === 0 ? [30, 40, 60] : 120); } catch {}
           const quem = names[e.loser], por = e.winner != null ? names[e.winner] : null;
