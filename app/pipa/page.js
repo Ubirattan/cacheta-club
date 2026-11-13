@@ -22,7 +22,7 @@ import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib
 
 // gírias de pipa: o que você grita ao cortar e o que o computador grita quando cruza com você
 // escritas esticadas e com exclamação pra voz sair como grito
-const GRITO_CORTE = ['Rééééééélooooo!', 'Heeeeelooooou!', 'Heeeeelooou! Manda a buuusca!', 'Essa já foooi!', 'Coloca outraaa!'];
+const GRITO_CORTE = ['Rééééééélooooo!', 'Eeei, tomou réééélo!', 'Heeeeelooooou!', 'Heeeeelooou! Manda a buuusca!', 'Essa já foooi!', 'Coloca outraaa!'];
 const GRITO_INICIO = ['Bóóóra!', 'Coloca no aaalto!'];
 const GRITO_CRUZOU = ['Rééééélooo!', 'Vaaaai! Rééélo!'];
 const PROVOCA = ['Vem, medrooosoooo!', 'Manda buuuscaaa!', 'Descarrega, veeeem!', 'Vem, descarreeegaaa!', 'Vem, vem, veeeem!', 'Rééééélooo!', 'Bóóóra!'];
