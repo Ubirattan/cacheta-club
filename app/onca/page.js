@@ -23,7 +23,7 @@ export default function Onca() {
   const router = useRouter();
   const { profile, reloadProfile } = useAuth({ required: !TESTE });
   const local = TESTE && !profile;
-  const [maior, setMaior] = useState(null);
+  const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
   const [som, setSom] = useState(true);
   const [regras, setRegras] = useState(false);
   const [grade, setGrade] = useState([3, 2, 6, 5, 0, 4, 7, 1, 6]);
@@ -45,7 +45,7 @@ export default function Onca() {
   const ocupado = useRef(false), autoRef = useRef(0), testeCoins = useRef(1000), gradeRef = useRef(grade), coinsRef = useRef(null), turboRef = useRef(false), apostaRef = useRef(5);
   autoRef.current = auto; gradeRef.current = grade; coinsRef.current = coins; turboRef.current = turbo; apostaRef.current = aposta;
 
-  useEffect(() => { setSom(soundOn()); try { setMaior(localStorage.getItem('on_18') === '1'); } catch { setMaior(false); } }, []);
+  useEffect(() => { setSom(soundOn()); try { setMaior(true); } catch { setMaior(false); } }, []);
   useEffect(() => { if (profile) setCoins(Number(profile.coins) || 0); else if (local) setCoins(testeCoins.current); }, [profile?.coins, local]); // eslint-disable-line
 
   // rolos descendo: cada coluna é uma fita que desce até parar no resultado

@@ -26,6 +26,7 @@ function Teclado({ onKey, shift, okLabel }) {
 export default function Login() {
   const router = useRouter();
   const [tab, setTab] = useState('entrar');
+  const [maior18, setMaior18] = useState(false);
   const [v, setV] = useState({ nick: '', email: '', pass: '', pass2: '', pix: '' });
   const [err, setErr] = useState(''), [ok, setOk] = useState(''), [busy, setBusy] = useState(false);
   const [kbAuto, setKbAuto] = useState(false), [kbOff, setKbOff] = useState(false);
@@ -72,11 +73,12 @@ export default function Login() {
       if (pass.length < 6) return setErr('A senha precisa ter pelo menos 6 caracteres');
       if (pass !== v.pass2) return setErr('As senhas não são iguais');
       try { normPix(pixTipo, v.pix); } catch (e3) { return setErr(e3.message); }
+      if (!maior18) return setErr('Marque que você tem 18 anos ou mais pra criar a conta');
     } else if (!email || !pass) return setErr('Preencha e-mail e senha');
     setBusy(true);
     try {
       if (tab === 'criar') {
-        const r = await fetch('/api/cadastro', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: v.nick, email, pass, pixTipo, pix: v.pix, ind: (() => { try { return localStorage.getItem('cj_ind') || ''; } catch { return ''; } })() }) });
+        const r = await fetch('/api/cadastro', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nick: v.nick, email, pass, pixTipo, pix: v.pix, maior18: true, ind: (() => { try { return localStorage.getItem('cj_ind') || ''; } catch { return ''; } })() }) });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || 'Não foi possível criar a conta');
         try { localStorage.removeItem('cj_ind'); } catch {}
@@ -130,6 +132,7 @@ export default function Login() {
             type={k === 'email' ? 'email' : k.startsWith('pass') ? 'password' : 'text'}
             autoComplete={k === 'email' ? 'email' : k === 'pass' ? (tab === 'entrar' ? 'current-password' : 'new-password') : k === 'pass2' ? 'new-password' : 'nickname'}
             value={v[k]} onChange={e => set(k, e.target.value)} />)}
+      {tab === 'criar' && <label className="maior18" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, margin: '8px 2px 2px', cursor: 'pointer' }}><input type="checkbox" style={{ width: 20, height: 20, flex: 'none' }} checked={maior18} onChange={e => setMaior18(e.target.checked)} /> Declaro que tenho <b>18 anos ou mais</b></label>}
       {err && <div className="err">{err}</div>}
       {ok && <div className="okmsg">{ok}</div>}
       <button className="go" disabled={busy}>{busy ? 'Aguarde…' : tab === 'entrar' ? 'Entrar' : tab === 'esqueci' ? 'Enviar link de nova senha' : 'Criar conta e jogar'}</button>
@@ -137,7 +140,7 @@ export default function Login() {
       {tab === 'esqueci' && <button type="button" className="forgot" onClick={() => setTab('entrar')}>← Voltar para entrar</button>}
       {!kb && <><div className="or">ou</div>
         <button type="button" className="gbtn" onClick={google}><span style={{ fontWeight: 800, color: '#4285F4' }}>G</span> Entrar com Google</button>
-        <p className="hint" style={{ textAlign: 'center', marginTop: 14 }}>As fichas da Casa de Jogos são virtuais: não valem dinheiro e não podem ser sacadas.</p></>}
+        <p className="hint" style={{ textAlign: 'center', marginTop: 14 }}>Só para maiores de 18 anos: ao criar a conta ou entrar com o Google, você declara ter 18 anos ou mais. As fichas da Casa de Jogos são virtuais: não valem dinheiro e não podem ser sacadas.</p></>}
       {kb && <div className="kblinks"><button type="button" onClick={google}>Entrar com Google</button><button type="button" onClick={() => setKbOff(true)}>Usar teclado do celular</button></div>}
       {!kb && kbAuto && <div className="kblinks"><button type="button" onClick={() => setKbOff(false)}>Usar teclado do jogo</button></div>}
     </form>

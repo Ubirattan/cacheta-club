@@ -38,7 +38,7 @@ export default function Futebol() {
   const { profile, reloadProfile } = useAuth({ required: !TESTE });
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/futebol', b);
-  const [maior, setMaior] = useState(null);
+  const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
   const [aba, setAba] = useState('jogos');
   const [st, setSt] = useState(null);
   const [falha, setFalha] = useState('');
@@ -54,7 +54,7 @@ export default function Futebol() {
   const [bilAberto, setBilAberto] = useState(false);   // celular em pé: bilhete por cima
   const stRef = useRef(null);
 
-  useEffect(() => { try { setMaior(localStorage.getItem('fb_18') === '1'); } catch { setMaior(false); } }, []);
+  useEffect(() => { try { setMaior(true); } catch { setMaior(false); } }, []);
   useEffect(() => { if (profile) setCoins(Number(profile.coins) || 0); }, [profile?.coins]); // eslint-disable-line
   const avisar = (t, bom = false) => { setAviso({ t, bom }); clearTimeout(avisar.t); avisar.t = setTimeout(() => setAviso(null), 2800); };
 

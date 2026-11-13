@@ -21,6 +21,7 @@ export async function POST(req) {
   const nick = String(b.nick || '').trim().slice(0, 16);
   const email = String(b.email || '').trim().toLowerCase();
   const pass = String(b.pass || '');
+  if (b.maior18 !== true) return erro('Só maiores de 18 anos podem criar conta');
   if (nick.length < 2) return erro('Escolha um apelido com pelo menos 2 letras');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 120) return erro('E-mail inválido');
   if (pass.length < 6 || pass.length > 72) return erro('A senha precisa ter de 6 a 72 caracteres');

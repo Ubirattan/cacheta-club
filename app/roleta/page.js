@@ -21,11 +21,11 @@ export default function Roleta() {
   profRef.current = profile;
   const [som, setSom] = useState(true);
   const [regras, setRegras] = useState(false);
-  const [maior, setMaior] = useState(null);       // confirmou que tem 18 anos?
+  const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro       // confirmou que tem 18 anos?
 
   useEffect(() => {
     setSom(soundOn());
-    try { setMaior(localStorage.getItem('rl_18') === '1'); } catch { setMaior(false); }
+    try { setMaior(true); } catch { setMaior(false); }
   }, []);
 
   useEffect(() => {

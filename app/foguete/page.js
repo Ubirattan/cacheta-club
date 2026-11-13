@@ -35,7 +35,7 @@ export default function Foguete() {
   const { profile, reloadProfile } = useAuth({ required: !TESTE });
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/foguete', b);
-  const [maior, setMaior] = useState(null);
+  const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
   const [st, setSt] = useState(null);
   const [som, setSom] = useState(true);
   const [regras, setRegras] = useState(false);
@@ -47,7 +47,7 @@ export default function Foguete() {
   const betsRef = useRef(bets); betsRef.current = bets;
   const busy = useRef({});
 
-  useEffect(() => { setSom(soundOn()); try { setMaior(localStorage.getItem('fg_18') === '1'); } catch { setMaior(false); } }, []);
+  useEffect(() => { setSom(soundOn()); try { setMaior(true); } catch { setMaior(false); } }, []);
   useEffect(() => { if (profile) setCoins(profile.coins || 0); }, [profile?.coins]); // eslint-disable-line
 
   const agora = () => Date.now() + off.current;
