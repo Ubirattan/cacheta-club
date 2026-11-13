@@ -37,7 +37,7 @@ export default function Cacheta() {
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
-        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking')}>🏆 Ranking <small>da semana</small></button>
+        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking?jogo=cacheta')}>🏆 Ranking <small>da semana</small></button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#c084fc,#7e22ce)' }} onClick={() => router.push('/loja#itens')}>✨ Loja <small>baralhos e avatares</small></button>
       </div>
       <div className="modes" style={{ flex: 1, display: 'grid', gap: 'clamp(10px,2vw,22px)', alignContent: 'center', padding: '10px clamp(12px,4vw,48px)' }}>
@@ -54,7 +54,7 @@ export default function Cacheta() {
       </div>
       <div className="footbar">
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
-        <button onClick={() => router.push('/ranking')} title="Ranking">🏆</button>
+        <button onClick={() => router.push('/ranking?jogo=cacheta')} title="Ranking">🏆</button>
         <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
         {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
         <div className="ver">Casa de Jogos · Cacheta</div>

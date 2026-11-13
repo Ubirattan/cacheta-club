@@ -17,7 +17,8 @@ export default function Jogo() {
   const [modal, setModal] = useState(null);
   const J = JOGOS[id];
   if (!J || !J.opcoes) { if (typeof window !== 'undefined') router.replace('/'); return null; }
-  const opcoes = [...J.opcoes, { t: `Loja ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Itens pra usar no jogo', em: '🛒', href: `/loja?jogo=${id}`, g: 'linear-gradient(180deg,#c084fc,#7e22ce 60%,#4c0d8a)' }];
+  const rank = id !== 'roleta' ? [{ t: `Ranking ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Só as partidas online deste jogo', em: '🏆', href: `/ranking?jogo=${id}`, g: 'linear-gradient(180deg,#ffd76a,#c8901c 60%,#7a5208)' }] : [];
+  const opcoes = [...J.opcoes, ...rank, { t: `Loja ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Itens pra usar no jogo', em: '🛒', href: `/loja?jogo=${id}`, g: 'linear-gradient(180deg,#c084fc,#7e22ce 60%,#4c0d8a)' }];
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
@@ -33,7 +34,6 @@ export default function Jogo() {
       </div>
       <div className="cj-acoes" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8, padding: '0 10px 10px' }}>
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking')}>🏆 Ranking <small>da semana</small></button>
       </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       <style>{`
