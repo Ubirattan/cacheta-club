@@ -41,12 +41,10 @@ export default function Home() {
       <div className="cj-acoes">
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
         <button className="buybtn" style={{ background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking')}>🏆 Ranking <small>da semana</small></button>
         <button className="buybtn" style={{ background: 'linear-gradient(180deg,#4ade80,#15803d)' }} onClick={() => profile ? setModal('indique') : router.push('/login')}>🤝 Indique e ganhe <small>10 fichas por amigo</small></button>
       </div>
       <div className="footbar">
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
-        <button onClick={() => router.push('/ranking')} title="Ranking">🏆</button>
         <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
         {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
         <div className="ver">Casa de Jogos · v4.0</div>

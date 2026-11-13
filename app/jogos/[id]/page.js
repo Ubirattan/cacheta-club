@@ -33,7 +33,7 @@ export default function Jogo() {
       </div>
       <div className="cj-acoes" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 8, padding: '0 10px 10px' }}>
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking')}>🏆 Ranking <small>da semana</small></button>
+        {id !== 'roleta' && <button className="buybtn" style={{ background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking?jogo=' + id)}>🏆 Ranking <small>da semana</small></button>}
       </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       <style>{`
