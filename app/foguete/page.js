@@ -204,29 +204,36 @@ export default function Foguete() {
   function painel(slot) {
     const b = bets[slot], minha = st?.minhas.find(m => m.slot === slot && m.status !== 'cancelada');
     let btn;
-    if (minha && minha.status === 'aberta' && fase === 'apostas') btn = <button className="fg-btn red" onClick={() => acao(slot, 'cancelar')}>CANCELAR<small>{minha.valor} fichas</small></button>;
+    if (minha && minha.status === 'aberta' && fase === 'apostas') btn = <button className="fg-btn red" onClick={() => acao(slot, 'cancelar')}>Cancelar<small>{minha.valor} fichas</small></button>;
     else if (minha && minha.status === 'aberta' && fase === 'voando') {
       const autoOk = minha.auto && mAgora >= minha.auto;
       btn = autoOk ? <button className="fg-btn ok" disabled>SACOU {fx(minha.auto)}<small>+{ganhoDe(minha.valor, minha.auto)} fichas</small></button>
-        : <button className="fg-btn orange" onClick={() => acao(slot, 'sacar')}>SACAR<small>{ganhoDe(minha.valor, mAgora)} fichas</small></button>;
+        : <button className="fg-btn orange" onClick={() => acao(slot, 'sacar')}>Sacar<small>{ganhoDe(minha.valor, mAgora)} fichas</small></button>;
     } else if (minha && minha.status === 'sacou') btn = <button className="fg-btn ok" disabled>SACOU {fx(minha.mult)}<small>+{minha.ganho} fichas</small></button>;
-    else if (b.fila) btn = <button className="fg-btn red" onClick={() => setB(slot, 'fila', false)}>CANCELAR<small>esperando a próxima rodada</small></button>;
-    else if (fase === 'apostas') btn = <button className="fg-btn green" onClick={() => acao(slot, 'apostar', { valor: b.valor, auto: b.auto ? b.autoV : null })}>APOSTAR<small>{b.valor} fichas</small></button>;
-    else btn = <button className="fg-btn green" onClick={() => setB(slot, 'fila', true)}>APOSTAR<small>na próxima rodada</small></button>;
+    else if (b.fila) btn = <button className="fg-btn red" onClick={() => setB(slot, 'fila', false)}>Cancelar<small>aguardando</small></button>;
+    else if (fase === 'apostas') btn = <button className="fg-btn green" onClick={() => acao(slot, 'apostar', { valor: b.valor, auto: b.auto ? b.autoV : null })}>Aposta<small>{b.valor} fichas</small></button>;
+    else btn = <button className="fg-btn green" onClick={() => setB(slot, 'fila', true)}>Aposta<small>próxima rodada</small></button>;
     const trava = !!minha && minha.status !== 'perdeu' || b.fila;
+    const aba = b.aba || 'aposta';
     return (
       <div className="fg-painel" key={slot}>
-        <div className="fg-val">
-          <div className="fg-row">
-            <button disabled={trava} onClick={() => setB(slot, 'valor', Math.max(MIN_APOSTA, b.valor - (b.valor > 10 ? 5 : 1)))}>−</button>
-            <input disabled={trava} inputMode="numeric" value={b.valor} onChange={e => setB(slot, 'valor', Math.max(0, Math.min(MAX_APOSTA, Math.floor(Number(e.target.value.replace(/\D/g, '')) || 0))))} onBlur={() => setB(slot, 'valor', Math.max(MIN_APOSTA, b.valor))} />
-            <button disabled={trava} onClick={() => setB(slot, 'valor', Math.min(MAX_APOSTA, b.valor + (b.valor >= 10 ? 5 : 1)))}>+</button>
-          </div>
-          <div className="fg-q">{[10, 20, 50, 100].map(v => <button key={v} disabled={trava} onClick={() => setB(slot, 'valor', v)}>{v}</button>)}</div>
-          <label className="fg-auto"><input type="checkbox" disabled={trava} checked={b.auto} onChange={e => setB(slot, 'auto', e.target.checked)} /> Saque auto
-            <input disabled={trava || !b.auto} inputMode="decimal" value={b.autoV} onChange={e => setB(slot, 'autoV', e.target.value.replace(',', '.'))} onBlur={() => setB(slot, 'autoV', Math.max(1.01, Math.min(MAX_MULT, Number(b.autoV) || 2)).toFixed(2))} />x</label>
+        <div className="fg-abas">
+          <button className={aba === 'aposta' ? 'on' : ''} onClick={() => setB(slot, 'aba', 'aposta')}>Aposta</button>
+          <button className={aba === 'auto' ? 'on' : ''} onClick={() => setB(slot, 'aba', 'auto')}>Auto{b.auto ? ' ✓' : ''}</button>
         </div>
-        {btn}
+        <div className="fg-corpo">
+          <div className="fg-val">
+            <div className="fg-row">
+              <button disabled={trava} onClick={() => setB(slot, 'valor', Math.max(MIN_APOSTA, b.valor - (b.valor > 10 ? 5 : 1)))}>−</button>
+              <input disabled={trava} inputMode="numeric" value={b.valor} onChange={e => setB(slot, 'valor', Math.max(0, Math.min(MAX_APOSTA, Math.floor(Number(e.target.value.replace(/\D/g, '')) || 0))))} onBlur={() => setB(slot, 'valor', Math.max(MIN_APOSTA, b.valor))} />
+              <button disabled={trava} onClick={() => setB(slot, 'valor', Math.min(MAX_APOSTA, b.valor + (b.valor >= 10 ? 5 : 1)))}>+</button>
+            </div>
+            <div className="fg-q">{[10, 20, 50, 100].map(v => <button key={v} disabled={trava} onClick={() => setB(slot, 'valor', v)}>{v}</button>)}</div>
+          </div>
+          {btn}
+        </div>
+        {aba === 'auto' && <label className="fg-auto"><input type="checkbox" disabled={trava} checked={b.auto} onChange={e => setB(slot, 'auto', e.target.checked)} /> Sacar sozinho em
+          <input disabled={trava || !b.auto} inputMode="decimal" value={b.autoV} onChange={e => setB(slot, 'autoV', e.target.value.replace(',', '.'))} onBlur={() => setB(slot, 'autoV', Math.max(1.01, Math.min(MAX_MULT, Number(b.autoV) || 2)).toFixed(2))} />x</label>}
       </div>
     );
   }
@@ -276,39 +283,45 @@ export default function Foguete() {
 .fg-top .rbtn{width:38px;height:38px;font-size:16px}
 .fg-hist{display:flex;gap:6px;overflow:hidden;padding:2px 10px 4px;white-space:nowrap}
 .fg-hist i{font:600 12px Oswald;font-style:normal;background:#0008;border-radius:10px;padding:1px 7px}
-.fg-main{flex:1;min-height:0;display:flex;gap:8px;padding:0 8px 4px}
-.fg-ceu{position:relative;flex:1.3;min-width:0;border-radius:14px;overflow:hidden;border:1px solid #ffffff22}
+.fgp{overflow-y:auto!important}
+.fg-main{display:flex;flex-direction:column;gap:8px;padding:0 8px 6px}
+.fg-ceu{position:relative;flex:none;height:clamp(190px,36vh,360px);border-radius:16px;overflow:hidden;border:1px solid #ffffff22}
 .fg-ceu canvas{position:absolute;inset:0;width:100%;height:100%}
 .fg-aviso{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#000c;border:1px solid #fb923c;border-radius:14px;padding:5px 12px;font:500 14px Oswald;color:#fff;white-space:nowrap;z-index:2}
-.fg-qtd{position:absolute;right:8px;bottom:6px;font:500 12px Rubik;color:#cbd5e1;background:#0008;border-radius:10px;padding:1px 8px}
-.fg-lado{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;min-height:0}
-.fg-paineis{display:flex;gap:6px}
-.fg-painel{flex:1;min-width:0;background:#141a3a;border:1px solid #ffffff1c;border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:6px}
-.fg-val{display:flex;flex-direction:column;gap:4px}
-.fg-row{display:flex;align-items:center;gap:4px}
-.fg-row button{width:30px;height:30px;border-radius:50%;border:none;background:#2a3366;color:#fff;font-size:18px}
-.fg-row input{flex:1;min-width:0;text-align:center;background:#0b1030;border:1px solid #ffffff22;border-radius:8px;color:#fff;font:600 16px Oswald;height:30px}
-.fg-q{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
-.fg-q button{border:none;border-radius:6px;background:#22295a;color:#cbd5e1;font:500 12px Rubik;padding:3px 0}
-.fg-auto{display:flex;align-items:center;gap:4px;font:500 11px Rubik;color:#cbd5e1}
-.fg-auto input[inputmode]{width:46px;background:#0b1030;border:1px solid #ffffff22;border-radius:6px;color:#fff;text-align:center;font:500 12px Rubik;height:22px}
-.fg-btn{border:none;border-radius:12px;color:#fff;font:700 clamp(15px,3.4vmin,20px) Oswald;padding:8px 4px;display:flex;flex-direction:column;align-items:center;line-height:1.1;box-shadow:0 4px 0 #0007}
-.fg-btn small{font:500 12px Rubik;opacity:.95}
-.fg-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #0007}
-.fg-btn.green{background:linear-gradient(180deg,#22c55e,#15803d)}
-.fg-btn.orange{background:linear-gradient(180deg,#fb923c,#c2410c)}
-.fg-btn.red{background:linear-gradient(180deg,#ef4444,#991b1b)}
+.fg-qtd{position:absolute;right:10px;bottom:8px;font:500 13px Rubik;color:#e2e8f0;background:#000a;border-radius:14px;padding:3px 10px}
+.fg-lado{display:flex;flex-direction:column;gap:8px}
+.fg-paineis{display:flex;flex-direction:column;gap:8px}
+@media (orientation:landscape) and (min-width:760px){.fg-paineis{flex-direction:row}.fg-painel{flex:1}}
+.fg-painel{background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px}
+.fg-abas{align-self:center;display:flex;background:#0b0e22;border-radius:20px;padding:3px}
+.fg-abas button{border:none;background:none;color:#94a3b8;font:500 15px Rubik;padding:5px 26px;border-radius:17px}
+.fg-abas button.on{background:#2a3052;color:#fff}
+.fg-corpo{display:flex;gap:12px;align-items:stretch}
+.fg-val{flex:0 0 42%;display:flex;flex-direction:column;gap:6px}
+.fg-row{display:flex;align-items:center;gap:6px;background:#0b0e22;border-radius:22px;padding:4px}
+.fg-row button{width:34px;height:34px;flex:none;border-radius:50%;border:none;background:#2a3052;color:#fff;font-size:20px}
+.fg-row input{flex:1;min-width:0;text-align:center;background:none;border:none;color:#fff;font:700 20px Oswald;height:34px}
+.fg-q{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.fg-q button{border:none;border-radius:14px;background:#0b0e22;color:#cbd5e1;font:500 15px Rubik;padding:7px 0}
+.fg-auto{display:flex;align-items:center;justify-content:center;gap:6px;font:500 14px Rubik;color:#cbd5e1}
+.fg-auto input[type=checkbox]{width:18px;height:18px}
+.fg-auto input[inputmode]{width:64px;background:#0b0e22;border:1px solid #ffffff22;border-radius:10px;color:#fff;text-align:center;font:600 16px Oswald;height:32px}
+.fg-btn{flex:1;border:2px solid #ffffff30;border-radius:20px;color:#fff;font:600 clamp(24px,6.5vw,34px) Rubik;padding:10px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;box-shadow:0 5px 0 #0007;min-height:112px}
+.fg-btn small{font:500 clamp(18px,4.8vw,26px) Rubik;opacity:.97}
+.fg-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #0007}
+.fg-btn.green{background:linear-gradient(180deg,#2bb514,#1c8a0a)}
+.fg-btn.orange{background:linear-gradient(180deg,#fb923c,#d9550c)}
+.fg-btn.red{background:linear-gradient(180deg,#ef4444,#a51b1b)}
 .fg-btn.ok{background:linear-gradient(180deg,#0ea5e9,#0369a1)}
-.fg-lista{flex:1;min-height:0;overflow:auto;background:#0e1330;border:1px solid #ffffff1c;border-radius:12px;padding:4px 6px}
-.fg-lt{display:flex;justify-content:space-between;font:500 12px Rubik;color:#94a3b8;padding:2px 0 4px}
-.fg-li{display:grid;grid-template-columns:1fr 46px 50px 50px;gap:4px;font:500 12px Rubik;color:#e2e8f0;padding:3px 4px;border-radius:6px}
+.fg-lista{background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:8px 10px;min-height:120px}
+.fg-lt{display:flex;justify-content:space-between;font:500 14px Rubik;color:#94a3b8;padding:2px 0 6px}
+.fg-li{display:grid;grid-template-columns:1fr 50px 56px 56px;gap:4px;font:500 13px Rubik;color:#e2e8f0;padding:5px 6px;border-radius:8px}
 .fg-li span:not(:first-child){text-align:right}
 .fg-li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fg-li.win{background:#16a34a33;color:#86efac}
 .fg-li.lost{opacity:.5}
-.fg-vazio{font:500 12px Rubik;color:#64748b;text-align:center;padding:10px}
-.fg-rod{font:400 10px Rubik;color:#64748b;text-align:center;padding:0 0 4px}
-@media (orientation:portrait){.fg-main{flex-direction:column}.fg-ceu{flex:none;height:38vh}.fg-lado{flex:1}}
+.fg-vazio{font:500 13px Rubik;color:#64748b;text-align:center;padding:12px}
+.fg-rod{font:400 10px Rubik;color:#64748b;text-align:center;padding:0 0 8px}
 `}</style>
     </div>
   );
