@@ -9,13 +9,14 @@ import { Modal, Seg, toast } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio, audioCtx } from '../../lib/sfx.js';
-import { W, H, R, POCKETS, NIVEIS, newSinuca, stepSinuca, tacar, colocaBranca, podeColocar, branca, alvos, restantes, grupoDe, primeiraBola, ateTabela, jogadaComputador, computadorColoca } from '../../lib/sinuca.js';
+import { W, H, R, POCKETS, NIVEIS, MODOS, BOLINHO_JOGOS, escolhe, podeEscolher, newSinuca, stepSinuca, tacar, colocaBranca, podeColocar, branca, alvos, restantes, grupoDe, primeiraBola, ateTabela, jogadaComputador, computadorColoca } from '../../lib/sinuca.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱']];
 const RAIL = 46;                 // largura da tabela (madeira) em volta da área de jogo
 const COR = { 1: '#f5c518', 2: '#1d4ed8', 3: '#dc2626', 4: '#6d28d9', 5: '#f97316', 6: '#15803d', 7: '#7f1d1d', 8: '#111' };
-const corBola = n => COR[n > 8 ? n - 8 : n] || '#fff';
+const corBola = n => (n > 200 ? '#facc15' : n > 100 ? '#dc2626' : COR[n > 8 ? n - 8 : n] || '#fff');
+const NOME_MODO = { bola8: 'bola 8', lisa: 'bola lisa', bolinho: 'bolinho' };
 
 /* ---------- sons da mesa (curtinhos, sintetizados) ---------- */
 function toc(v, grave = false) {
@@ -40,7 +41,7 @@ function bola(c, b, s = 1) {
   if (b.n === 0) { c.fillStyle = '#f8f6ee'; c.fillRect(x - r, y - r, r * 2, r * 2); }
   else if (b.n > 8) { c.fillStyle = '#f8f6ee'; c.fillRect(x - r, y - r, r * 2, r * 2); c.fillStyle = corBola(b.n); c.fillRect(x - r, y - r * .55, r * 2, r * 1.1); }
   else { c.fillStyle = corBola(b.n); c.fillRect(x - r, y - r, r * 2, r * 2); }
-  if (b.n) {
+  if (b.n && b.n < 100) {
     c.fillStyle = '#fff'; c.beginPath(); c.arc(x, y, r * .48, 0, 7); c.fill();
     c.fillStyle = '#111'; c.font = `700 ${r * .62}px Rubik, Arial, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(b.n), x, y + r * .04);
   }
@@ -76,6 +77,7 @@ export default function Sinuca() {
   const router = useRouter();
   const { profile, reloadProfile } = useAuth({ required: !TESTE });
   const [level, setLevel] = useState('medio');
+  const [modo, setModo] = useState('bola8');
   const [game, setGame] = useState(null);         // { id, bot, level }
   const [hud, setHud] = useState(null);
   const [msg, setMsg] = useState('');
@@ -85,8 +87,8 @@ export default function Sinuca() {
   const [som, setSom] = useState(true);
   const cvRef = useRef(null), boxRef = useRef(null), barRef = useRef(null);
 
-  useEffect(() => { setSom(soundOn()); try { const l = localStorage.getItem('sn_level'); if (NIVEIS.some(x => x[0] === l)) setLevel(l); } catch {} }, []);
-  useEffect(() => { try { localStorage.setItem('sn_level', level); } catch {} }, [level]);
+  useEffect(() => { setSom(soundOn()); try { const l = localStorage.getItem('sn_level'); if (NIVEIS.some(x => x[0] === l)) setLevel(l); const m = localStorage.getItem('sn_modo'); if (MODOS.some(x => x[0] === m)) setModo(m); } catch {} }, []);
+  useEffect(() => { try { localStorage.setItem('sn_level', level); localStorage.setItem('sn_modo', modo); } catch {} }, [level, modo]);
 
   async function start() {
     if ((!profile && !TESTE) || busy) return;
@@ -94,8 +96,8 @@ export default function Sinuca() {
     unlockAudio(); setBusy(true);
     try {
       if (!TESTE) { await api('/api/treino', { jogo: 'sinuca' }); reloadProfile && reloadProfile(); }
-      setGame({ id: Date.now(), bot: BOTS[(Math.random() * BOTS.length) | 0], level });
-      setMsg('Você começa: arraste na mesa pra mirar e puxe a força pra tacar');
+      setGame({ id: Date.now(), bot: BOTS[(Math.random() * BOTS.length) | 0], level, modo });
+      setMsg(modo === 'lisa' ? 'Você é das VERMELHAS: toque numa bola sua, arraste pra mirar e puxe a força' : 'Você começa: arraste na mesa pra mirar e puxe a força pra tacar');
     } catch (e) { if (/fichas/i.test(e.message)) setSemFichas(true); else toast(e.message); }
     finally { setBusy(false); }
   }
@@ -103,12 +105,12 @@ export default function Sinuca() {
   useEffect(() => {
     if (!game) return;
     const box = boxRef.current, cv = cvRef.current, bar = barRef.current, c = cv.getContext('2d');
-    const S = newSinuca({ level: game.level, names: ['Você', game.bot[0]] });
+    const S = newSinuca({ level: game.level, names: ['Você', game.bot[0]], modo: game.modo });
     let alive = true, raf, acc = 0, last = performance.now(), view = { s: 1, ox: 0, oy: 0, dpr: 1 };
     let ang = 0, forca = 0, puxando = false, arrastaBranca = false, mirando = false;
     let bot = null;   // animação da jogada do computador { t0, de, para, forca }
-    const sync = () => setHud({ turn: S.turn, grupos: [...S.grupos], naMao: S.naMao, phase: S.phase, winner: S.winner,
-      rest: [0, 1].map(p => (S.grupos[p] ? restantes(S, S.grupos[p]) : 7)), caidas: S.balls.filter(b => b.in && b.n).map(b => b.n) });
+    const sync = () => setHud({ modo: S.modo, jogo: S.jogo, placar: [...S.placar], turn: S.turn, grupos: [...S.grupos], naMao: S.naMao, phase: S.phase, winner: S.winner,
+      rest: [0, 1].map(p => (S.grupos[p] ? restantes(S, S.grupos[p]) : 7)), mesa: S.balls.filter(b => !b.in && b.n).map(b => b.n), caidas: S.balls.filter(b => b.in && b.n).map(b => b.n) });
 
     function fit() {
       const r = box.getBoundingClientRect(), dpr = Math.min(2.5, window.devicePixelRatio || 1);
@@ -129,9 +131,10 @@ export default function Sinuca() {
         if (e.type === 'taco') toc(e.forca * 8);
         if (e.type === 'caiu') { toc(6, true); if (e.n === 0) setMsg('A branca caiu!'); }
         if (e.type === 'grupos') setMsg(e.p === 0 ? `Você é das ${e.g.toUpperCase()}` : `${game.bot[0]} é das ${e.g.toUpperCase()} · você é das ${e.g === 'lisas' ? 'LISTRADAS' : 'LISAS'}`);
-        if (e.type === 'falta') { setMsg(`Falta: ${e.motivo}. ${e.p === 0 ? `${game.bot[0]} joga com a bola na mão` : 'Bola na mão: arraste a branca pra onde quiser'}`); sfx('err'); }
+        if (e.type === 'falta') { setMsg(e.semMao ? `${e.motivo}: passou a vez` : `Falta: ${e.motivo}. ${e.p === 0 ? `${game.bot[0]} joga com a bola na mão` : 'Bola na mão: arraste a branca pra onde quiser'}`); sfx('err'); }
         if (e.type === 'vez') setMsg(e.p === 0 ? 'Sua vez' : `Vez do ${game.bot[0]}`);
         if (e.type === 'boa') { setMsg(e.p === 0 ? 'Boa! Joga de novo' : `${game.bot[0]} encaçapou e joga de novo`); if (e.p === 0) sfx('coin'); }
+        if (e.type === 'jogo') { setMsg(`Jogo ${e.jogo}: ${e.winner === 0 ? 'você ganhou' : game.bot[0] + ' ganhou'} (${e.why})`); sfx(e.winner === 0 ? 'coin' : 'err'); }
         if (e.type === 'fim') { setMsg(e.winner === 0 ? `Você ganhou: ${e.why}!` : `${game.bot[0]} ganhou (${e.why})`); setTimeout(() => sfx(e.winner === 0 ? 'win' : 'lose'), 400); }
       }
       if (S.events.length) sync();
@@ -178,6 +181,10 @@ export default function Sinuca() {
         }
       }
       for (const b of S.balls) if (!b.in) bola(c, b);
+      if (S.modo === 'lisa' && S.phase === 'aim' && !cb.in) {   // bola escolhida pra tacar (e as outras que dá pra escolher)
+        S.balls.forEach((b, i) => { if (S.turn === 0 && i !== S.sel && podeEscolher(S, i)) { c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1.5; c.beginPath(); c.arc(b.x, b.y, R + 4, 0, 7); c.stroke(); } });
+        c.strokeStyle = `rgba(255,255,255,${.7 + Math.sin(now / 160) * .3})`; c.lineWidth = 2.5; c.beginPath(); c.arc(cb.x, cb.y, R + 5, 0, 7); c.stroke();
+      }
       // taco
       if (S.phase === 'aim' && !cb.in) {
         const pux = 14 + forca * 120, dx = Math.cos(ang), dy = Math.sin(ang), L = 420;
@@ -209,6 +216,10 @@ export default function Sinuca() {
       const [x, y] = toMesa(e), cb = branca(S);
       try { cv.setPointerCapture(e.pointerId); } catch {}
       if (S.naMao && Math.hypot(x - cb.x, y - cb.y) < R * 3) { arrastaBranca = true; return; }
+      if (S.modo === 'lisa') {   // tocou numa bola sua: ela vira a bola da tacada
+        const i = S.balls.findIndex((b, k) => k !== S.sel && podeEscolher(S, k) && Math.hypot(x - b.x, y - b.y) < R * 2.2);
+        if (i >= 0) { escolhe(S, i); toc(.3); return; }
+      }
       mirando = true; ang = Math.atan2(y - cb.y, x - cb.x);
     }
     function move(e) {
@@ -240,11 +251,13 @@ export default function Sinuca() {
   if (!game) return (
     <div className="page lounge sn-menu">
       <div className="hdr"><button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
-        <div className="sn-logo">SINUCA <small>bola 8</small></div>
+        <div className="sn-logo">SINUCA <small>{NOME_MODO[modo]}</small></div>
         <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a></div>
       <div className="sn-box">
         {TESTE && <p className="hint" style={{ color: '#fbbf24', textAlign: 'center' }}>🧪 MODO TESTE · sem login e sem fichas</p>}
         <div className="sn-prev">{[1, 9, 8, 3, 11].map(n => <span key={n} style={{ background: n > 8 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }}><b>{n}</b></span>)}</div>
+        <Seg label="Modalidade" value={modo} onChange={setModo} options={MODOS} />
+        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Você taca uma bola sua. Quem matar as 5 primeiro ganha.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Faz 3 jogos primeiro, leva.'}</p>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
         <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '1 ficha'}`}</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
@@ -261,23 +274,24 @@ export default function Sinuca() {
 
   /* ------------------------- JOGO ------------------------- */
   const h = hud || { turn: 0, grupos: [null, null], rest: [7, 7], caidas: [], phase: 'aim' };
+  const bolinha = n => <span key={n} className={h.caidas.includes(n) ? 'foi' : ''} style={{ background: n > 8 && n < 100 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }} />;
   const fila = p => {
+    if (h.modo === 'bolinho') return <div className="sn-fila">{Array.from({ length: 3 }, (_, k) => <span key={k} className={k < h.placar[p] ? 'ganho' : 'vazio'} />)}</div>;
     const g = h.grupos[p];
-    const nums = g === 'lisas' ? [1, 2, 3, 4, 5, 6, 7] : g === 'listradas' ? [9, 10, 11, 12, 13, 14, 15] : [];
-    return <div className="sn-fila">{g ? nums.map(n => <span key={n} className={h.caidas.includes(n) ? 'foi' : ''} style={{ background: n > 8 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }} />)
-      : Array.from({ length: 7 }, (_, k) => <span key={k} className="vazio" />)}</div>;
+    const nums = g === 'lisas' ? [1, 2, 3, 4, 5, 6, 7] : g === 'listradas' ? [9, 10, 11, 12, 13, 14, 15] : g === 'verm' ? [101, 102, 103, 104, 105] : g === 'amar' ? [201, 202, 203, 204, 205] : [];
+    return <div className="sn-fila">{g ? nums.map(bolinha) : Array.from({ length: 7 }, (_, k) => <span key={k} className="vazio" />)}</div>;
   };
   const jog = p => (
     <div className={`sn-pl ${h.turn === p && h.phase === 'aim' ? 'vez' : ''} ${p ? 'dir' : ''}`}>
       <span className="av">{p ? game.bot[1] : (profile?.avatar || '😎')}</span>
-      <div><b>{p ? game.bot[0] : 'Você'}{h.grupos[p] ? <small> · {h.grupos[p]}</small> : null}</b>{fila(p)}</div>
+      <div><b>{p ? game.bot[0] : 'Você'}{h.modo === 'bolinho' ? <small> · {h.placar[p]} jogos</small> : h.grupos[p] ? <small> · {({ verm: 'vermelhas', amar: 'amarelas' })[h.grupos[p]] || h.grupos[p]}</small> : null}</b>{fila(p)}</div>
     </div>
   );
   return (
     <div className="page sn">
       <div className="sn-top">
         <button className="rbtn" title="Voltar" onClick={() => { if (h.phase === 'over' || confirm('Sair da partida? A ficha já foi usada.')) setGame(null); }}>↩</button>
-        {jog(0)}<div className="sn-vs">VS</div>{jog(1)}
+        {jog(0)}<div className="sn-vs">{h.modo === 'bolinho' ? <>JOGO<br />{Math.min(h.jogo + 1, BOLINHO_JOGOS)}/{BOLINHO_JOGOS}</> : 'VS'}</div>{jog(1)}
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
       </div>
       <div className="sn-area">
@@ -300,10 +314,12 @@ function Regras({ onClose }) {
       <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
         <p>• <b>Mirar:</b> arraste o dedo na mesa. A linha mostra onde a branca bate e pra onde a bola vai.</p>
         <p>• <b>Tacar:</b> puxe a barra de <b>FORÇA</b> (à esquerda) pra baixo e solte. Quanto mais puxa, mais forte.</p>
-        <p>• <b>Lisas (1 a 7) x listradas (9 a 15):</b> quem encaçapar primeiro depois da saída fica com aquele grupo.</p>
+        <p><b>Bola 8:</b></p><p>• <b>Lisas (1 a 7) x listradas (9 a 15):</b> quem encaçapar primeiro depois da saída fica com aquele grupo.</p>
         <p>• Encaçapou uma bola sua: <b>joga de novo</b>.</p>
         <p>• <b>Falta</b> (branca na caçapa, não encostar em nada ou bater primeiro na bola do outro): o adversário joga com a <b>bola na mão</b> e coloca a branca onde quiser.</p>
         <p>• <b>A 8 é a última.</b> Matou a 8 depois de limpar as suas: ganhou. Matou antes da hora: perdeu.</p>
+        <p><b>Bola lisa:</b> sem a branca. Você é das vermelhas, o computador das amarelas. Toque numa bola sua pra tacar com ela. Encaçapou bola sua: joga de novo. Quem matar as 5 primeiro ganha.</p>
+        <p><b>Bolinho:</b> 3 bolas na mesa por jogo (são 5 jogos com as 15 bolas). Quem matar a última ganha o jogo. Se cegar (não encostar em nenhuma) ou a branca cair, perde o jogo. Quem fizer 3 jogos primeiro leva a partida.</p>
       </div>
       <button className="go" onClick={onClose}>Entendi</button>
     </Modal>
@@ -320,22 +336,25 @@ const CSS = `
 .sn-prev b{width:16px;height:16px;border-radius:50%;background:#fff;color:#111;font:700 10px Rubik,Arial;display:flex;align-items:center;justify-content:center}
 .sn{overflow:hidden;background:radial-gradient(circle at 50% 40%,#1a2433,#06090f)}
 .sn-top{display:flex;align-items:center;gap:8px;padding:6px 10px 2px}
-.sn-pl{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:#000a;border:2px solid #ffffff22;border-radius:30px;padding:3px 10px 3px 3px}
+.sn-pl{flex:1;min-width:0;max-width:340px;display:flex;align-items:center;gap:8px;background:#000a;border:2px solid #ffffff22;border-radius:30px;padding:3px 10px 3px 3px}
 .sn-pl.dir{flex-direction:row-reverse;padding:3px 3px 3px 10px;text-align:right}
 .sn-pl.vez{border-color:var(--gold);box-shadow:0 0 12px #f2c94c88}
 .sn-pl .av{width:34px;height:34px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
-.sn-pl div{min-width:0;display:flex;flex-direction:column;gap:3px}
-.sn-pl.dir div{align-items:flex-end}
+.sn-pl>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.sn-pl.dir>div{align-items:flex-end}
 .sn-pl b{font:500 14px Oswald;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sn-pl b small{color:var(--gold);font-size:12px}
-.sn-fila{display:flex;gap:3px}
+.sn-fila{display:flex;flex-direction:row;gap:3px}
 .sn-fila span{width:12px;height:12px;border-radius:50%;box-shadow:inset -2px -2px 3px #0007}
 .sn-fila span.vazio{background:#ffffff18;box-shadow:none}
 .sn-fila span.foi{opacity:.2}
-.sn-vs{font:700 18px Oswald;color:var(--gold);font-style:italic}
+.sn-fila span.ganho{background:var(--gold);box-shadow:0 0 6px #f2c94c}
+.sn-vs{font:700 18px Oswald;color:var(--gold);font-style:italic;text-align:center;line-height:1}
+.sn-top{justify-content:center}
+.sn-top .rbtn:first-child{margin-right:auto}.sn-top .rbtn:last-child{margin-left:auto}
 .sn-top .rbtn{width:38px;height:38px;font-size:16px;border-width:2px}
 .sn-area{flex:1;min-height:0;display:flex;gap:8px;padding:0 10px}
-.sn-bar{flex:none;width:44px;margin:10px 0;border-radius:22px;border:2px solid #ffffff55;background:linear-gradient(#ef4444,#f59e0b 50%,#22c55e);position:relative;overflow:hidden;touch-action:none;cursor:ns-resize;display:flex;align-items:flex-end;justify-content:center}
+.sn-bar{flex:none;width:40px;max-height:420px;align-self:center;height:80%;margin:10px 0;border-radius:22px;border:2px solid #ffffff55;background:linear-gradient(#ef4444,#f59e0b 50%,#22c55e);position:relative;overflow:hidden;touch-action:none;cursor:ns-resize;display:flex;align-items:flex-end;justify-content:center}
 .sn-bar i{position:absolute;left:0;right:0;top:0;height:0;background:#000b;border-bottom:3px solid #fff;transition:height .03s}
 .sn-bar span{position:relative;writing-mode:vertical-rl;transform:rotate(180deg);font:600 12px Oswald;color:#fff;letter-spacing:2px;margin-bottom:10px;text-shadow:0 1px 2px #000;pointer-events:none}
 .sn-mesa{flex:1;min-width:0;position:relative;touch-action:none}
