@@ -216,7 +216,7 @@ export default function Sinuca() {
   /* ------------------------- MENU ------------------------- */
   if (!game) return (
     <div className="page lounge sn-menu">
-      <div className="hdr"><button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
+      <div className="hdr"><button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/sinuca')}>↩</button>
         <div className="sn-logo">SINUCA <small>{NOME_MODO[modo]}</small></div>
         <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a></div>
       <div className="sn-box">

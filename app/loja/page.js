@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { sb } from '../../lib/supabase-browser.js';
 import Shell from '../../components/Shell.js';
 import { api } from '../../lib/supabase-browser.js';
+import { JOGOS, LOJA_TITULO } from '../../lib/jogos.js';
 import { ITEMS, PACKS, VIP_PERKS, FICHAS_POR_REAL, RECARGA_MIN, RECARGA_MAX, WELCOME } from '../../lib/shop-items.js';
 import { fmt } from '../../lib/modes.js';
 import { toast, Modal } from '../../components/ui.js';
@@ -67,6 +68,7 @@ function Body({ profile, reloadProfile, user }) {
     return () => clearInterval(t);
   }, [pix]); // eslint-disable-line
   if (!profile) return <div className="empty">Carregando…</div>;
+  const jogo = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('jogo') : null;
   const vip = profile.vip_until && new Date(profile.vip_until) > new Date();
   const owned = profile.owned || [], eq = profile.equipped || {};
   async function call(body, okMsg) {
@@ -123,8 +125,11 @@ function Body({ profile, reloadProfile, user }) {
       <ul>{VIP_PERKS.map(p => <li key={p}>{p}</li>)}</ul>
       <button className="go" disabled={busy || profile.coins < vipItem.price} onClick={() => call({ op: 'buy', item: vipItem.id }, 'VIP ativado! 👑')}>{vip ? 'Renovar' : 'Ativar'} 30 dias · 💰 {fmt(vipItem.price)}</button>
     </div>
-    {['avatar', 'pipa', 'back', 'felt'].map(slot => (
-      <div key={slot} id={slot === 'avatar' ? 'itens' : undefined} className="panel"><h3 style={{ fontSize: 20 }}>{slot === 'avatar' ? '✨ Avatares especiais' : slot === 'pipa' ? '🪁 Pipas' : slot === 'back' ? '🂠 Baralhos' : '🟩 Mesas'}</h3>
+    {jogo && JOGOS[jogo] && <div className="panel" style={{ textAlign: 'center', borderColor: 'var(--gold)' }}><h3 style={{ fontSize: 22, margin: 0 }}>{JOGOS[jogo].em || '🔵'} Loja: {JOGOS[jogo].nome}</h3>
+      {(jogo === 'sinuca' || jogo === 'gude') && <p className="hint" style={{ margin: '6px 0 0' }}>Itens próprios {jogo === 'sinuca' ? 'da sinuca (tacos e mesas)' : 'da gude (bolinhas)'} chegando em breve. Por enquanto: avatares.</p>}
+      <button className="sec" style={{ marginTop: 8 }} onClick={() => { location.href = JOGOS[jogo].href; }}>↩ Voltar pro jogo</button></div>}
+    {(jogo && JOGOS[jogo] ? JOGOS[jogo].loja : ['avatar', 'pipa', 'back', 'felt']).map(slot => (
+      <div key={slot} id={slot === 'avatar' ? 'itens' : undefined} className="panel"><h3 style={{ fontSize: 20 }}>{LOJA_TITULO[slot]}</h3>
         <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot && (!i.exclusive || owned.includes(i.id))).map(it => {
           const isEq = slot === 'avatar' ? profile.avatar === it.em : (eq[slot] || (slot === 'back' ? 'back-azul' : slot === 'pipa' ? 'pipa-classica' : 'felt-verde')) === it.id;
           const has = it.price === 0 && !it.vipOnly || owned.includes(it.id) || (it.vipOnly && vip);

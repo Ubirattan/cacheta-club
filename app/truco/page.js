@@ -91,7 +91,7 @@ export default function Truco() {
   /* ------------------------- MENU ------------------------- */
   if (!M || M === 'semfichas') return (
     <div className="page lounge tr-menu">
-      <div className="hdr"><button className="rbtn" onClick={() => router.push('/')}>↩</button>
+      <div className="hdr"><button className="rbtn" onClick={() => router.push('/jogos/truco')}>↩</button>
         <div className="tr-logo">TRUCO <small>paulista</small></div>
         <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a></div>
       <div className="tr-box">

@@ -6,15 +6,10 @@ import { sb } from '../lib/supabase-browser.js';
 import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../components/useAuth.js';
 import { Header } from '../components/ui.js';
+import { JOGOS as J, ORDEM } from '../lib/jogos.js';
+const JOGOS = ORDEM.map(id => ({ id, ...J[id] }));
 import ProfileModal from '../components/ProfileModal.js';
 
-const JOGOS = [
-  { id: 'cacheta', nome: 'Cacheta', sub: 'Online, torneio e contra o computador', em: '🃏', href: '/cacheta', g: 'linear-gradient(160deg,#38b6ff,#1565d8 55%,#0a3fa8)' },
-  { id: 'truco', nome: 'Truco', sub: 'Paulista · 1x1 e duplas', em: '♣️', href: '/truco', g: 'linear-gradient(160deg,#f87171,#c81e3a 55%,#7f0d22)' },
-  { id: 'sinuca', nome: 'Sinuca', sub: 'Bola 8, bola lisa e bolinho', em: '🎱', href: '/sinuca', g: 'linear-gradient(160deg,#4ade80,#15803d 55%,#0b4d25)', novo: true },
-  { id: 'gude', nome: 'Bolinha de gude', sub: 'Triângulo, buraco e mata-mata', em: null, href: '/gude', g: 'linear-gradient(160deg,#a78bfa,#6d28d9 55%,#3b0f80)' },
-  { id: 'pipa', nome: 'Pipa', sub: 'Corta, apara e manda busca', em: '🪁', href: '/pipa', g: 'linear-gradient(160deg,#fbbf24,#ea7a0a 55%,#9a3412)' },
-];
 
 // link de teste do Netlify (deploy-preview-N--...): abre sem login
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
