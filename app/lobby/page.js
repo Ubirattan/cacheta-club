@@ -7,10 +7,10 @@ import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header, Modal, Seg, toast } from '../../components/ui.js';
 import ProfileModal from '../../components/ProfileModal.js';
 import JoinCode from '../../components/JoinCode.js';
-import { MODES, GUDE_ROOMS, SINUCA_ROOMS, TRUCO_ROOMS, isGudeMode, isSinucaMode, isTrucoMode, isMiniMode, is1x1Mode, modeName, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
+import { MODES, GUDE_ROOMS, SINUCA_ROOMS, TRUCO_ROOMS, PIPA_ROOMS, isGudeMode, isSinucaMode, isTrucoMode, isPipaMode, isMiniMode, is1x1Mode, modeName, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
 
-const salaUrl = (id, m) => (isGudeMode(m) ? '/gude/sala/' : isSinucaMode(m) ? '/sinuca/sala/' : isTrucoMode(m) ? '/truco/sala/' : '/sala/') + id;
-const JOGO_ABA = { gude: ['gude-triangulo', isGudeMode], sinuca: ['sinuca-bola8', isSinucaMode], truco: ['truco-1x1', isTrucoMode] };
+const salaUrl = (id, m) => (isGudeMode(m) ? '/gude/sala/' : isSinucaMode(m) ? '/sinuca/sala/' : isTrucoMode(m) ? '/truco/sala/' : isPipaMode(m) ? '/pipa/sala/' : '/sala/') + id;
+const JOGO_ABA = { gude: ['gude-triangulo', isGudeMode], sinuca: ['sinuca-bola8', isSinucaMode], truco: ['truco-1x1', isTrucoMode], pipa: ['pipa-1x1', isPipaMode] };
 
 function CreateRoom({ profile, onClose, gude, jogo }) {
   const router = useRouter();
@@ -30,10 +30,11 @@ function CreateRoom({ profile, onClose, gude, jogo }) {
       <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />
       <Seg label="Bolinha de gude (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(GUDE_ROOMS).map(([k, m]) => [k, m.name.replace('Gude · ', '')])} />
       <Seg label="Truco paulista" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(TRUCO_ROOMS).map(([k, m]) => [k, m.name.replace('Truco · ', '')])} />
+      <Seg label="Pipa (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(PIPA_ROOMS).map(([k, m]) => [k, m.name.replace('Pipa · ', '')])} />
       <Seg label="Sinuca (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(SINUCA_ROOMS).map(([k, m]) => [k, m.name.replace('Sinuca · ', '')])} />
       {!isMiniMode(f.mode) && <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />}
       <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).filter(e => !isMiniMode(f.mode) || e >= 2).map(e => [e, fmt(e)])} />
-      {isMiniMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>{isTrucoMode(f.mode) ? (f.mode === 'truco-duplas' ? 'Truco em duplas: 4 jogadores, a mesa começa cheia. Cada um da dupla vencedora leva o mesmo prêmio.' : 'Truco 1 contra 1') : isSinucaMode(f.mode) ? 'Sinuca é sempre 1 contra 1' : 'Gude é sempre 1 contra 1'}, entrada mínima de 2 fichas. Quem ganha leva {fmt(premioOnline(+f.entry || 0))}{taxaPct(+f.entry || 0) ? ` (a casa fica com ${taxaPct(+f.entry || 0)}% do pote)` : ' (a entrada dele + metade da do outro; o resto fica pra casa)'}. Até 10 fichas: metade da entrada do outro fica pra casa · acima de 10: 10% do pote · acima de 100: 20%.</div>
+      {isMiniMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>{isTrucoMode(f.mode) ? (f.mode === 'truco-duplas' ? 'Truco em duplas: 4 jogadores, a mesa começa cheia. Cada um da dupla vencedora leva o mesmo prêmio.' : 'Truco 1 contra 1') : isSinucaMode(f.mode) ? 'Sinuca é sempre 1 contra 1' : isPipaMode(f.mode) ? 'Pipa online é 1 contra 1' : 'Gude é sempre 1 contra 1'}, entrada mínima de 2 fichas. Quem ganha leva {fmt(premioOnline(+f.entry || 0))}{taxaPct(+f.entry || 0) ? ` (a casa fica com ${taxaPct(+f.entry || 0)}% do pote)` : ' (a entrada dele + metade da do outro; o resto fica pra casa)'}. Até 10 fichas: metade da entrada do outro fica pra casa · acima de 10: 10% do pote · acima de 100: 20%.</div>
         : <Seg label="Pontos" value={f.points} onChange={v => set('points', v)} options={POINTS.map(p => [p, String(p)])} />}
       <Seg label="Tempo por jogada" value={f.turnSeconds} onChange={v => set('turnSeconds', v)} options={TURN_SECONDS.map(t => [t, t + ' s'])} />
       <Seg label="Tipo de sala" value={f.isPrivate} onChange={v => set('isPrivate', v)} options={[[false, '🌐 Pública'], [true, '🔒 Privada']]} />
@@ -52,7 +53,7 @@ export default function Lobby() {
   const online = useOnline(user, profile, 'lobby');
   const [rooms, setRooms] = useState(null);
   const [mode, setMode] = useState('todas');
-  useEffect(() => { try { const j = new URLSearchParams(location.search).get('jogo'); if (j === 'gude' || j === 'sinuca' || j === 'truco') setMode(j); } catch {} }, []);
+  useEffect(() => { try { const j = new URLSearchParams(location.search).get('jogo'); if (j === 'gude' || j === 'sinuca' || j === 'truco' || j === 'pipa') setMode(j); } catch {} }, []);
   const [filt, setFilt] = useState({ waiting: true, playing: true, priv: true });
   const [modal, setModal] = useState(null);
   const tRef = useRef(null);
@@ -76,7 +77,7 @@ export default function Lobby() {
     return () => { sb().removeChannel(ch); clearTimeout(tRef.current); clearInterval(tk); clearInterval(lp); };
   }, [user, load]);
 
-  const list = (rooms || []).filter(r => !r.tournament_id && r.status !== 'closed' && (mode === 'todas' || r.mode === mode || (mode === 'gude' && isGudeMode(r.mode)) || (mode === 'sinuca' && isSinucaMode(r.mode)) || (mode === 'truco' && isTrucoMode(r.mode)))
+  const list = (rooms || []).filter(r => !r.tournament_id && r.status !== 'closed' && (mode === 'todas' || r.mode === mode || (mode === 'gude' && isGudeMode(r.mode)) || (mode === 'sinuca' && isSinucaMode(r.mode)) || (mode === 'truco' && isTrucoMode(r.mode)) || (mode === 'pipa' && isPipaMode(r.mode)))
     && (r.status === 'waiting' ? filt.waiting : filt.playing) && (!r.is_private || filt.priv));
 
   async function sit(r) {
@@ -98,7 +99,7 @@ export default function Lobby() {
       <Header profile={profile} onProfile={() => setModal('perfil')}
         right={<><button className="online" onClick={() => setModal('online')}><i />{online.length} online</button><button className="rbtn" onClick={() => router.push('/')}>↩</button></>} />
       <div className="tabs">
-        {[['todas', 'Todas'], ...Object.entries(MODES).map(([k, m]) => [k, m.name]), ['truco', '♣️ Truco'], ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca']].map(([k, t]) =>
+        {[['todas', 'Todas'], ...Object.entries(MODES).map(([k, m]) => [k, m.name]), ['truco', '♣️ Truco'], ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca'], ['pipa', '🪁 Pipa']].map(([k, t]) =>
           <button key={k} className={mode === k ? 'on' : ''} onClick={() => setMode(k)}>{t}</button>)}
       </div>
       <div className="lobbar">
