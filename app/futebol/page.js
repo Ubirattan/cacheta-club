@@ -263,15 +263,17 @@ export default function Futebol() {
 
   function abrirJogo(j) { setJogoAberto(j.id); setAbaM('principais'); setTodos({}); }
   function fecharJogo() { setJogoAberto(null); setCriar(c => c?.partes?.length ? c : null); }   // Criar aposta começado fica guardado
-  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
-    ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
-    ['todos', 'Todos', ['1x2', 'dc', 'gols', 'ambos', 'ht', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
+  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dnb', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
+    ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht', 'htft']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
+    ['todos', 'Todos', ['1x2', 'dnb', 'dc', 'gols', 'ambos', 'ht', 'htft', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
   const nl = l => String(l).replace('.', ',');
   const sn = l => (l > 0 ? '+' : '') + nl(l);
   const curtoNome = n => n.length > 12 ? n.slice(0, 11) + '.' : n;
   function nomeOp(j, m, e, l) {
     if (m === '1x2' || m === 'ht') return e;
     if (m === 'dc') return ({ '1X': '1 ou empate', '12': '1 ou 2', X2: '2 ou empate' })[e];
+    if (m === 'dnb') return curtoNome(e === 'casa' ? j.casa : j.fora);
+    if (m === 'htft') return e.replace('/', ' / ');
     if (m === 'ambos') return e === 'sim' ? 'Sim' : 'Não';
     if (m === 'primeiro') return e === 'casa' ? curtoNome(j.casa) : e === 'fora' ? curtoNome(j.fora) : 'Sem gol';
     if (m === 'placar') return e.replace(':', ' x ');
@@ -323,7 +325,7 @@ export default function Futebol() {
           </div>
           {!fechado && <div className="fb-mc-c">
             {comL ? linhasVer.map(([l, par]) => <div key={l} className="fb-ops c2">{ops.map(e => botao(j, m, e, l, par[e]))}</div>)
-              : <div className={'fb-ops c' + (m === 'placar' ? 3 : ops.length)}>{ops.map(e => botao(j, m, e, null, j.odds[m][e]))}</div>}
+              : <div className={'fb-ops c' + (m === 'placar' || m === 'htft' ? 3 : ops.length)}>{ops.map(e => botao(j, m, e, null, j.odds[m][e]))}</div>}
             {comL && ls.length > 1 && <button className="fb-todos" onClick={() => setTodos(t => ({ ...t, [m]: !t[m] }))}>{todos[m] ? 'MOSTRAR MENOS ⌃' : `MOSTRAR TODOS (${ls.length}) ⌄`}</button>}
           </div>}
         </div>;

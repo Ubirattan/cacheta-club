@@ -440,3 +440,30 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.equal(temAntecipa({ liga: 71 }), true, 'Brasileirão com antecipado');
   console.log('OK — futebol: pagamento antecipado só em competições oficiais');
 }
+
+// Intervalo/Final e Empate anula aposta
+{
+const F = await import('../lib/futebol.js');
+const bk = { id: 8, bets: [
+  { id: 1, name: 'Match Winner', values: [{ value: 'Home', odd: '2.10' }, { value: 'Draw', odd: '3.30' }, { value: 'Away', odd: '3.50' }] },
+  { id: 2, name: 'Home/Away', values: [{ value: 'Home', odd: '1.50' }, { value: 'Away', odd: '2.50' }] },
+  { id: 7, name: 'HT/FT Double', values: ['Home/Home:3.5','Home/Draw:15','Home/Away:29','Draw/Home:5','Draw/Draw:5.2','Draw/Away:7.5','Away/Home:26','Away/Draw:15','Away/Away:6'].map(x => { const [v, o] = x.split(':'); return { value: v, odd: o }; }) },
+] };
+const odds = F.lerOdds({ bookmakers: [bk] });
+assert.deepEqual(odds.dnb, { casa: 1.5, fora: 2.5 }); assert.equal(odds.htft['X/1'], 5);
+const j = (st, ht, ft) => ({ status: st, ht_casa: ht[0], ht_fora: ht[1], gols_casa: ft?.[0], gols_fora: ft?.[1], ao_vivo_casa: (ft||ht)[0], ao_vivo_fora: (ft||ht)[1], minuto: 50, odds, atualizado: new Date().toISOString(), inicio: new Date().toISOString() });
+assert.equal(F.situacao({ mercado: 'htft', escolha: 'X/1' }, j('FT', [0, 0], [2, 1])), 'ganhou');
+assert.equal(F.situacao({ mercado: 'htft', escolha: 'X/1' }, j('2H', [1, 0])), 'perdeu', 'perde no intervalo');
+assert.equal(F.situacao({ mercado: 'htft', escolha: 'X/1' }, j('2H', [0, 0])), null);
+assert.equal(F.situacao({ mercado: 'htft', escolha: '1/1' }, j('FT', [1, 0], [1, 1])), 'perdeu');
+assert.equal(F.situacao({ mercado: 'dnb', escolha: 'casa' }, j('FT', [0, 0], [1, 1])), 'anulada');
+assert.equal(F.situacao({ mercado: 'dnb', escolha: 'casa' }, j('FT', [0, 0], [2, 1])), 'ganhou');
+assert.equal(F.situacao({ mercado: 'dnb', escolha: 'fora' }, j('FT', [0, 0], [2, 1])), 'perdeu');
+const c1 = F.chance({ mercado: 'htft', escolha: 'X/1' }, { status: 'NS', odds }); assert.ok(c1 > 0.05 && c1 < 0.4, c1);
+const c2 = F.chance({ mercado: 'dnb', escolha: 'casa', odd: 1.5 }, { status: 'NS', odds }); assert.ok(c2 > 0.4 && c2 < 0.9, c2);
+const cb = F.oddCombo([{ mercado: 'htft', escolha: 'X/1' }, { mercado: '1x2', escolha: '1' }], odds); assert.ok(cb.odd >= 5, JSON.stringify(cb));
+assert.match(F.oddCombo([{ mercado: 'dnb', escolha: 'casa' }, { mercado: 'htft', escolha: '1/1' }], odds).erro, /Empate anula/);
+assert.equal(F.rotulo('htft', 'X/1', 'Flamengo', 'Vasco'), 'Intervalo/Final: Empate / Flamengo');
+assert.equal(F.rotulo('dnb', 'fora', 'Flamengo', 'Vasco'), 'Vasco (empate devolve)');
+console.log('OK — futebol: Intervalo/Final e Empate anula aposta');
+}
