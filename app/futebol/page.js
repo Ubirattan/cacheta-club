@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, COM_LINHA, linhaPrincipal, oddDe, todasLinhas, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
+import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, COM_LINHA, linhaPrincipal, oddDe, todasLinhas, redundante, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
 import { criarTeste } from '../../lib/futebol-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -173,8 +173,9 @@ export default function Futebol() {
     const linha = lin(j, m, l);
     const mesmo = criar.partes.find(p => p.mercado === m);
     if (mesmo) return !(mesmo.escolha === e && igualL(mesmo.linha ?? null, linha));
-    const c = oddCombo([...criar.partes, { mercado: m, escolha: e, ...(linha != null ? { linha } : {}) }], j.odds);
-    return !!c.erro && /impossível/.test(c.erro);
+    const nova = { mercado: m, escolha: e, ...(linha != null ? { linha } : {}) };
+    const c = oddCombo([...criar.partes, nova], j.odds);
+    return (!!c.erro && /impossível/.test(c.erro)) || redundante(criar.partes, nova, j.odds);
   }
   const impossivel = travado;
   function abrirCriar(j) { setJogoAberto(j.id); setCriar({ jogo: j.id, partes: [] }); }
@@ -290,7 +291,7 @@ export default function Futebol() {
         <div className="fb-mtab-l">{grupos.map(x => <button key={x[0]} className={g?.[0] === x[0] ? 'on' : ''} onClick={() => setAbaM(x[0])}>{x[1]}</button>)}</div>
         <button className={'fb-sw' + (ca ? ' on' : '')} onClick={() => setCriar(ca ? null : { jogo: j.id, partes: [] })}><span>CRIAR<br />APOSTA</span><i /></button>
       </div>
-      {ca && <div className="fb-caviso"><i>CA</i><span>Combine palpites do mesmo jogo! Com o <b>Criar aposta</b> ligado, junte de 2 a 6 palpites deste jogo. Os que não combinam ficam com 🔒.</span></div>}
+      {ca && <div className="fb-caviso"><i>CA</i><span>Combine palpites do mesmo jogo! Com o <b>Criar aposta</b> ligado, junte de 2 a 6 palpites deste jogo. Os que não combinam ou não mudam nada (como “1” junto com “1 ou empate”) ficam com 🔒.</span></div>}
       {xAnt && <div className="fb-antaviso">💰 <b>Pagamento antecipado:</b> se o {xAnt.escolha === '1' ? j.casa : j.fora} abrir <b>2 gols de vantagem</b>, você já ganha, mesmo que o outro time reaja.</div>}
       {g && g[2].filter(tem).map(m => {
         const fechado = fechados[m], comL = COM_LINHA.includes(m), ls = comL ? todasLinhas(j.odds, m) : [];
