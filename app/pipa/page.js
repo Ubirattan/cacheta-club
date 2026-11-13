@@ -24,9 +24,11 @@ import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib
 // escritas esticadas e com exclamação pra voz sair como grito
 const GRITO_CORTE = ['Rééééééélooooo!', 'Eeei, tomou réééélo!', 'Heeeeelooooou!', 'Heeeeelooou! Manda a buuusca!', 'Essa já foooi!', 'Coloca outraaa!'];
 const GRITO_INICIO = ['Bóóóra!', 'Coloca no aaalto!'];
-const GRITO_CRUZOU = ['Rééééélooo!', 'Vaaaai! Rééélo!'];
+const GRITO_CRUZOU = ['Rééééélooo!', 'Vaaaai! Rééélo!', 'Bóóóra!', 'Manda a buuusca!'];
 const PROVOCA = ['Vem, medrooosoooo!', 'Manda buuuscaaa!', 'Descarrega, veeeem!', 'Vem, descarreeegaaa!', 'Vem, vem, veeeem!', 'Rééééélooo!', 'Bóóóra!'];
 const sorteia = l => l[(Math.random() * l.length) | 0];
+// sorteia de preferência uma frase que tem a voz gravada
+const sorteiaVoz = (l, som) => { const g = som ? l.filter(t => som.tem(t)) : []; return sorteia(g.length ? g : l); };
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
 const PIPAS = ITEMS.filter(i => i.slot === 'pipa');
@@ -256,20 +258,20 @@ export default function Pipa() {
     function popTxt(t, x, y) { if (v3) v3.pop(t, x, y); else fx.push({ x, y: y - 30, life: 1, t }); }
     function events() {
       for (const e of G.events) {
-        if (e.type === 'go' && Math.random() < .6) som3.grito(sorteia(GRITO_INICIO));
+        if (e.type === 'go' && Math.random() < .6) som3.grito(sorteiaVoz(GRITO_INICIO, som3));
         if (e.type === 'go') setMsg(game.n > 2 ? 'Já! Corte todo mundo e seja o último no céu' : 'Já! Cruze a linha e puxe pra cortar');
         if (e.type === 'cruzou' && (e.a === 0 || e.b === 0)) {
           sfx('tick'); try { navigator.vibrate && navigator.vibrate(15); } catch {}
           const quem = e.a === 0 ? e.b : e.a, agora = performance.now();
           if (agora - ultProvoca > 5000 && Math.random() < .8) {   // alguém grita (no máximo a cada 5 s): o computador provoca ou você grita "réééélo"
             ultProvoca = agora;
-            if (Math.random() < .55) { const f = sorteia(PROVOCA); som3.grito(f, { voz: 'outro' }); setMsg(`🗣 ${names[quem]}: "${f}"`); }
-            else { const f = sorteia(GRITO_CRUZOU); som3.grito(f); setMsg(`🗣 Você: "${f}"`); }
+            if (Math.random() < .55) { const f = sorteiaVoz(PROVOCA, som3); som3.grito(f, { voz: 'outro' }); setMsg(`🗣 ${names[quem]}: "${f}"`); }
+            else { const f = sorteiaVoz(GRITO_CRUZOU, som3); som3.grito(f); setMsg(`🗣 Você: "${f}"`); }
           }
         }
         if (e.type === 'corte' || e.type === 'caiu') {
           popTxt(e.type === 'corte' ? (e.winner === 0 ? sorteia(['HEEELOOOU!', 'RÉÉÉLO!']) : 'CORTOU!') : 'CAIU!', e.x, e.y);
-          if (e.type === 'corte' && e.winner === 0) { som3.grito(sorteia(GRITO_CORTE)); somaTot('cortou'); }
+          if (e.type === 'corte' && e.winner === 0) { som3.grito(sorteiaVoz(GRITO_CORTE, som3)); somaTot('cortou'); }
           if (e.type === 'corte' && e.loser === 0 && e.winner != null) {   // cortaram a sua: ele grita, você responde "parei"
             ultProvoca = performance.now(); som3.grito(sorteia(['Eeei, tomou réééélo!', 'Heeeeelooooou!', 'Coloca outraaa!']), { voz: 'outro' });
             setTimeout(() => { if (alive) som3.grito('Pareeei!'); }, 1900);
@@ -450,6 +452,7 @@ export default function Pipa() {
           <Seg label="Pipas no céu" value={quantas} onChange={setQuantas} options={QUANTAS} />
           <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
           <div className="pp-row">
+            <button className="sec" onClick={() => { try { const a = new Audio('/pipa-voz/helou.mp3'); a.play().catch(() => toast('O celular bloqueou o som. Confira o volume e o modo silencioso.')); } catch {} }}>🔊 Testar voz</button>
             <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
             <button className="sec" onClick={() => { const v = !modo3d; setModo3d(v); try { localStorage.setItem('pp_2d', v ? '0' : '1'); } catch {} }}>{modo3d ? '🎥 Visão 3D' : '🖼 Visão 2D'}</button>
           </div>
