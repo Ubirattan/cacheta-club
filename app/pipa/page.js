@@ -147,6 +147,7 @@ export default function Pipa() {
   const [cen, setCen] = useState(CENARIO_PADRAO);
   const [lin, setLin] = useState('chilena');
   const [pele, setPele] = useState(1);
+  const [cam, setCam] = useState('3d');
   const [escolha, setEscolha] = useState(null);     // pipa tocada (pra usar já, antes do perfil recarregar)
   const [comprar, setComprar] = useState(null);     // pipa bloqueada que o jogador quer comprar
   const [modo3d, setModo3d] = useState(true);       // false = tela 2D (escolha do jogador ou 3D não abriu)
@@ -186,11 +187,12 @@ export default function Pipa() {
       const q = +localStorage.getItem('pp_n'); if (QUANTAS.some(x => x[0] === q)) setQuantas(q);
       const c = localStorage.getItem('pp_cen'); if (CENARIOS.some(x => x.id === c)) setCen(c);
       const li = localStorage.getItem('pp_linha'); if (LINHAS.some(x => x.id === li)) setLin(li);
+      const cm = localStorage.getItem('pp_cam'); if (cm === 'reta' || cm === '3d') setCam(cm);
       const pl = +localStorage.getItem('pp_pele'); if (pl >= 0 && pl < PELES.length) setPele(pl);
       if (localStorage.getItem('pp_2d') === '1') setModo3d(false);
     } catch {}
   }, []);
-  useEffect(() => { try { localStorage.setItem('pp_level', level); localStorage.setItem('pp_n', String(quantas)); localStorage.setItem('pp_cen', cen); localStorage.setItem('pp_linha', lin); localStorage.setItem('pp_pele', String(pele)); } catch {} }, [level, quantas, cen, lin, pele]);
+  useEffect(() => { try { localStorage.setItem('pp_level', level); localStorage.setItem('pp_n', String(quantas)); localStorage.setItem('pp_cen', cen); localStorage.setItem('pp_linha', lin); localStorage.setItem('pp_pele', String(pele)); localStorage.setItem('pp_cam', cam); } catch {} }, [level, quantas, cen, lin, pele, cam]);
 
   async function start() {
     if ((!profile && !TESTE) || busy) return;
@@ -201,7 +203,7 @@ export default function Pipa() {
       if (!TESTE) await api('/api/treino', { jogo: 'pipa' });
       reloadProfile && reloadProfile();
       const pool = [...BOTS].sort(() => Math.random() - .5), n = quantas;
-      setGame({ id: Date.now(), bots: pool.slice(0, n - 1), level, n, cen, lin, pele, night: cen === 'noite', models: [minha, ...modelosBots(minha, n - 1)] });
+      setGame({ id: Date.now(), bots: pool.slice(0, n - 1), level, n, cen, lin, pele, cam, night: cen === 'noite', models: [minha, ...modelosBots(minha, n - 1)] });
       setMsg('Toque nos lados pra esquerda/direita · arraste pra subir/descer');
     } catch (e) { if (/fichas/i.test(e.message)) setSemFichas(true); else toast(e.message); }
     finally { setBusy(false); }
@@ -239,7 +241,7 @@ export default function Pipa() {
     if (usar3d) loadThree().then(THREE => {
       if (!alive) return;
       const fotos = { fundo: foto('rua-fundo.jpg', () => v3 && v3.setFoto({ fundo: foto('rua-fundo.jpg') })), chao: foto('rua-chao.jpg', () => v3 && v3.setFoto({ chao: foto('rua-chao.jpg') })) };
-      try { v3 = createPipa3D({ THREE, box, models: game.models, cenario: game.cen, linha: game.lin, pele: game.pele, foto: fotos }); }
+      try { v3 = createPipa3D({ THREE, box, models: game.models, cenario: game.cen, linha: game.lin, pele: game.pele, cam: game.cam, foto: fotos }); }
       catch (e) { console.error('pipa 3D', e); v3 = null; cv.style.visibility = 'visible'; }
     }).catch(() => { cv.style.visibility = 'visible'; });
 
@@ -423,6 +425,7 @@ export default function Pipa() {
             {PELES.map((c, i) => <button key={c} className={`pp-pele ${pele === i ? 'on' : ''}`} style={{ background: c }} onClick={() => setPele(i)} />)}
           </div>
           <h3>Partida</h3>
+          <Seg label="Câmera" value={cam} onChange={setCam} options={[['3d', '🎥 3D (de baixo)'], ['reta', '🖼 Reta']]} />
           <Seg label="Pipas no céu" value={quantas} onChange={setQuantas} options={QUANTAS} />
           <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
           <div className="pp-row">
@@ -579,7 +582,7 @@ const CSS = `
 .pp-puxa.on{background:radial-gradient(circle at 40% 30%,#fca5a5,#dc2626);transform:translateY(3px);box-shadow:0 1px 0 #000a}
 .pp-desc b{font:600 8.5px Oswald;letter-spacing:.3px;margin-top:3px}
 .pp-desc.on{background:radial-gradient(circle at 40% 30%,#fcd34d,#d97706);border-color:#fde68a;color:#000;transform:translateY(3px);box-shadow:0 1px 0 #000a}
-.pp-cnt{position:absolute;left:50%;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom));z-index:4;display:flex;gap:6px;pointer-events:none}
+.pp-cnt{position:absolute;right:max(10px,env(safe-area-inset-right));top:clamp(52px,12vh,64px);z-index:4;display:flex;gap:6px;pointer-events:none}
 .pp-cnt span{display:flex;flex-direction:column;align-items:center;background:#000a;border:1.5px solid #fff8;border-radius:8px;padding:2px 8px;color:#fff;min-width:46px}
 .pp-cnt small{font:600 9px Oswald;letter-spacing:.5px;opacity:.85}.pp-cnt b{font:700 17px Oswald;line-height:1.1}
 .pp-tot{font:500 13px Oswald;color:#fff;background:#0007;border-radius:12px;padding:3px 10px;text-shadow:0 1px 2px #000}
