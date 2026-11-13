@@ -407,3 +407,48 @@ drop policy if exists "vê as próprias indicações" on public.indicacoes;
 create policy "vê as próprias indicações" on public.indicacoes for select to authenticated using (indicador = auth.uid());
 -- gravação só pelo servidor
 revoke insert, update, delete on public.indicacoes from authenticated, anon;
+
+-- Foguetinho (jogo ao vivo): rodadas e apostas. Só o servidor lê e grava (o celular pergunta pela API).
+create table if not exists public.foguete_rodadas (
+  id         bigserial primary key,
+  num        bigint not null unique,
+  crash      numeric(8,2) not null,
+  start_at   timestamptz not null,
+  end_at     timestamptz not null,
+  status     text not null default 'aberta' check (status in ('aberta','fechada')),
+  created_at timestamptz not null default now()
+);
+create index if not exists foguete_rodadas_status on public.foguete_rodadas (status);
+create table if not exists public.foguete_apostas (
+  id         bigserial primary key,
+  rodada     bigint not null references public.foguete_rodadas(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  slot       smallint not null check (slot in (1,2)),
+  valor      integer not null check (valor > 0),
+  auto       numeric(8,2),
+  status     text not null default 'aberta' check (status in ('aberta','sacou','perdeu','cancelada')),
+  mult       numeric(8,2),
+  ganho      integer not null default 0,
+  nick       text,
+  avatar     text,
+  created_at timestamptz not null default now(),
+  unique (rodada, user_id, slot)
+);
+create index if not exists foguete_apostas_rodada on public.foguete_apostas (rodada, status);
+alter table public.foguete_rodadas enable row level security;
+alter table public.foguete_apostas enable row level security;
+revoke all on public.foguete_rodadas, public.foguete_apostas from authenticated, anon;
+
+-- Fichas com centavos (o Foguetinho paga 1 × 1,57 = 1,57 fichas)
+alter table public.profiles alter column coins type numeric(14,2);
+drop function if exists public.adjust_profile(uuid,int,int,int);
+drop function if exists public.adjust_profile(uuid,int,int,int,int);
+create or replace function public.adjust_profile(p_uid uuid, p_coins numeric, p_games int, p_wins int, p_points int default 0)
+returns numeric language sql security definer set search_path = public as $$
+  update public.profiles
+     set coins = coins + p_coins, games = games + p_games, wins = wins + p_wins, rank_points = rank_points + p_points
+   where id = p_uid and coins + p_coins >= 0
+  returning coins;
+$$;
+revoke execute on function public.adjust_profile(uuid,numeric,int,int,int) from public, anon, authenticated;
+alter table if exists public.foguete_apostas alter column ganho type numeric(12,2);
