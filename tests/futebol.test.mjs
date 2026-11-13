@@ -337,7 +337,7 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   let chamadasVivo = [];
   usarApi(async (c, p) => {
     chamadasVivo.push(c); let r = [];
-    if (c === 'fixtures' && p.live) r = [jogo, { ...live(31, 0, 0, 10), league: { id: 5, name: 'Outra', country: 'Peru' } }];
+    if (c === 'fixtures' && p.live) r = [jogo, { ...live(31, 0, 0, 10), league: { id: 99999, name: 'Outra', country: 'Peru' } }];
     if (c === 'fixtures' && p.ids) r = [jogo];
     if (c === 'fixtures' && p.date) r = [];
     if (c === 'odds/live') r = [oddsVivo()];
