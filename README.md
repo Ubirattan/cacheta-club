@@ -39,7 +39,11 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 - Não precisa rodar nada novo no Supabase.
 
 ### Pipa (novo)
-- Botão **🪁 Pipa** no topo da tela inicial: **batalha de cortar** contra o computador (Fácil, Esperto ou Difícil), melhor de 3 rodadas.
+- Botão **🪁 Pipa** no topo da tela inicial: **batalha de cortar** contra o computador (Fácil, Esperto ou Difícil), quem ganhar 2 rodadas primeiro leva.
+- **Visão 3D** de cima da laje olhando pro céu, com a foto da rua do Jd. Guaracy no fundo (Three.js do CDN; se o celular não abrir 3D, usa a tela 2D). Dá pra trocar pra 2D no menu.
+- **Várias pipas no céu:** 1 x 1, 3 ou 4 pipas. Todo mundo corta todo mundo; a rodada é de quem ficar por último. Se a sua cair, a rodada acaba.
+- **Dia, noite ou hora certa** (de noite: lua, estrelas e janelas acesas).
+- **Pipas na loja** (seção 🪁 Pipas): a clássica é grátis, as outras custam de 3 a 30 fichas. A pipa em uso aparece no jogo; as do computador são sorteadas. Desenhos em `lib/pipa-arte.js`.
 - **Segure o dedo pra puxar** (a pipa vai pra onde o bico aponta) e **solte pra dar linha** (ela gira e o vento leva).
 - Linhas cruzadas se gastam; quem está puxando corta mais rápido. Pipa que encosta no telhado cai.
 - Cada partida contra o computador custa **1 ficha** (cobrada no servidor pela rota `/api/treino`).

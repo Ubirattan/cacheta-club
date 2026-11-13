@@ -1,6 +1,6 @@
 // Pipa: física, linhas cruzando, corte, queda e computador contra computador
 import assert from 'node:assert/strict';
-import { newPipa, stepPipa, crossing, linePts, GROUND, HANDS } from '../lib/pipa.js';
+import { newPipa, stepPipa, crossing, linePts, handsFor, alive, GROUND, HANDS } from '../lib/pipa.js';
 
 { // puxar sobe a pipa pra onde o bico aponta; soltar faz girar
   const G = newPipa(); for (let i = 0; i < 95; i++) stepPipa(G);
@@ -38,5 +38,30 @@ for (const a of lv) {
   console.log(`computador ${a} x esperto: ${wins[1]} x ${wins[0]} · cortes ${cortes} quedas ${quedas} · ${(frames / 30 / 60).toFixed(0)} s por partida`);
   assert.ok(cortes > quedas, 'a maioria das rodadas acaba em corte');
   assert.ok(frames / 30 / 60 < 300, 'partida não demora demais');
+}
+// várias pipas no céu: todo mundo contra todo mundo, sempre termina
+for (const n of [3, 4]) {
+  assert.equal(handsFor(n).length, n);
+  let cortes = 0, frames = 0, rodadas = 0, minhas = 0;
+  for (let g = 0; g < 20; g++) {
+    const G = newPipa({ level: 'medio', pipas: n }); let k = 0;
+    assert.equal(G.k.length, n); assert.equal(G.score.length, n);
+    while (true) {
+      stepPipa(G, { ai0: 'medio' });
+      for (const e of G.events) { if (e.type === 'corte') { cortes++; assert.notEqual(e.winner, e.loser); } if (e.type === 'rodada') { rodadas++; if (e.winner === 0) minhas++; } }
+      G.events.length = 0; assert.ok(++k < 60 * 60 * 20, 'partida com várias pipas travou');
+      if (G.over && G.phase === 'cut' && G.phaseT <= 1) break;
+    }
+    assert.equal(G.score.reduce((a, b) => a + b, 0), G.round, 'uma vitória por rodada');
+    frames += k;
+  }
+  console.log(`${n} pipas: ${rodadas} rodadas, ${cortes} cortes, você ganhou ${minhas} · ${(frames / 20 / 60).toFixed(0)} s por partida`);
+  assert.ok(cortes > rodadas * .8, 'tem corte de verdade');
+}
+{ // com várias pipas, se a sua cai a rodada acaba na hora
+  const G = newPipa({ pipas: 4 }); for (let i = 0; i < 95; i++) stepPipa(G);
+  Object.assign(G.k[0], { y: GROUND - 6 }); stepPipa(G);
+  assert.equal(G.phase, 'cut'); assert.ok(G.score.slice(1).reduce((a, b) => a + b) === 1 && G.score[0] === 0);
+  assert.equal(alive(G).length, 1, 'só a vencedora fica no céu');
 }
 console.log('pipa ok');
