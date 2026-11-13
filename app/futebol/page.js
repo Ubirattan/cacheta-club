@@ -263,15 +263,17 @@ export default function Futebol() {
 
   function abrirJogo(j) { setJogoAberto(j.id); setAbaM('principais'); setTodos({}); }
   function fecharJogo() { setJogoAberto(null); setCriar(c => c?.partes?.length ? c : null); }   // Criar aposta começado fica guardado
-  const GRUPOS = [['principais', 'Principais', ['1x2', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
-    ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
-    ['todos', 'Todos', ['1x2', 'dc', 'gols', 'ambos', 'ht', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
+  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dnb', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
+    ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht', 'htft']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
+    ['todos', 'Todos', ['1x2', 'dnb', 'dc', 'gols', 'ambos', 'ht', 'htft', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
   const nl = l => String(l).replace('.', ',');
   const sn = l => (l > 0 ? '+' : '') + nl(l);
   const curtoNome = n => n.length > 12 ? n.slice(0, 11) + '.' : n;
   function nomeOp(j, m, e, l) {
     if (m === '1x2' || m === 'ht') return e;
     if (m === 'dc') return ({ '1X': '1 ou empate', '12': '1 ou 2', X2: '2 ou empate' })[e];
+    if (m === 'dnb') return curtoNome(e === 'casa' ? j.casa : j.fora);
+    if (m === 'htft') return e.replace('/', ' / ');
     if (m === 'ambos') return e === 'sim' ? 'Sim' : 'Não';
     if (m === 'primeiro') return e === 'casa' ? curtoNome(j.casa) : e === 'fora' ? curtoNome(j.fora) : 'Sem gol';
     if (m === 'placar') return e.replace(':', ' x ');
@@ -323,7 +325,7 @@ export default function Futebol() {
           </div>
           {!fechado && <div className="fb-mc-c">
             {comL ? linhasVer.map(([l, par]) => <div key={l} className="fb-ops c2">{ops.map(e => botao(j, m, e, l, par[e]))}</div>)
-              : <div className={'fb-ops c' + (m === 'placar' ? 3 : ops.length)}>{ops.map(e => botao(j, m, e, null, j.odds[m][e]))}</div>}
+              : <div className={'fb-ops c' + (m === 'placar' || m === 'htft' ? 3 : ops.length)}>{ops.map(e => botao(j, m, e, null, j.odds[m][e]))}</div>}
             {comL && ls.length > 1 && <button className="fb-todos" onClick={() => setTodos(t => ({ ...t, [m]: !t[m] }))}>{todos[m] ? 'MOSTRAR MENOS ⌃' : `MOSTRAR TODOS (${ls.length}) ⌄`}</button>}
           </div>}
         </div>;
@@ -401,9 +403,10 @@ export default function Futebol() {
           <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
         </div>
         <span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
-        <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
         <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button>
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
+        <button className="fb-sair" title="Voltar" aria-label="Voltar para a Casa de Jogos" onClick={() => router.push('/')}>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
       </div>
       {st?.admin && (st.admin.erro || !st.admin.chave) && <div className="fb-adm">🛠 {!st.admin.chave ? 'Falta cadastrar APIFOOTBALL_KEY no Netlify.' : `Erro da API (${st.admin.erro.passo}): ${st.admin.erro.msg}`} · chamadas hoje: {st.admin.chamadasHoje}/{st.admin.limite}</div>}
       {aviso && <div className={'fb-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
@@ -564,6 +567,8 @@ export default function Futebol() {
 .fb-abas i{font-style:normal;background:#fbbf24;color:#000;border-radius:9px;font:700 11px Rubik;padding:0 5px;margin-left:5px}
 .fb-saldo{font:600 15px Oswald;color:#fff;background:#0007;border:1px solid #4ade8088;border-radius:20px;padding:3px 10px;white-space:nowrap}
 .fb-top .rbtn{width:36px;height:36px;font-size:15px}
+.fb-sair{flex:none;margin-left:auto;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;box-shadow:0 3px 8px #0008;cursor:pointer}
+.fb-sair:active{transform:scale(.94)}
 .fb-adm{margin:0 10px 4px;padding:5px 10px;border-radius:10px;background:#7f1d1d;color:#fecaca;font:500 12px Rubik}
 .fb-aviso{position:fixed;left:50%;top:54px;transform:translateX(-50%);z-index:30;background:#000d;border:1px solid #f87171;border-radius:14px;padding:7px 14px;font:500 14px Rubik;color:#fff;max-width:90vw;text-align:center}
 .fb-aviso.bom{border-color:#4ade80}
@@ -674,7 +679,8 @@ export default function Futebol() {
 .fb-cbar{bottom:60px}
 .fb-logo{display:none}
 .fb-top{gap:6px;padding:6px 8px 4px}
-.fb-abas{margin-left:0}
+.fb-abas{margin-left:0;min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
+.fb-sair{width:38px;height:38px}
 .fb-abas button{padding:5px 10px;font-size:13px}
 .fb-saldo{font-size:14px;padding:3px 8px}
 .fb-top .rbtn{width:32px;height:32px;font-size:14px}
