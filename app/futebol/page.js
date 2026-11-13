@@ -157,8 +157,9 @@ export default function Futebol() {
   useEffect(() => { if (!confirma) return; const t = setTimeout(() => setConfirma(null), 5000); return () => clearTimeout(t); }, [confirma]);
 
   const jogos = st?.jogos || [];
-  const ligas = useMemo(() => { const m = new Map(); jogos.forEach(j => m.has(j.liga) || m.set(j.liga, j.ligaNome)); return [...m]; }, [jogos]);
-  const lista = liga ? jogos.filter(j => j.liga === liga) : jogos;
+  // abas por nome (as eliminatórias de cada continente ficam juntas numa aba só)
+  const ligas = useMemo(() => { const m = new Map(); jogos.forEach(j => m.has(j.ligaNome) || m.set(j.ligaNome, j.ligaNome)); return [...m]; }, [jogos]);
+  const lista = liga ? jogos.filter(j => j.ligaNome === liga) : jogos;
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
   const igualL = (a, b) => (a == null && b == null) || Number(a) === Number(b);
