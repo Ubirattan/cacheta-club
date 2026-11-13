@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../components/useAuth.js';
 import { Header } from '../components/ui.js';
 import ProfileModal from '../components/ProfileModal.js';
-import JoinCode from '../components/JoinCode.js';
 
 const JOGOS = [
   { id: 'cacheta', nome: 'Cacheta', sub: 'Online, torneio e contra o computador', em: '🃏', href: '/cacheta', g: 'linear-gradient(160deg,#38b6ff,#1565d8 55%,#0a3fa8)' },
@@ -47,7 +46,6 @@ export default function Home() {
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
         <button className="buybtn" style={{ background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
         <button className="buybtn" style={{ background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking')}>🏆 Ranking <small>da semana</small></button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#ff6fd8,#a21caf)' }} onClick={() => setModal('codigo')}>🔑 Entrar com código</button>
       </div>
       <div className="footbar">
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
@@ -58,7 +56,6 @@ export default function Home() {
         <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>
       </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
-      {modal === 'codigo' && <JoinCode onClose={() => setModal(null)} />}
       <style>{`
 .cj-logo{font:700 clamp(20px,4.6vmin,34px) Oswald;color:#fff;font-style:italic;letter-spacing:1px;text-shadow:0 2px 0 #000a;white-space:nowrap}
 .cj-logo b{color:var(--gold)}
