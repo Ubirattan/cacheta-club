@@ -52,4 +52,6 @@ assert.equal(coins(1), 970, 'pode apostar de novo depois de cancelar');
 // sem fichas
 R.T.profiles[1].coins = 3;
 await assert.rejects(foguete(R, u1, { op: 'apostar', slot: 2, valor: 5 }, fim + PAUSA_MS + 40), /insuficientes/);
+import { ganhoDe } from '../lib/foguete.js';
+assert.equal(ganhoDe(1, 1.57), 1.57); assert.equal(ganhoDe(10, 2.37), 23.7); assert.equal(ganhoDe(3, 1.01), 3.03);
 console.log('OK — foguetinho: margem 5%, rodadas ao vivo, saque no tempo do servidor, automático, explosão e cancelamento');

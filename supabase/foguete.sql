@@ -18,7 +18,7 @@ create table if not exists public.foguete_apostas (
   auto       numeric(8,2),
   status     text not null default 'aberta' check (status in ('aberta','sacou','perdeu','cancelada')),
   mult       numeric(8,2),
-  ganho      integer not null default 0,
+  ganho      numeric(12,2) not null default 0,
   nick       text,
   avatar     text,
   created_at timestamptz not null default now(),

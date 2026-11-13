@@ -7,7 +7,8 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx, soundOn, setSound, audioCtx } from '../../lib/sfx.js';
-import { multEm, ganhoDe, MIN_APOSTA, MAX_APOSTA, MAX_MULT, K } from '../../lib/foguete.js';
+import { multEm, ganhoDe, fichas, MIN_APOSTA, MAX_APOSTA, MAX_MULT, K } from '../../lib/foguete.js';
+const f2 = n => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 import { criarTeste } from '../../lib/foguete-teste.js';
 
 // link de teste do Netlify: abre sem login, com rodadas no próprio celular e fichas de mentira
@@ -87,7 +88,7 @@ export default function Foguete() {
     try {
       const r = await chama({ op, slot, ...extra });
       if (r.coins != null) setCoins(r.coins);
-      if (op === 'sacar') { sfx('win'); avisar(`Sacou em ${fx(r.mult)}: +${r.ganho} fichas`); }
+      if (op === 'sacar') { sfx('win'); avisar(`Sacou em ${fx(r.mult)}: +${fichas(r.ganho)} fichas`); }
       if (op === 'apostar') sfx('coin');
       const s = await chama({ op: 'estado' }); stRef.current = s; setSt(s);
       reloadProfile && reloadProfile();
@@ -207,9 +208,9 @@ export default function Foguete() {
     if (minha && minha.status === 'aberta' && fase === 'apostas') btn = <button className="fg-btn red" onClick={() => acao(slot, 'cancelar')}>Cancelar<small>{minha.valor} fichas</small></button>;
     else if (minha && minha.status === 'aberta' && fase === 'voando') {
       const autoOk = minha.auto && mAgora >= minha.auto;
-      btn = autoOk ? <button className="fg-btn ok" disabled>SACOU {fx(minha.auto)}<small>+{ganhoDe(minha.valor, minha.auto)} fichas</small></button>
-        : <button className="fg-btn orange" onClick={() => acao(slot, 'sacar')}>Sacar<small>{ganhoDe(minha.valor, mAgora)} fichas</small></button>;
-    } else if (minha && minha.status === 'sacou') btn = <button className="fg-btn ok" disabled>SACOU {fx(minha.mult)}<small>+{minha.ganho} fichas</small></button>;
+      btn = autoOk ? <button className="fg-btn ok" disabled>SACOU {fx(minha.auto)}<small>+{f2(ganhoDe(minha.valor, minha.auto))} fichas</small></button>
+        : <button className="fg-btn orange" onClick={() => acao(slot, 'sacar')}>Sacar<small>{f2(ganhoDe(minha.valor, mAgora))} fichas</small></button>;
+    } else if (minha && minha.status === 'sacou') btn = <button className="fg-btn ok" disabled>SACOU {fx(minha.mult)}<small>+{f2(minha.ganho)} fichas</small></button>;
     else if (b.fila) btn = <button className="fg-btn red" onClick={() => setB(slot, 'fila', false)}>Cancelar<small>aguardando</small></button>;
     else if (fase === 'apostas') btn = <button className="fg-btn green" onClick={() => acao(slot, 'apostar', { valor: b.valor, auto: b.auto ? b.autoV : null })}>Aposta<small>{b.valor} fichas</small></button>;
     else btn = <button className="fg-btn green" onClick={() => setB(slot, 'fila', true)}>Aposta<small>próxima rodada</small></button>;
@@ -242,7 +243,7 @@ export default function Foguete() {
     <div className="page lounge fgp">
       <div className="fg-top">
         <div className="fg-logo">🚀 FOGUETINHO</div>
-        <span className="fg-saldo">💰 <b>{coins == null ? '–' : coins.toLocaleString('pt-BR')}</b></span>
+        <span className="fg-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
         <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button>
@@ -250,15 +251,17 @@ export default function Foguete() {
       </div>
       <div className="fg-hist">{(st?.historico || []).map((m, i) => <i key={i} style={{ color: corHist(m) }}>{fx(m)}</i>)}</div>
       <div className="fg-main">
-        <div className="fg-ceu" ref={boxRef}><canvas ref={cvRef} />{aviso && <div className="fg-aviso">{aviso}</div>}
-          <div className="fg-qtd">👥 {st?.total || 0}</div></div>
-        <div className="fg-lado">
+        <div className="fg-esq">
+          <div className="fg-ceu" ref={boxRef}><canvas ref={cvRef} />{aviso && <div className="fg-aviso">{aviso}</div>}
+            <div className="fg-qtd">👥 {st?.total || 0}</div></div>
           <div className="fg-paineis">{painel(1)}{painel(2)}</div>
+        </div>
+        <div className="fg-lado">
           <div className="fg-lista">
             <div className="fg-lt"><b>Apostas da rodada</b><span>{st?.total || 0}</span></div>
             {(st?.apostas || []).map((a, i) => (
               <div key={i} className={'fg-li' + (a.mult ? ' win' : a.perdeu ? ' lost' : '')}>
-                <span>{a.avatar} {a.nick}</span><span>{a.valor}</span><span>{a.mult ? fx(a.mult) : ''}</span><span>{a.mult ? '+' + a.ganho : ''}</span>
+                <span>{a.avatar} {a.nick}</span><span>{a.valor}</span><span>{a.mult ? fx(a.mult) : ''}</span><span>{a.mult ? '+' + fichas(a.ganho) : ''}</span>
               </div>))}
             {st && !st.apostas.length && <div className="fg-vazio">Ninguém apostou nessa rodada ainda</div>}
           </div>
@@ -283,15 +286,16 @@ export default function Foguete() {
 .fg-top .rbtn{width:38px;height:38px;font-size:16px}
 .fg-hist{display:flex;gap:6px;overflow:hidden;padding:2px 10px 4px;white-space:nowrap}
 .fg-hist i{font:600 12px Oswald;font-style:normal;background:#0008;border-radius:10px;padding:1px 7px}
-.fgp{overflow-y:auto!important}
-.fg-main{display:flex;flex-direction:column;gap:8px;padding:0 8px 6px}
-.fg-ceu{position:relative;flex:none;height:clamp(150px,36vh,360px);border-radius:16px;overflow:hidden;border:1px solid #ffffff22}
+.fgp{overflow:hidden!important;height:100dvh}
+.fg-main{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:0 8px 4px}
+.fg-esq{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fg-ceu{position:relative;flex:1;min-height:110px;border-radius:16px;overflow:hidden;border:1px solid #ffffff22}
 .fg-ceu canvas{position:absolute;inset:0;width:100%;height:100%}
 .fg-aviso{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#000c;border:1px solid #fb923c;border-radius:14px;padding:5px 12px;font:500 14px Oswald;color:#fff;white-space:nowrap;z-index:2}
 .fg-qtd{position:absolute;right:10px;bottom:8px;font:500 13px Rubik;color:#e2e8f0;background:#000a;border-radius:14px;padding:3px 10px}
-.fg-lado{display:flex;flex-direction:column;gap:8px}
-.fg-paineis{display:flex;flex-direction:column;gap:8px}
-@media (orientation:landscape) and (min-width:600px){.fg-paineis{flex-direction:row}.fg-painel{flex:1 1 0}}
+.fg-lado{flex:0 0 22%;min-height:0;display:flex;flex-direction:column}
+.fg-paineis{flex:none;display:flex;flex-direction:column;gap:6px}
+@media (orientation:landscape){.fg-main{flex-direction:row}.fg-lado{flex:0 0 26%}.fg-paineis{flex-direction:row}.fg-painel{flex:1 1 0}}
 .fg-painel{min-width:0;overflow:hidden;background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px}
 .fg-abas{align-self:center;display:flex;background:#0b0e22;border-radius:20px;padding:3px}
 .fg-abas button{border:none;background:none;color:#94a3b8;font:500 15px Rubik;padding:5px 26px;border-radius:17px}
@@ -313,9 +317,9 @@ export default function Foguete() {
 .fg-btn.orange{background:linear-gradient(180deg,#fb923c,#d9550c)}
 .fg-btn.red{background:linear-gradient(180deg,#ef4444,#a51b1b)}
 .fg-btn.ok{background:linear-gradient(180deg,#0ea5e9,#0369a1)}
-.fg-lista{background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:8px 10px;min-height:120px}
+.fg-lista{flex:1;min-height:0;overflow-y:auto;background:#161a33;border:1px solid #ffffff14;border-radius:18px;padding:8px 10px}
 .fg-lt{display:flex;justify-content:space-between;font:500 14px Rubik;color:#94a3b8;padding:2px 0 6px}
-.fg-li{display:grid;grid-template-columns:1fr 50px 56px 56px;gap:4px;font:500 13px Rubik;color:#e2e8f0;padding:5px 6px;border-radius:8px}
+.fg-li{display:grid;grid-template-columns:1fr 38px 46px 52px;gap:4px;font:500 13px Rubik;color:#e2e8f0;padding:5px 6px;border-radius:8px}
 .fg-li span:not(:first-child){text-align:right}
 .fg-li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fg-li.win{background:#16a34a33;color:#86efac}
@@ -324,7 +328,7 @@ export default function Foguete() {
 .fg-rod{font:400 10px Rubik;color:#64748b;text-align:center;padding:0 0 8px}
 @media (orientation:landscape) and (max-height:520px){
 .fg-top{padding:3px 10px 0}.fg-top .rbtn{width:32px;height:32px;font-size:14px}
-.fg-ceu{height:42vh}
+.fg-rod{display:none}.fg-hist{padding-bottom:2px}
 .fg-painel{padding:6px 8px 8px;gap:6px}
 .fg-abas button{padding:3px 18px;font-size:13px}
 .fg-row button{width:28px;height:28px;font-size:17px}.fg-row input{height:28px;font-size:17px}
