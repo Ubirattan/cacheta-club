@@ -11,6 +11,8 @@ import Chat from '../../../../components/Chat.js';
 import { sendInvite } from '../../../../components/Convites.js';
 import { RAIL, corBola, toc, bola, mesa, Regras, SINUCA_CSS , tacoGrad, setTaco } from '../../../../components/Sinuca.js';
 import { itemById } from '../../../../lib/shop-items.js';
+import { loadThree, webglOk } from '../../../../lib/three-loader.js';
+import { createSinuca3D } from '../../../../lib/sinuca-view3d.js';
 import { modeName, isSinucaMode, fmt } from '../../../../lib/modes.js';
 import { premioOnline } from '../../../../lib/taxa.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../../../lib/sfx.js';
@@ -24,6 +26,16 @@ function Mesa({ srv, me, onShot, onMonta, onMsg, onView }) {
   const cvRef = useRef(null), boxRef = useRef(null), barRef = useRef(null);
   const st = useRef({ S: null, anim: null, shown: { m: null, n: -1 }, ang: 0, forca: 0, pend: false, final: null });
   const props = useRef({}); props.current = { onShot, onMonta, onMsg, onView, me, srv };
+  // OLHO: visão em primeira pessoa (3D), só quando o jogador aperta o botão
+  const [olho, setOlho] = useState(false), olhoRef = useRef(null), v3Ref = useRef(null);
+  useEffect(() => {
+    if (!olho) return;
+    if (!webglOk()) { setOlho(false); toast('Seu celular não abre a visão 3D'); return; }
+    let vivo = true;
+    loadThree().then(THREE => { if (vivo && olhoRef.current) v3Ref.current = createSinuca3D({ THREE, box: olhoRef.current }); })
+      .catch(() => { if (vivo) { setOlho(false); toast('A visão 3D não carregou'); } });
+    return () => { vivo = false; if (v3Ref.current) { v3Ref.current.destroy(); v3Ref.current = null; } };
+  }, [olho]);
 
   // chegou mesa do servidor
   useEffect(() => {
@@ -142,6 +154,13 @@ function Mesa({ srv, me, onShot, onMonta, onMsg, onView }) {
         }
         if (!T.anim) acc = 0;
         draw(now);
+        const v3 = v3Ref.current, S3 = T.anim || T.S;
+        if (v3 && S3) {
+          const cb = branca(S3), mirando = !T.anim && S3.phase === 'aim' && !cb.in && !S3.over;
+          let fim = null;
+          if (mirando) { const hit = primeiraBola(S3, T.ang); fim = hit ? [hit.gx, hit.gy] : (() => { const p = ateTabela(S3, T.ang); return [p.x, p.y]; })(); }
+          v3.render(S3, cb, T.ang, T.forca, fim, mirando);
+        }
       } catch (e) { console.error('sinuca', e); }
     }
 
@@ -192,6 +211,11 @@ function Mesa({ srv, me, onShot, onMonta, onMsg, onView }) {
     }
     cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
     bar.addEventListener('pointerdown', bDown); bar.addEventListener('pointermove', bMove); bar.addEventListener('pointerup', bUp); bar.addEventListener('pointercancel', bUp);
+    const ov = olhoRef.current; let olhoX = null;
+    const oDown = e => { if (!minhaVez()) return; olhoX = e.clientX; try { ov.setPointerCapture(e.pointerId); } catch {} };
+    const oMove = e => { if (olhoX == null) return; T.ang += (e.clientX - olhoX) * .0028; olhoX = e.clientX; };
+    const oUp = () => { olhoX = null; };
+    ov.addEventListener('pointerdown', oDown); ov.addEventListener('pointermove', oMove); ov.addEventListener('pointerup', oUp); ov.addEventListener('pointercancel', oUp);
     raf = requestAnimationFrame(loop);
     // botão PRONTO da arrumação
     st.current.pronto = () => {
@@ -202,6 +226,7 @@ function Mesa({ srv, me, onShot, onMonta, onMsg, onView }) {
       alive = false; cancelAnimationFrame(raf); ro.disconnect();
       cv.removeEventListener('pointerdown', down); cv.removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
       bar.removeEventListener('pointerdown', bDown); bar.removeEventListener('pointermove', bMove); bar.removeEventListener('pointerup', bUp); bar.removeEventListener('pointercancel', bUp);
+      ov.removeEventListener('pointerdown', oDown); ov.removeEventListener('pointermove', oMove); ov.removeEventListener('pointerup', oUp); ov.removeEventListener('pointercancel', oUp);
     };
   }, []);
 
@@ -210,7 +235,10 @@ function Mesa({ srv, me, onShot, onMonta, onMsg, onView }) {
     <div className="sn-area">
       <div className="sn-bar" ref={barRef} style={arrumando ? { display: 'none' } : null}><i /><span>FORÇA</span></div>
       {arrumando && <button className="sn-comeca" onClick={() => st.current.pronto && st.current.pronto()}>✓<b>PRONTO</b></button>}
-      <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} /></div>
+      <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} />
+        <div className="sn-olhov" ref={olhoRef} style={{ display: olho ? 'block' : 'none' }}>{olho && <div className="sn-olho-dica">Arraste pros lados pra mirar · puxe a FORÇA pra tacar</div>}</div>
+        {!arrumando && srv && srv.phase !== 'monta' && <button className={'sn-olho' + (olho ? ' on' : '')} title={olho ? 'Voltar pra visão de cima' : 'Ver como o jogador (primeira pessoa)'} onClick={() => setOlho(o => !o)}>{olho ? '🗺️' : '👁️'}</button>}
+      </div>
     </div>
   );
 }
