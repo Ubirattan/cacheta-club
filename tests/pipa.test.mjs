@@ -20,10 +20,10 @@ import { newPipa, stepPipa, crossing, linePts, handsFor, alive, GROUND, HANDS } 
   assert.equal(G.phase, 'cut'); assert.equal(G.score[0], 1, 'eu cortei'); assert.ok(G.k[1].cut);
   assert.equal(G.events.find(e => e.type === 'corte').winner, 0);
 }
-{ // encostou no telhado: caiu
+{ // embaixo da tela é parede: encosta e fica, não perde
   const G = newPipa(); for (let i = 0; i < 95; i++) stepPipa(G);
-  Object.assign(G.k[0], { x: 100, y: GROUND - 6 }); stepPipa(G);
-  assert.equal(G.score[1], 1); assert.ok(G.events.some(e => e.type === 'caiu'));
+  Object.assign(G.k[0], { x: 100, y: GROUND - 6 }); for (let i = 0; i < 30; i++) stepPipa(G, { ctl: { x: 0, y: 1 } });
+  assert.equal(G.phase, 'play'); assert.ok(!G.k[0].cut && G.k[0].y <= GROUND - 12, 'ficou no limite');
 }
 assert.equal(linePts(newPipa(), 0)[0][0], HANDS[0][0], 'linha sai da mão');
 // computador x computador: sempre termina, com cortes de verdade
@@ -58,10 +58,11 @@ for (const n of [3, 4]) {
   console.log(`${n} pipas: ${rodadas} rodadas, ${cortes} cortes, você ganhou ${minhas} · ${(frames / 20 / 60).toFixed(0)} s por partida`);
   assert.ok(cortes > rodadas * .8, 'tem corte de verdade');
 }
-{ // com várias pipas, se a sua cai a rodada acaba na hora
+{ // com várias pipas, se cortam a sua a rodada acaba na hora
   const G = newPipa({ pipas: 4 }); for (let i = 0; i < 95; i++) stepPipa(G);
-  Object.assign(G.k[0], { x: 100, y: GROUND - 6 }); stepPipa(G);
-  assert.equal(G.phase, 'cut'); assert.ok(G.score.slice(1).reduce((a, b) => a + b) === 1 && G.score[0] === 0);
+  G.k[0].hp = 0; G.crosses = []; Object.assign(G.k[0], { x: 690, y: 200, L: 700 }); Object.assign(G.k[2], { x: 500, y: 200, L: 700 });
+  let n = 0; while (G.phase === 'play' && n++ < 300) { stepPipa(G); G.k[0].hp = Math.min(G.k[0].hp, 0.1); }
+  assert.equal(G.phase, 'cut'); assert.equal(G.score[0], 0); assert.equal(G.score.reduce((a, b) => a + b), 1);
   assert.equal(alive(G).length, 1, 'só a vencedora fica no céu');
 }
 console.log('pipa ok');
