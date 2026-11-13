@@ -1,6 +1,6 @@
 // Banco em memória que imita o Supabase (para testes)
 export function memRepo() {
-  const T = { gude_partidas: [], profiles: [], rooms: [], room_players: [], match_history: [], match_players: [], tournaments: [], tournament_players: [], tournament_tables: [], app_settings: [], purchases: [], admin_auth: [] };
+  const T = { gude_partidas: [], profiles: [], rooms: [], room_players: [], match_history: [], match_players: [], tournaments: [], tournament_players: [], tournament_tables: [], app_settings: [], purchases: [], admin_auth: [], messages: [] };
   const secrets = new Map(), games = new Map(), pub = new Map(), hands = new Map();
   let seq = 0;
   const match = (r, w) => Object.entries(w).every(([k, v]) => r[k] === v);
@@ -22,6 +22,8 @@ export function memRepo() {
     async removeRoomPlayer(i, u) { T.room_players = T.room_players.filter(x => !(x.room_id === i && x.user_id === u)); },
     async updateRoomPlayer(i, u, p) { const x = T.room_players.find(x => x.room_id === i && x.user_id === u); if (x) Object.assign(x, p); },
     async resetReady(i) { T.room_players.filter(x => x.room_id === i).forEach(x => x.ready = false); },
+    async getPublicGame(i) { const g = games.get(i), p = pub.get(i); return g && p ? { version: g.version, state: clone(p) } : null; },
+    async roomMessages(i, n = 60) { return T.messages.filter(m => m.room_id === i).sort((a, b) => a.id - b.id).slice(-n).map(clone); },
     async getGame(i) { const g = games.get(i); return g ? { version: g.version, state: clone(g.state) } : null; },
     async saveGame(i, st, pv, p, h) { const g = games.get(i); if (pv == null ? !!g : (!g || g.version !== pv)) return false; games.set(i, { version: (pv || 0) + 1, state: clone(st) }); pub.set(i, p); hands.set(i, h); return true; },
     async sel(t, w = {}, o = {}) { let r = T[t].filter(x => match(x, w)).map(clone); if (o.order) { const [k, asc] = o.order; r.sort((a, b) => (a[k] > b[k] ? 1 : -1) * (asc ? 1 : -1)); } return o.limit ? r.slice(0, o.limit) : r; },

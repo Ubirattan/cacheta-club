@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { sb } from '../lib/supabase-browser.js';
 import { toast } from './ui.js';
 
-export default function Chat({ roomId, user, profile, msgs, onClose }) {
+// readOnly: quem está assistindo a mesa só lê o chat
+export default function Chat({ roomId, user, profile, msgs, onClose, readOnly }) {
   const [txt, setTxt] = useState('');
   const box = useRef(null);
   useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [msgs]);
@@ -21,10 +22,11 @@ export default function Chat({ roomId, user, profile, msgs, onClose }) {
         <h3 style={{ fontSize: 18 }}>💬 Chat da mesa</h3>{onClose && <button className="sec" style={{ width: 'auto', margin: 0, padding: '4px 12px' }} onClick={onClose}>✕</button>}
       </div>
       <div className="msgs" ref={box}>
-        {!msgs.length && <div className="hint">Ninguém falou nada ainda. Mande um oi!</div>}
+        {!msgs.length && <div className="hint">{readOnly ? 'Ninguém falou nada ainda.' : 'Ninguém falou nada ainda. Mande um oi!'}</div>}
         {msgs.map(m => <div key={m.id} className={`m ${m.user_id === user.id ? 'me' : ''}`}><b>{m.nickname}</b>{m.text}</div>)}
       </div>
-      <form onSubmit={send}><input value={txt} onChange={e => setTxt(e.target.value)} maxLength={300} placeholder="Escreva uma mensagem…" /><button className="pillbtn" style={{ padding: '8px 14px' }}>Enviar</button></form>
+      {readOnly ? <div className="hint" style={{ textAlign: 'center' }}>👁 Você está assistindo: só os jogadores escrevem no chat.</div> :
+      <form onSubmit={send}><input value={txt} onChange={e => setTxt(e.target.value)} maxLength={300} placeholder="Escreva uma mensagem…" /><button className="pillbtn" style={{ padding: '8px 14px' }}>Enviar</button></form>}
     </div>
   );
 }
