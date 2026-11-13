@@ -123,7 +123,7 @@ export default function Onca() {
       <p>Jogo só para <b>maiores de 18 anos</b>.</p>
       <p style={{ fontSize: 13, color: 'var(--mut)' }}>As fichas da Casa de Jogos são para diversão: <b>não valem dinheiro</b> e não podem ser trocadas por dinheiro.</p>
       <button className="go" onClick={() => { try { localStorage.setItem('on_18', '1'); } catch {} setMaior(true); }}>Tenho 18 anos ou mais</button>
-      <button className="sec" onClick={() => router.push('/jogos/onca')}>Voltar</button>
+      <button className="sec" onClick={() => router.push('/')}>Voltar</button>
     </div></div></div>
   );
 
@@ -133,7 +133,7 @@ export default function Onca() {
     <div className="page lounge onp">
       <OncaDefs />
       <div className="on-top">
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/onca')}>↩</button>
+        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
         <div className="on-logo">ONÇA DA SORTE</div>
         <button className="rbtn" title="Prêmios" onClick={() => setRegras(true)}>📖</button>
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
@@ -184,7 +184,6 @@ export default function Onca() {
             <button className="on-menos" disabled={rodando || auto > 0 || idx >= APOSTAS.length - 1} onClick={() => setAposta(APOSTAS[idx + 1])}>+</button>
             <button className={'on-mini' + (auto ? ' on' : '')} onClick={() => { if (auto) setAuto(0); else { setAuto(10); setTimeout(rodar, 50); } }}>{auto ? auto : '🔁'}<small>{auto ? 'Parar' : 'Auto'}</small></button>
           </div>
-          <button className="on-loja" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas</button>
         </div>
       </div>
       {grande && <div className="on-grande" onClick={() => setGrande(null)}><GrandeGanho {...grande} onFim={() => setGrande(null)} /></div>}
@@ -253,7 +252,8 @@ export default function Onca() {
 .on-tab{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin:6px 0 10px}
 .on-tab div{display:flex;justify-content:space-between;align-items:center;background:#0005;border-radius:8px;padding:3px 8px}
 .on-tab-ic{display:flex;gap:2px}.on-tab-ic svg{width:20px;height:20px}
-@media (orientation:landscape){.on-main{flex-direction:row;justify-content:center;gap:24px}.on-maq{flex:none;height:100%;width:auto}.on-ctl{width:auto;min-width:260px;align-self:center}}
+@media (orientation:landscape){.on-main{flex-direction:row;justify-content:center;gap:18px}.on-maq{flex:1 1 auto;min-width:0;height:100%;width:auto}.on-ctl{flex:none;width:250px;align-self:center}.on-barra{margin-top:6px}}
+@media (orientation:landscape) and (max-height:520px){.on-cab{height:44px;margin-bottom:-10px}.on-gira{width:70px;height:70px;font-size:34px}.on-mini{width:44px;height:44px}.on-menos{width:38px;height:38px}.on-top .rbtn{width:30px;height:30px}}
 `}</style>
     </div>
   );
