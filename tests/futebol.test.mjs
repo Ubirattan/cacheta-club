@@ -323,3 +323,94 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.equal(F.cashOut({ valor: 10, selecoes: [{ ...ss, partes: comEsc.partes }] }, { 1: vivo }, T), null, 'escanteio rolando: sem cash out');
   console.log('OK — futebol: Criar aposta (odd do combo, impossível, conferência, anulação e cash out)');
 }
+
+// ---- apostas ao vivo ----
+{
+  const F = await import('../lib/futebol.js');
+  const T = Date.UTC(2026, 10, 15, 18, 0), H = 3600e3, S = 1000;
+  const live = (id, h, a, min, extra = {}) => { const f = fx(id, 71, 'Fla', 'Pal', T - min * 60e3, min > 45 ? '2H' : '1H'); f.fixture.status.elapsed = min; f.goals = { home: h, away: a }; return f; };
+  let jogo = live(30, 1, 0, 30), travado = false;
+  const oddsVivo = () => ({ fixture: { id: 30 }, status: { blocked: travado }, teams: { home: { goals: jogo.goals.home }, away: { goals: jogo.goals.away } }, odds: [
+    { id: 59, name: 'Fulltime Result', values: [{ value: 'Home', odd: '1.50' }, { value: 'Draw', odd: '3.80' }, { value: 'Away', odd: '7.00' }] },
+    { id: 36, name: 'Over/Under Line', values: [{ value: 'Over', handicap: '2.5', odd: '1.90', main: true }, { value: 'Under', handicap: '2.5', odd: '1.85', main: true }] },
+    { id: 41, name: 'Next Goal', values: [{ value: '1', odd: '1.90' }, { value: 'No goal', odd: '4.00' }, { value: '2', odd: '2.60' }] }] });
+  let chamadasVivo = [];
+  usarApi(async (c, p) => {
+    chamadasVivo.push(c); let r = [];
+    if (c === 'fixtures' && p.live) r = [jogo, { ...live(31, 0, 0, 10), league: { id: 5, name: 'Outra', country: 'Peru' } }];
+    if (c === 'fixtures' && p.ids) r = [jogo];
+    if (c === 'fixtures' && p.date) r = [];
+    if (c === 'odds/live') r = [oddsVivo()];
+    if (c === 'odds') r = [];
+    r.limite = 7500; return r;
+  });
+  const R = memRepo(); Object.assign(R.T, { futebol_jogos: [{ id: 30, liga: 71, liga_nome: 'Brasileirão A', casa: 'Fla', fora: 'Pal', inicio: new Date(T - 30 * 60e3).toISOString(), status: 'NS', odds: { '1x2': { 1: 2, X: 3.3, 2: 3.8 } }, atualizado: new Date(T - H).toISOString() }], futebol_apostas: [], futebol_sync: [{ chave: 'cota', v: 1, em: 0, valor: { dia: '2026-11-15', n: 0, lim: 7500 } }] });
+  const [u] = addUsers(R, 1, 1000);
+  const go = async (b, t) => { if (!['apostar', 'confirmar'].includes(b.op)) await fb(R, u, { op: 'atualizar' }, t); return fb(R, u, b, t); };
+  let v = await go({ op: 'vivo' }, T);
+  assert.equal(v.jogos.length, 1, 'só jogos dos nossos campeonatos'); assert.deepEqual(v.jogos[0].placar, [1, 0]); assert.equal(v.jogos[0].minuto, 30);
+  assert.equal(v.jogos[0].odds['1x2']['1'], 1.5); assert.deepEqual(v.jogos[0].odds.gols, { linha: 2.5, mais: 1.9, menos: 1.85 });
+  assert.equal((await fb(R, u, { op: 'jogos' }, T)).aoVivo, 1);
+  // aposta vivo: fica pendente e desconta
+  const sel = { jogo: 30, mercado: 'proximo', escolha: 'casa', odd: 1.9 };
+  const ap = await go({ op: 'apostar', vivo: true, valor: 100, selecoes: [sel] }, T + S);
+  assert.equal(ap.pendente, true); assert.equal(R.T.profiles[0].coins, 900);
+  assert.deepEqual(R.T.futebol_apostas[0].selecoes[0].base, [1, 0]);
+  assert.ok((await fb(R, u, { op: 'confirmar', id: ap.id }, T + 3 * S)).espera > 0, 'ainda esperando');
+  let c = await fb(R, u, { op: 'confirmar', id: ap.id }, T + 8 * S);
+  assert.equal(c.status, 'aberta', 'confirmada sem gol');
+  // gol durante a espera: recusada e devolvida
+  const ap2 = await go({ op: 'apostar', vivo: true, valor: 50, selecoes: [{ jogo: 30, mercado: '1x2', escolha: '1', odd: 1.5 }] }, T + 20 * S);
+  jogo = live(30, 2, 0, 31);
+  c = await fb(R, u, { op: 'confirmar', id: ap2.id }, T + 28 * S);
+  assert.equal(c.status, 'recusada'); assert.match(c.motivo, /gol/); assert.equal(R.T.profiles[0].coins, 850 + 50);
+  // a primeira (próximo gol: casa) ganhou com o 2x0
+  const m = await go({ op: 'minhas' }, T + 70 * S);
+  assert.equal(m.apostas.find(a => a.id === ap.id).status, 'ganhou'); assert.equal(R.T.profiles[0].coins, 900 + 190);
+  // travado: não aceita
+  travado = true; await go({ op: 'vivo' }, T + 100 * S);
+  await assert.rejects(go({ op: 'apostar', vivo: true, valor: 10, selecoes: [{ jogo: 30, mercado: '1x2', escolha: '1', odd: 1.5 }] }, T + 101 * S), /travad/);
+  travado = false; await go({ op: 'vivo' }, T + 130 * S);
+  // odd caiu durante a espera: recusa
+  const ap3 = await go({ op: 'apostar', vivo: true, valor: 10, selecoes: [{ jogo: 30, mercado: 'gols', escolha: 'mais', odd: 1.9, linha: 2.5 }] }, T + 131 * S);
+  const antes = R.T.profiles[0].coins;
+  const sv = oddsVivo; // odd do "mais" cai pra 1.70
+  usarApi(async (cc, p) => { const r = cc === 'odds/live' ? [{ ...sv(), odds: [{ id: 36, name: 'Over/Under Line', values: [{ value: 'Over', handicap: '2.5', odd: '1.70', main: true }, { value: 'Under', handicap: '2.5', odd: '2.10', main: true }] }] }] : []; r.limite = 7500; return r; });
+  c = await fb(R, u, { op: 'confirmar', id: ap3.id }, T + 140 * S);
+  assert.equal(c.status, 'recusada'); assert.match(c.motivo, /odd caiu/); assert.equal(R.T.profiles[0].coins, antes + 10);
+  // pendente esquecida: o sincronizar confirma sozinho
+  usarApi(async (cc) => { const r = cc === 'odds/live' ? [oddsVivo()] : cc === 'fixtures' ? [jogo] : []; r.limite = 7500; return r; });
+  await go({ op: 'vivo' }, T + 199 * S);
+  const ap4 = await go({ op: 'apostar', vivo: true, valor: 10, selecoes: [{ jogo: 30, mercado: '1x2', escolha: 'X', odd: 3.8 }] }, T + 200 * S);
+  await sincronizar(R, T + 215 * S);
+  assert.equal(R.T.futebol_apostas.find(a => a.id === ap4.id).status, 'aberta');
+  // linha de gols ao vivo vale no fim: 2x0 com "mais de 2,5" perde
+  assert.equal(F.acertou('gols', 'mais', 2, 0, 2.5), false); assert.equal(F.acertou('gols', 'mais', 3, 1, 3.5), true);
+  assert.equal(F.situacao({ mercado: 'proximo', escolha: 'nenhum', base: [1, 0] }, { status: 'FT', gols_casa: 1, gols_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao({ mercado: 'proximo', escolha: 'casa', base: [1, 0] }, { status: '2H', ao_vivo_casa: 2, ao_vivo_fora: 1 }), 'anulada');
+  usarApi(null);
+  console.log('OK — futebol ao vivo: odds ao vivo, espera de 7 s, gol/odd caiu/trava recusam e devolvem, próximo gol');
+}
+
+// ---- todas as linhas ("Mostrar todos") ----
+{
+  const F = await import('../lib/futebol.js');
+  const bk = [{ id: 8, bets: [{ id: 1, name: 'Match Winner', values: [v('Home', 2), v('Draw', 3.3), v('Away', 3.8)] },
+    { id: 5, name: 'Goals Over/Under', values: [v('Over 0.5', 1.07), v('Under 0.5', 8), v('Over 1.5', 1.3), v('Under 1.5', 3.4), v('Over 2.5', 1.95), v('Under 2.5', 1.85), v('Over 3.5', 3.2), v('Under 3.5', 1.33), v('Over 3.0', 2.5), v('Under 3.0', 1.5)] },
+    { id: 45, name: 'Corners Over Under', values: [v('Over 8.5', 1.5), v('Under 8.5', 2.5), v('Over 9.5', 1.85), v('Under 9.5', 1.9), v('Over 10.5', 2.4), v('Under 10.5', 1.5)] }] }];
+  const o = F.lerOdds({ bookmakers: bk });
+  assert.deepEqual(Object.keys(o.linhas.gols), ['0.5', '1.5', '2.5', '3.5'], 'só linhas ,5');
+  assert.deepEqual(F.todasLinhas(o, 'escanteios').map(x => x[0]), [8.5, 9.5, 10.5]);
+  assert.equal(F.oddDe(o, 'escanteios', 'mais', 10.5), 2.4); assert.equal(F.oddDe(o, 'gols', 'mais', null), 1.95); assert.equal(F.oddDe(o, 'gols', 'menos', 1.5), 3.4);
+  const T = Date.UTC(2026, 10, 15, 12, 0);
+  const j = { status: 'NS', inicio: new Date(T + 3600e3).toISOString(), odds: o, casa: 'A', fora: 'B' };
+  const b = F.conferirBilhete([{ jogo: 1, mercado: 'escanteios', escolha: 'mais', odd: 2.4, linha: 10.5 }, ], { 1: j }, T);
+  assert.equal(b.odd, 2.4); assert.equal(b.selecoes[0].linha, 10.5);
+  assert.equal(F.situacao(b.selecoes[0], { status: 'FT', escanteios: 10, inicio: j.inicio }), 'perdeu');
+  const g = F.conferirBilhete([{ jogo: 1, mercado: 'gols', escolha: 'menos', odd: 3.4, linha: 1.5 }], { 1: j }, T).selecoes[0];
+  assert.equal(F.situacao(g, { status: 'FT', gols_casa: 1, gols_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao(g, { status: 'FT', gols_casa: 1, gols_fora: 1 }), 'perdeu');
+  const c = F.oddCombo([{ mercado: '1x2', escolha: '1' }, { mercado: 'gols', escolha: 'mais', linha: 1.5 }], o);
+  assert.ok(c.odd > 1.5 && c.odd < 2 * 1.3, 'combo com linha 1,5: ' + c.odd);
+  console.log('OK — futebol: todas as linhas de gols, escanteios e handicap');
+}
