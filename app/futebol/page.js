@@ -24,7 +24,7 @@ function nomeDia(t) {
   return s[0].toUpperCase() + s.slice(1);
 }
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
-const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'] };
+const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'], pendente: ['Confirmando…', '#f87171'], recusada: ['Recusada', '#94a3b8'] };
 const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
 function quando(s) {
   if (VIVO.includes(s.jogoStatus)) return s.jogoStatus === 'HT' ? 'intervalo' : s.minuto ? `${s.minuto}'` : 'ao vivo';
@@ -55,7 +55,10 @@ export default function Futebol() {
   const [liga, setLiga] = useState(0);
   const [aberto, setAberto] = useState(null);           // jogo com os outros mercados à mostra
   const [criar, setCriar] = useState(null);             // Criar aposta: { jogo, partes: [{ mercado, escolha, linha }] }
-  const [bil, setBil] = useState([]);                   // [{ jogo, mercado, escolha, odd }]
+  const [bilPre, setBilPre] = useState([]);             // bilhete antes do jogo [{ jogo, mercado, escolha, odd }]
+  const [bilVivo, setBilVivo] = useState([]);           // bilhete ao vivo (sempre separado)
+  const [vivoSt, setVivoSt] = useState(null);           // jogos rolando agora
+  const [confirmando, setConfirmando] = useState(null); // aposta ao vivo esperando: { id, fim }
   const [valor, setValor] = useState(10);
   const [coins, setCoins] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -65,6 +68,8 @@ export default function Futebol() {
   const [encerrando, setEncerrando] = useState(false);
   const [bilAberto, setBilAberto] = useState(false);   // celular em pé: bilhete por cima
   const stRef = useRef(null);
+  const vivoAba = aba === 'vivo';
+  const bil = vivoAba ? bilVivo : bilPre, setBil = vivoAba ? setBilVivo : setBilPre;
 
   useEffect(() => { try { setMaior(true); } catch { setMaior(false); } }, []);
   useEffect(() => { if (profile) setCoins(Number(profile.coins) || 0); }, [profile?.coins]); // eslint-disable-line
@@ -76,7 +81,7 @@ export default function Futebol() {
       stRef.current = s; setSt(s); setFalha('');
       if (s.coins != null) setCoins(s.coins);
       // atualiza as odds do bilhete e tira jogo que já começou
-      setBil(b => b.map(x => {
+      setBilPre(b => b.map(x => {
         const j = s.jogos.find(j => j.id === x.jogo);
         if (j && x.mercado === 'combo') { const c = oddCombo(x.partes, j.odds); return c.erro ? null : { ...x, odd: c.odd, partes: c.partes }; }
         const o = j?.odds?.[x.mercado]?.[x.escolha]; return j && o ? { ...x, odd: o, ...(MERCADOS[x.mercado].linha ? { linha: j.odds[x.mercado].linha } : {}) } : null;
@@ -93,6 +98,18 @@ export default function Futebol() {
       reloadProfile && reloadProfile();
     } catch (e) { sfx('err'); avisar(e.message || 'Erro'); }
     setConfirma(null); setEncerrando(false); carregarMinhas();
+  }
+  async function carregarVivo() {
+    try {
+      const v = await chama({ op: 'vivo' });
+      setVivoSt(v); if (v.coins != null) setCoins(v.coins);
+      setBilVivo(b => b.map(x => {
+        const j = v.jogos.find(j => j.id === x.jogo);
+        if (!j) return null;
+        const o = j.odds?.[x.mercado];
+        return { ...x, odd: o?.[x.escolha] || x.odd, travado: !o?.[x.escolha], ...(o?.linha != null ? { linha: o.linha } : {}) };
+      }).filter(Boolean));
+    } catch (e) { avisar(e.message || 'Sem conexão'); }
   }
   async function carregarMinhas() {
     try { const m = await chama({ op: 'minhas' }); setMinhas(m.apostas); if (m.coins != null) setCoins(m.coins); } catch (e) { avisar(e.message || 'Sem conexão'); }
@@ -114,6 +131,12 @@ export default function Futebol() {
     carregarMinhas();
     const t = setInterval(() => { atualizar(); carregarMinhas(); }, 20000);   // placar ao vivo e valor do cash out
     return () => clearInterval(t);
+  }, [aba, maior]); // eslint-disable-line
+  useEffect(() => {
+    if (aba !== 'vivo' || !maior) return;
+    carregarVivo(); atualizar();
+    const t = setInterval(carregarVivo, 8000), u = setInterval(atualizar, 25000);
+    return () => { clearInterval(t); clearInterval(u); };
   }, [aba, maior]); // eslint-disable-line
   useEffect(() => { if (!confirma) return; const t = setTimeout(() => setConfirma(null), 5000); return () => clearTimeout(t); }, [confirma]);
 
@@ -156,7 +179,7 @@ export default function Futebol() {
       if (b.some(x => x.jogo === j.id && x.mercado === m && x.escolha === e)) return b.filter(x => x.jogo !== j.id);
       const sem = b.filter(x => x.jogo !== j.id);
       if (sem.length >= MAX_SELECOES) { avisar(`No máximo ${MAX_SELECOES} jogos por bilhete`); return b; }
-      return [...sem, { jogo: j.id, mercado: m, escolha: e, odd, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }];
+      return [...sem, { jogo: j.id, mercado: m, escolha: e, odd, ...(j.odds[m].linha != null ? { linha: j.odds[m].linha } : {}) }];
     });
   }
   const odd = bil.length ? oddTotal(bil.map(x => x.odd)) : 0;
@@ -167,9 +190,11 @@ export default function Futebol() {
     if (!(valor >= MIN_APOSTA && valor <= MAX_APOSTA)) return avisar(`Aposte de ${MIN_APOSTA} a ${MAX_APOSTA} fichas`);
     setEnviando(true);
     try {
-      const r = await chama({ op: 'apostar', valor, selecoes: bil });
+      if (vivoAba && bil.some(x => x.travado)) throw new Error('Tem palpite travado 🔒 no bilhete');
+      const r = await chama({ op: 'apostar', valor, selecoes: bil, vivo: vivoAba });
       sfx('coin'); if (r.coins != null) setCoins(r.coins);
-      avisar(`Aposta feita! Prêmio possível: ${fichas(r.premio)} fichas`, true);
+      if (r.pendente) { setConfirmando({ id: r.id, fim: Date.now() + r.espera }); esperarConfirmacao(r.id, r.espera); }
+      else avisar(`Aposta feita! Prêmio possível: ${fichas(r.premio)} fichas`, true);
       setBil([]); setBilAberto(false);
       reloadProfile && reloadProfile();
       carregar();
@@ -179,6 +204,24 @@ export default function Futebol() {
     }
     setEnviando(false);
   }
+
+  // aposta ao vivo: espera 7 s e pergunta se foi aceita
+  async function esperarConfirmacao(id, espera) {
+    await new Promise(r => setTimeout(r, espera + 300));
+    for (let i = 0; i < 6; i++) {
+      try {
+        const r = await chama({ op: 'confirmar', id });
+        if (r.espera) { await new Promise(rr => setTimeout(rr, r.espera + 300)); continue; }
+        if (r.coins != null) setCoins(r.coins);
+        if (r.status === 'recusada') { sfx('err'); avisar(`Aposta recusada: ${r.motivo || 'o jogo mudou'}. As fichas voltaram.`); }
+        else { sfx('win'); avisar('Aposta ao vivo confirmada! ✅', true); }
+        setConfirmando(null); reloadProfile && reloadProfile(); carregarVivo(); return;
+      } catch { await new Promise(rr => setTimeout(rr, 1500)); }
+    }
+    setConfirmando(null); avisar('Confira em Minhas apostas');
+  }
+  const [, tique] = useState(0);
+  useEffect(() => { if (!confirmando) return; const t = setInterval(() => tique(x => x + 1), 250); return () => clearInterval(t); }, [confirmando]);
 
   if (maior === false) return (
     <div className="page lounge"><div className="center-box"><div className="authcard" style={{ textAlign: 'center' }}>
@@ -190,18 +233,44 @@ export default function Futebol() {
     </div></div></div>
   );
 
-  const J = Object.fromEntries(jogos.map(j => [j.id, j]));
+  function listaVivo() {
+    const vs = vivoSt?.jogos || [];
+    return <div className="fb-lista">
+      {!vivoSt && <div className="fb-vazio">Carregando os jogos ao vivo…</div>}
+      {vivoSt && !vs.length && <div className="fb-vazio">Nenhum jogo rolando agora nos nossos campeonatos. Os jogos aparecem aqui assim que começam.</div>}
+      {vs.map(j => (
+        <div className="fb-jogo vivo" key={j.id}>
+          <div className="fb-info" onClick={() => setAberto(aberto === j.id ? null : j.id)}>
+            <small><span className="fb-ponto" /> <b className="fb-min">{j.status === 'HT' ? 'Intervalo' : `${j.minuto || 0}'`}</b> · {j.ligaNome}</small>
+            <div className="fb-time"><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span><b className="fb-gol">{j.placar[0]}</b></div>
+            <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span><b className="fb-gol">{j.placar[1]}</b></div>
+          </div>
+          {!j.odds ? <div className="fb-trava">🔒 Apostas travadas no momento</div> : <div className="fb-odds">
+            {j.odds['1x2'] ? ['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} onClick={() => escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>) : <span className="fb-trava">🔒 Resultado travado</span>}
+            {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => setAberto(aberto === j.id ? null : j.id)}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - (j.odds['1x2'] ? 1 : 0))}</button>}
+          </div>}
+          {aberto === j.id && j.odds && <div className="fb-extra">
+            {['gols', 'ambos', 'proximo', 'escanteios', 'cartoes'].filter(m => j.odds[m]).map(m => <div key={m} className="fb-merc">
+              <span>{MERCADOS[m].nome}{j.odds[m].linha != null && m === 'gols' ? ` (${String(j.odds[m].linha).replace('.', ',')})` : ''}</span>
+              <div>{MERCADOS[m].ops.map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} onClick={() => escolher(j, m, e)}><small>{curto(e, j.odds[m].linha ?? null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
+            </div>)}
+          </div>}
+        </div>
+      ))}
+    </div>;
+  }
+  const J = Object.fromEntries((vivoAba ? vivoSt?.jogos || [] : jogos).map(j => [j.id, j]));
   const bilhete = (
     <div className={'fb-bil' + (bilAberto ? ' aberto' : '')}>
-      <div className="fb-bt"><b>🎟️ Bilhete</b><span>{!bil.length ? '' : bil.length === 1 ? 'Simples' : `Múltipla de ${bil.length}`}</span>
+      <div className="fb-bt"><b>{vivoAba ? '🔴 Bilhete ao vivo' : '🎟️ Bilhete'}</b><span>{!bil.length ? '' : bil.length === 1 ? 'Simples' : `Múltipla de ${bil.length}`}</span>
         {bil.length > 0 && <button className="fb-limpa" onClick={() => setBil([])}>Limpar</button>}
         <button className="fb-fecha" onClick={() => setBilAberto(false)}>✕</button></div>
       <div className="fb-sels">
-        {!bil.length && <div className="fb-vazio">Toque nas odds dos jogos pra montar seu bilhete. Escolha vários jogos pra fazer uma múltipla: as odds se multiplicam.</div>}
+        {!bil.length && <div className="fb-vazio">{vivoAba ? 'Toque nas odds dos jogos rolando. A aposta ao vivo leva 7 segundos pra ser confirmada e fica num bilhete separado.' : 'Toque nas odds dos jogos pra montar seu bilhete. Escolha vários jogos pra fazer uma múltipla: as odds se multiplicam.'}</div>}
         {bil.map(x => { const j = J[x.jogo]; if (!j) return null; return (
           <div className="fb-sel" key={x.jogo}>
             <div><small>{j.casa} x {j.fora}</small><b>{rotuloSel(x, j.casa, j.fora)}</b><small>{nomeMerc(x.mercado)}{j.antecipa && x.mercado === '1x2' && x.escolha !== 'X' && ' · 💰 pagamento antecipado'}</small></div>
-            <span className="fb-so">{f2(x.odd)}</span>
+            <span className="fb-so">{x.travado ? '🔒' : f2(x.odd)}</span>
             <button onClick={() => setBil(b => b.filter(y => y.jogo !== x.jogo))}>✕</button>
           </div>); })}
       </div>
@@ -225,7 +294,8 @@ export default function Futebol() {
         <div className="fb-logo">⚽ FUTEBOL</div>
         <div className="fb-abas">
           <button className={aba === 'jogos' ? 'on' : ''} onClick={() => setAba('jogos')}>Jogos</button>
-          <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas apostas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
+          <button className={'fb-tvivo' + (aba === 'vivo' ? ' on' : '')} onClick={() => setAba('vivo')}><span className="fb-ponto" />Ao vivo{st?.aoVivo ? <i>{st.aoVivo}</i> : null}</button>
+          <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
         </div>
         <span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
@@ -234,9 +304,10 @@ export default function Futebol() {
       </div>
       {st?.admin && (st.admin.erro || !st.admin.chave) && <div className="fb-adm">🛠 {!st.admin.chave ? 'Falta cadastrar APIFOOTBALL_KEY no Netlify.' : `Erro da API (${st.admin.erro.passo}): ${st.admin.erro.msg}`} · chamadas hoje: {st.admin.chamadasHoje}/{st.admin.limite}</div>}
       {aviso && <div className={'fb-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
+      {confirmando && <div className="fb-conf"><div className="fb-conf-c"><span className="fb-ponto" /> Confirmando sua aposta ao vivo… <b>{Math.max(0, Math.ceil((confirmando.fim - Date.now()) / 1000))}</b><small>Se sair gol ou a odd cair nesse tempo, a aposta é recusada e as fichas voltam.</small></div></div>}
 
-      {aba === 'jogos' ? <div className="fb-main">
-        <div className="fb-esq">
+      {aba !== 'minhas' ? <div className="fb-main">
+        <div className="fb-esq">{vivoAba ? listaVivo() : <>
           <div className="fb-novs">
             <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Toque no nome dos times</small></button>
             <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
@@ -286,7 +357,7 @@ export default function Futebol() {
               ))}
             </div>)}
           </div>
-        </div>
+        </>}</div>
         {bilhete}
         {bil.length > 0 && !bilAberto && <button className="fb-flut" onClick={() => setBilAberto(true)}>🎟️ {bil.length} · odd {f2(odd)}</button>}
       </div> : <div className="fb-minhas">
@@ -295,7 +366,7 @@ export default function Futebol() {
         {(minhas || []).map(a => (
           <div className="fb-ap" key={a.id} style={{ '--c': ST[a.status][1] }}>
             <div className="fb-ap-t">
-              <b>{a.selecoes.length === 1 ? 'Simples' : `Múltipla de ${a.selecoes.length}`}</b>
+              <b>{a.vivo && <span className="fb-tagv">🔴 Ao vivo</span>}{a.selecoes.length === 1 ? 'Simples' : `Múltipla de ${a.selecoes.length}`}</b>
               <span>{new Date(a.em).toLocaleString('pt-BR', { ...TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
               <em>{ST[a.status][0]}</em>
             </div>
@@ -306,8 +377,9 @@ export default function Futebol() {
                   <b>{s.mercado === 'combo' && '🧩 '}{rotuloSel(s, s.casa, s.fora)}{s.total != null && <i className="fb-tot"> · deu {s.total}</i>}{s.antecipado && <i className="fb-ant">💰 pago antecipado</i>}</b></div>
                 <span className="fb-so">{f2(s.odd)}</span>
               </div>))}
+            {a.status === 'recusada' && <div className="fb-motivo">{a.motivo || 'O jogo mudou durante a confirmação'}. As fichas voltaram.</div>}
             <div className="fb-ap-r"><span>Aposta <b>{a.valor}</b></span><span>Odd <b>{f2(a.odd)}</b></span>
-              <span>{a.status === 'aberta' ? 'Prêmio possível' : a.status === 'perdeu' ? 'Prêmio' : 'Recebeu'} <b className="fb-pr">{fichas(a.status === 'aberta' ? a.premio : a.ganho)}</b></span></div>
+              <span>{['aberta', 'pendente'].includes(a.status) ? 'Prêmio possível' : a.status === 'perdeu' ? 'Prêmio' : a.status === 'recusada' ? 'Devolvido' : 'Recebeu'} <b className="fb-pr">{fichas(['aberta', 'pendente'].includes(a.status) ? a.premio : a.ganho)}</b></span></div>
             {a.status === 'aberta' && a.cashout != null && <button className={'fb-co' + (confirma === a.id ? ' sim' : '')} disabled={encerrando}
               onClick={() => confirma === a.id ? cashout(a) : setConfirma(a.id)}>
               {confirma === a.id ? `Confirmar cash out de ${f2(a.cashout)} fichas?` : `💸 Cash out ${f2(a.cashout)}`}</button>}
@@ -322,6 +394,7 @@ export default function Futebol() {
           <p>• Prêmio = aposta × odd total. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas. Prêmio máximo de {fichas(MAX_PREMIO)} fichas por bilhete.</p>
           <p>• Vale o resultado dos <b>90 minutos</b> (com acréscimos). Prorrogação e pênaltis não contam.</p>
           <p>• <b>1º tempo</b>: vale o placar do intervalo (paga já no intervalo). <b>Quem marca primeiro</b>: o time do 1º gol nos 90 minutos; "Sem gol" ganha no 0 x 0. <b>Handicap</b>: soma ou tira gols do time (ex.: Flamengo −1,5 precisa ganhar por 2 ou mais). <b>Placar exato</b>: o placar dos 90 minutos.</p>
+          <p>• <b>🔴 Ao vivo</b>: aposte com o jogo rolando, com as odds do momento. A aposta leva <b>7 segundos</b> pra ser confirmada: se sair gol, a odd cair ou o mercado travar 🔒 nesse tempo, ela é recusada e as fichas voltam. Não aceita depois dos 85 minutos. Aposta ao vivo fica num bilhete separado e <b>não tem pagamento antecipado</b>. <b>Próximo gol</b>: o time que marcar o próximo gol depois da sua aposta.</p>
           <p>• <b>🧩 Criar aposta</b>: toque no nome dos times e junte de 2 a 6 palpites do mesmo jogo num só (um de cada tipo; placar exato fica só nos palpites normais). Palpites que não combinam com os já escolhidos ficam apagados. A odd é calculada pra todos acontecerem juntos, por isso é menor que multiplicar. Ganha só se todos acertarem; se um for anulado, o combo inteiro é anulado. Pode entrar numa múltipla com outros jogos.</p>
           <p>• <b>Escanteios</b> e <b>cartões</b>: total dos dois times no jogo. Nos cartões, amarelo e vermelho contam 1 cada. Jogo com prorrogação anula esses palpites. Esses palpites não têm cash out depois que o jogo começa.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
@@ -338,6 +411,19 @@ export default function Futebol() {
 .fb-abas{display:flex;background:#0008;border-radius:20px;padding:3px;margin-right:auto;margin-left:6px}
 .fb-abas button{position:relative;border:none;background:none;color:#a7c4b0;font:500 14px Rubik;padding:5px 14px;border-radius:17px;white-space:nowrap}
 .fb-abas button.on{background:#16a34a;color:#fff}
+.fb-tvivo{display:inline-flex;align-items:center;gap:5px}
+.fb-ponto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 #ef4444;animation:fbvivo 1.2s infinite;vertical-align:middle}
+@keyframes fbvivo{0%{box-shadow:0 0 0 0 #ef4444cc}70%{box-shadow:0 0 0 6px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
+.fb-jogo.vivo{border-color:#ef444466}
+.fb-min{color:#f87171;font-weight:700}
+.fb-gol{margin-left:auto;font:700 18px Oswald;color:#fff;padding:0 6px}
+.fb-trava{font:500 12px Rubik;color:#fca5a5;align-self:center}
+.fb-tagv{font:600 11px Rubik;color:#fca5a5;margin-right:6px}
+.fb-motivo{font:400 12px Rubik;color:#cbd5e1;background:#0006;border-radius:8px;padding:4px 8px}
+.fb-conf{position:fixed;inset:0;z-index:40;background:#000a;display:flex;align-items:center;justify-content:center;padding:20px}
+.fb-conf-c{background:#1f0a0a;border:2px solid #ef4444;border-radius:18px;padding:18px 20px;max-width:340px;text-align:center;font:500 16px Rubik;color:#fff;display:flex;flex-direction:column;align-items:center;gap:8px}
+.fb-conf-c b{font:700 44px Oswald;color:#fbbf24}
+.fb-conf-c small{font:400 12px Rubik;color:#fca5a5}
 .fb-abas i{font-style:normal;background:#fbbf24;color:#000;border-radius:9px;font:700 11px Rubik;padding:0 5px;margin-left:5px}
 .fb-saldo{font:600 15px Oswald;color:#fff;background:#0007;border:1px solid #4ade8088;border-radius:20px;padding:3px 10px;white-space:nowrap}
 .fb-top .rbtn{width:36px;height:36px;font-size:15px}
