@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#1a1410">
-<title>Cacheta Club</title>
+<title>Casa de Jogos · Cacheta</title>
 <script>/* só jogadores cadastrados (no site; dentro do Claude não bloqueia) */
 (function(){try{if(window.top!==window.self||!/netlify\.app$|cacheta/i.test(location.hostname))return;var ok=false;for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^sb-.*-auth-token$/.test(k)&&localStorage.getItem(k)){ok=true;break}}if(!ok)location.replace('/login?next='+encodeURIComponent(location.pathname))}catch(e){}})();</script>
 <link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icon-192.png">
@@ -24,7 +24,7 @@ var st=d.createElement('style');
 st.textContent='#ccland{position:fixed;inset:0;z-index:2147483000;background:radial-gradient(circle at 50% 40%,#1d7a44,#0a2414 75%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#fff;font:500 17px Rubik,system-ui,sans-serif;text-align:center;padding:24px;touch-action:none}#ccland.on{display:flex}#ccland>b{font:700 30px Oswald,Rubik,sans-serif;color:#ffd76a;letter-spacing:1px}#ccland .ios b{color:#ffd76a}#ccland .ph{font-size:62px;line-height:1;display:inline-block;animation:ccrot 1.8s ease-in-out infinite}#ccland.land .ph{display:none}@keyframes ccrot{0%,25%{transform:rotate(0)}65%,100%{transform:rotate(-90deg)}}#ccland .go,#ccland .no{width:auto;min-width:0;margin:0;flex:none}#ccland .go{font:700 21px Oswald,Rubik,sans-serif;padding:14px 30px;border-radius:999px;border:0;background:linear-gradient(180deg,#ffe08a,#e0a100);color:#3a2300;box-shadow:0 5px 0 #8a5a00}#ccland .ios{background:rgba(0,0,0,.35);border-radius:14px;padding:10px 16px;max-width:460px;text-align:left;font-size:15px;line-height:1.35}#ccland .ios p{margin:0 0 4px}#ccland .ios ol{margin:0;padding-left:20px}#ccland .ios small{opacity:.75}#ccland .sh{display:inline-block;border:1.5px solid #fff;border-radius:5px;padding:0 4px;font-size:12px}#ccland .no{background:none;border:0;color:#cfe;font:500 14px Rubik,sans-serif;text-decoration:underline;opacity:.8}';
 d.head.appendChild(st);
 var el=d.createElement('div');el.id='ccland';
-el.innerHTML='<b>CACHETA CLUB</b><span class="ph">📱</span><span class="tx"></span><div class="ios"><p>Para jogar em <b>tela cheia</b> no iPhone:</p><ol><li>Toque em <b>Compartilhar</b> <span class="sh">⬆</span> no Safari <small>(no iOS 26 fica no menu •••)</small></li><li>Escolha <b>Adicionar à Tela de Início</b></li><li>Abra o <b>Cacheta Club</b> pelo ícone novo</li></ol></div><button class="go" type="button">▶ Jogar em tela cheia</button><button class="ok2 go" type="button">Entendi, jogar assim</button><button class="no" type="button">continuar sem tela cheia</button>';
+el.innerHTML='<b>CASA DE JOGOS</b><span class="ph">📱</span><span class="tx"></span><div class="ios"><p>Para jogar em <b>tela cheia</b> no iPhone:</p><ol><li>Toque em <b>Compartilhar</b> <span class="sh">⬆</span> no Safari <small>(no iOS 26 fica no menu •••)</small></li><li>Escolha <b>Adicionar à Tela de Início</b></li><li>Abra o <b>Cacheta Club</b> pelo ícone novo</li></ol></div><button class="go" type="button">▶ Jogar em tela cheia</button><button class="ok2 go" type="button">Entendi, jogar assim</button><button class="no" type="button">continuar sem tela cheia</button>';
 var tx=el.querySelector('.tx'),go=el.querySelectorAll('.go')[0],ok2=el.querySelector('.ok2'),iosBox=el.querySelector('.ios'),no=el.querySelector('.no');
 function isFS(){return !!(d.fullscreenElement||d.webkitFullscreenElement)||app()}
 function portrait(){return w.innerHeight>w.innerWidth}
@@ -391,7 +391,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   <div class="footbar">
     <button data-act="settings" title="Configurações">⚙️</button>
     <button data-act="rules" title="Regras">📖</button>
-    <div class="ver">Cacheta Club · v1.1 beta</div>
+    <div class="ver">Casa de Jogos · Cacheta</div>
     <button class="shop" data-act="coins"><i>💰</i>Fichas</button>
   </div>
 </section>
@@ -421,7 +421,7 @@ button{font-family:inherit;cursor:pointer;color:inherit}
   </div>
   <div id="arena">
     <div class="rail"><div class="felt" id="felt">
-      <div class="wm"><b>CACHETA CLUB</b><small id="wmInfo"></small></div>
+      <div class="wm"><b>CASA DE JOGOS</b><small id="wmInfo"></small></div>
       <button class="cdisc" data-act="discard" id="bDisc">DESCARTAR</button>
       <div class="center">
         <div id="msg"></div>

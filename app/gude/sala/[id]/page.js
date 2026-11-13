@@ -168,7 +168,7 @@ export default function GudeSala() {
   if (!inGame) {
     const me = players.find(p => p.user_id === user.id);
     const seats = [0, 1].map(i => players.find(p => p.seat === i));
-    const convite = `Bora jogar bolinha de gude (${modeName(room.mode).replace('Gude · ', '')}) no Cacheta Club! 🔵 Entra na minha mesa: ${link}${room.is_private ? ' (peça a senha)' : ''}`;
+    const convite = `Bora jogar bolinha de gude (${modeName(room.mode).replace('Gude · ', '')}) na Casa de Jogos! 🔵 Entra na minha mesa: ${link}${room.is_private ? ' (peça a senha)' : ''}`;
     const inRoom = new Set(players.map(p => p.user_id));
     const free = online.filter(o => o.uid !== user.id && !inRoom.has(o.uid) && o.where !== 'sala');
     const base = { roomId: id, roomName: room.name, entry: room.entry, isPrivate: room.is_private, fromNick: profile?.nickname, fromAvatar: profile?.avatar };

@@ -82,7 +82,7 @@ function Body({ profile, reloadProfile, user }) {
       <p>{fmt(doc.pack.coins)} fichas por <b>R$ {doc.pack.brl.toFixed(2).replace('.', ',')}</b>. O banco do Pix pede o nome e o CPF de quem paga.</p>
       <input className="field" placeholder="Nome e sobrenome" value={doc.nome} onChange={e => setDoc({ ...doc, nome: e.target.value })} />
       <input className="field" placeholder="CPF (só números)" inputMode="numeric" maxLength={14} value={doc.cpf} onChange={e => setDoc({ ...doc, cpf: e.target.value })} />
-      <p className="hint">Seu CPF vai só para o gerador do Pix e não fica guardado no Cacheta Club.</p>
+      <p className="hint">Seu CPF vai só para o gerador do Pix e não fica guardado na Casa de Jogos.</p>
       <button className="go" disabled={busy} onClick={() => pay(doc.pack, { nome: doc.nome, cpf: doc.cpf })}>{busy ? 'Gerando Pix…' : 'Gerar Pix'}</button>
       <button className="sec" onClick={() => setDoc(null)}>Cancelar</button>
     </Modal>}

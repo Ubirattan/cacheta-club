@@ -134,7 +134,7 @@ export default function Truco() {
       </div>
 
       <div id="arena"><div className="rail"><div className="felt">
-        <div className="wm"><b>Cacheta Club</b><small>TRUCO PAULISTA</small></div>
+        <div className="wm"><b>Casa de Jogos</b><small>TRUCO PAULISTA</small></div>
         <div className="tr-vira"><Card c={G.vira} /><span>Vira · manilha <b>{man}</b></span></div>
         {G.players.map((p, i) => i === 0 ? null : (
           <div key={i} className={`seat ${SEATS[G.n][i][0] > 60 ? 'rt' : ''} ${nd.pi === i && (nd.kind === 'play' || nd.kind === 'resp') ? 'turn' : ''}`} style={{ left: SEATS[G.n][i][0] + '%', top: SEATS[G.n][i][1] + '%' }}>

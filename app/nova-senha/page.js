@@ -27,7 +27,7 @@ export default function NovaSenha() {
   return (
     <div className="page lounge"><div className="center-box">
       <form className="authcard" onSubmit={save}>
-        <div className="logo"><b>Cacheta Club</b><small>NOVA SENHA</small></div>
+        <div className="logo"><b>Casa de Jogos</b><small>NOVA SENHA</small></div>
         {!ready && !err && <p className="hint" style={{ textAlign: 'center' }}>Conferindo o link…</p>}
         {ready && <>
           <input className="field" type="password" placeholder="Senha nova" autoComplete="new-password" value={p1} onChange={e => setP1(e.target.value)} />
