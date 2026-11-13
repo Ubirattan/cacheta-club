@@ -1,7 +1,7 @@
 'use client';
 // PIPA — batalha de cortar contra o computador. Cada partida custa 1 ficha (cobrada no servidor: /api/treino).
 // Segure o dedo na tela pra PUXAR (a pipa vai pra onde o bico aponta); solte pra DAR LINHA (ela gira).
-// Céu em 3D (câmera na laje olhando pra cima, com a foto da rua do Jd. Guaracy), de dia ou de noite,
+// Céu em 3D (câmera parada enquadrando o céu todo; cada jogador é um bonequinho numa laje), em vários cenários,
 // com 1 a 3 pipas do computador. Se o 3D não abrir no celular, usa a tela 2D.
 // A sua pipa é a que está em uso na loja (slot 'pipa').
 import { useEffect, useRef, useState } from 'react';
@@ -409,7 +409,7 @@ export default function Pipa() {
             {CENARIOS.map(c => <button key={c.id} className={`pp-cen ${cen === c.id ? 'on' : ''}`} onClick={() => setCen(c.id)}>
               <Cena id={c.id} /><span>{c.nome}</span></button>)}
           </div>
-          <h3>Mão</h3>
+          <h3>Cor do bonequinho</h3>
           <div className="pp-chips">
             {PELES.map((c, i) => <button key={c} className={`pp-pele ${pele === i ? 'on' : ''}`} style={{ background: c }} onClick={() => setPele(i)} />)}
           </div>
