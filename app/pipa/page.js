@@ -16,11 +16,24 @@ import { drawPipa, modelo, modelosBots, PIPA_PADRAO } from '../../lib/pipa-arte.
 import { loadThree, webglOk } from '../../lib/three-loader.js';
 import { createPipa3D } from '../../lib/pipa-view3d.js';
 import { foto } from '../../lib/gude-view.js';
+import { ITEMS } from '../../lib/shop-items.js';
+import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib/pipa-cenarios.js';
 
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
-const CEUS = [['dia', '☀️ Dia'], ['noite', '🌙 Noite'], ['auto', '🕐 Hora certa']];
-const ehNoite = ceu => ceu === 'noite' || (ceu === 'auto' && (() => { const h = new Date().getHours(); return h >= 18 || h < 6; })());
+const PIPAS = ITEMS.filter(i => i.slot === 'pipa');
+
+// desenho do cenário (miniatura e fundo do menu)
+function Cena({ id, className }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return;
+    const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    c.width = Math.max(40, r.width * dpr) | 0; c.height = Math.max(30, r.height * dpr) | 0;
+    pintaPreview(c.getContext('2d'), c.width, c.height, id);
+  }, [id]);
+  return <canvas ref={ref} className={className} />;
+}
 
 // pipa desenhada uma vez numa imagem (a tela 2D só gira e cola)
 const ARTE = {};
@@ -125,7 +138,11 @@ export default function Pipa() {
   const { profile, reloadProfile } = useAuth();
   const [level, setLevel] = useState('medio');
   const [quantas, setQuantas] = useState(2);
-  const [ceu, setCeu] = useState('dia');
+  const [cen, setCen] = useState(CENARIO_PADRAO);
+  const [lin, setLin] = useState('chilena');
+  const [pele, setPele] = useState(1);
+  const [escolha, setEscolha] = useState(null);     // pipa tocada (pra usar já, antes do perfil recarregar)
+  const [comprar, setComprar] = useState(null);     // pipa bloqueada que o jogador quer comprar
   const [modo3d, setModo3d] = useState(true);       // false = tela 2D (escolha do jogador ou 3D não abriu)
   const [game, setGame] = useState(null);           // { id, bots, level, n, night, models }
   const [hud, setHud] = useState(null);
@@ -135,18 +152,32 @@ export default function Pipa() {
   const [busy, setBusy] = useState(false);
   const [som, setSom] = useState(true);
   const cvRef = useRef(null), boxRef = useRef(null);
-  const minha = (profile?.equipped && profile.equipped.pipa) || PIPA_PADRAO;
+  const minha = escolha || (profile?.equipped && profile.equipped.pipa) || PIPA_PADRAO;
+  const tenho = id => { const it = PIPAS.find(p => p.id === id); return !!it && (it.price === 0 || (profile?.owned || []).includes(id)); };
+  async function usar(id) {
+    if (!tenho(id)) return setComprar(PIPAS.find(p => p.id === id));
+    setEscolha(id); sfx('tick');
+    try { await api('/api/shop', { op: 'equip', item: id }); reloadProfile && reloadProfile(); } catch (e) { toast(e.message); }
+  }
+  async function compra(it) {
+    setBusy(true);
+    try { await api('/api/shop', { op: 'buy', item: it.id }); sfx('coin'); toast('Comprada! Essa é a sua pipa agora'); setEscolha(it.id); setComprar(null); reloadProfile && reloadProfile(); }
+    catch (e) { toast(e.message); }
+    setBusy(false);
+  }
 
   useEffect(() => {
     setSom(soundOn());
     try {
       const l = localStorage.getItem('pp_level'); if (NIVEIS.some(x => x[0] === l)) setLevel(l);
       const q = +localStorage.getItem('pp_n'); if (QUANTAS.some(x => x[0] === q)) setQuantas(q);
-      const c = localStorage.getItem('pp_ceu'); if (CEUS.some(x => x[0] === c)) setCeu(c);
+      const c = localStorage.getItem('pp_cen'); if (CENARIOS.some(x => x.id === c)) setCen(c);
+      const li = localStorage.getItem('pp_linha'); if (LINHAS.some(x => x.id === li)) setLin(li);
+      const pl = +localStorage.getItem('pp_pele'); if (pl >= 0 && pl < PELES.length) setPele(pl);
       if (localStorage.getItem('pp_2d') === '1') setModo3d(false);
     } catch {}
   }, []);
-  useEffect(() => { try { localStorage.setItem('pp_level', level); localStorage.setItem('pp_n', String(quantas)); localStorage.setItem('pp_ceu', ceu); } catch {} }, [level, quantas, ceu]);
+  useEffect(() => { try { localStorage.setItem('pp_level', level); localStorage.setItem('pp_n', String(quantas)); localStorage.setItem('pp_cen', cen); localStorage.setItem('pp_linha', lin); localStorage.setItem('pp_pele', String(pele)); } catch {} }, [level, quantas, cen, lin, pele]);
 
   async function start() {
     if (!profile || busy) return;
@@ -156,7 +187,7 @@ export default function Pipa() {
       await api('/api/treino', { jogo: 'pipa' });
       reloadProfile && reloadProfile();
       const pool = [...BOTS].sort(() => Math.random() - .5), n = quantas;
-      setGame({ id: Date.now(), bots: pool.slice(0, n - 1), level, n, night: ehNoite(ceu), models: [minha, ...modelosBots(minha, n - 1)] });
+      setGame({ id: Date.now(), bots: pool.slice(0, n - 1), level, n, cen, lin, pele, night: cen === 'noite', models: [minha, ...modelosBots(minha, n - 1)] });
       setMsg('Segure o dedo pra PUXAR · solte pra DAR LINHA');
     } catch (e) { if (/fichas/i.test(e.message)) setSemFichas(true); else toast(e.message); }
     finally { setBusy(false); }
@@ -192,7 +223,7 @@ export default function Pipa() {
     if (usar3d) loadThree().then(THREE => {
       if (!alive) return;
       const fotos = { fundo: foto('rua-fundo.jpg', () => v3 && v3.setFoto({ fundo: foto('rua-fundo.jpg') })), chao: foto('rua-chao.jpg', () => v3 && v3.setFoto({ chao: foto('rua-chao.jpg') })) };
-      try { v3 = createPipa3D({ THREE, box, models: game.models, night: game.night, foto: fotos }); v3.canvas.addEventListener('pointerdown', down); }
+      try { v3 = createPipa3D({ THREE, box, models: game.models, cenario: game.cen, linha: game.lin, pele: game.pele, foto: fotos }); v3.canvas.addEventListener('pointerdown', down); }
       catch (e) { console.error('pipa 3D', e); v3 = null; cv.style.visibility = 'visible'; }
     }).catch(() => { cv.style.visibility = 'visible'; });
 
@@ -308,22 +339,58 @@ export default function Pipa() {
 
   /* ------------------------- MENU ------------------------- */
   if (!game) return (
-    <div className="page lounge pp-menu">
-      <div className="hdr"><a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a>
+    <div className="page pp-menu">
+      <Cena id={cen} className="pp-bg" />
+      <div className="pp-hd">
+        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
         <div className="pp-logo">PIPA <small>batalha de cortar</small></div>
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button></div>
-      <div className="pp-box">
-        <div className="pp-minha"><PipaIcon id={minha} size={70} /><div><b>Sua pipa</b><a href="/loja#itens" onClick={e => { e.preventDefault(); router.push('/loja'); }}>🛒 Trocar na loja</a></div></div>
-        <Seg label="Pipas no céu" value={quantas} onChange={setQuantas} options={QUANTAS} />
-        <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
-        <Seg label="Céu" value={ceu} onChange={setCeu} options={CEUS} />
-        <button className="go" disabled={!profile || busy} onClick={start}>{busy ? 'Começando…' : '🪁 Empinar · 1 ficha'}</button>
-        <div className="pp-row">
-          <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
-          <button className="sec" onClick={() => { const v = !modo3d; setModo3d(v); try { localStorage.setItem('pp_2d', v ? '0' : '1'); } catch {} }}>{modo3d ? '🎥 Visão 3D' : '🖼 Visão 2D'}</button>
-        </div>
-        <p className="hint" style={{ textAlign: 'center' }}>Cada partida contra o computador custa 1 ficha. Quem ganhar 2 rodadas primeiro leva.</p>
+        <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a>
       </div>
+      <div className="pp-sel">
+        <div className="pp-scroll">
+          <h3>Escolha sua pipa</h3>
+          <div className="pp-grid">
+            {PIPAS.map(it => {
+              const meu = tenho(it.id);
+              return <button key={it.id} className={`pp-k ${minha === it.id ? 'on' : ''} ${meu ? '' : 'lock'}`} onClick={() => usar(it.id)} title={it.name}>
+                <PipaIcon id={it.id} size={46} />
+                {!meu && <em>💰 {it.price}</em>}
+              </button>;
+            })}
+          </div>
+          <h3>Linha</h3>
+          <div className="pp-chips">
+            {LINHAS.map(l => <button key={l.id} className={`pp-chip ${lin === l.id ? 'on' : ''}`} onClick={() => setLin(l.id)}>
+              <i style={{ background: `repeating-linear-gradient(0deg,${l.cor} 0 3px,#0003 3px 4px)` }} /><span>{l.nome}</span></button>)}
+          </div>
+          <h3>Cenário</h3>
+          <div className="pp-cens">
+            {CENARIOS.map(c => <button key={c.id} className={`pp-cen ${cen === c.id ? 'on' : ''}`} onClick={() => setCen(c.id)}>
+              <Cena id={c.id} /><span>{c.nome}</span></button>)}
+          </div>
+          <h3>Mão</h3>
+          <div className="pp-chips">
+            {PELES.map((c, i) => <button key={c} className={`pp-pele ${pele === i ? 'on' : ''}`} style={{ background: c }} onClick={() => setPele(i)} />)}
+          </div>
+          <h3>Partida</h3>
+          <Seg label="Pipas no céu" value={quantas} onChange={setQuantas} options={QUANTAS} />
+          <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
+          <div className="pp-row">
+            <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
+            <button className="sec" onClick={() => { const v = !modo3d; setModo3d(v); try { localStorage.setItem('pp_2d', v ? '0' : '1'); } catch {} }}>{modo3d ? '🎥 Visão 3D' : '🖼 Visão 2D'}</button>
+          </div>
+        </div>
+        <button className="pp-play" disabled={!profile || busy} onClick={start}>
+          <PipaIcon id={minha} size={54} />
+          <b>{busy ? '...' : 'JOGAR'}</b><small>1 ficha</small>
+        </button>
+      </div>
+      {comprar && <Modal onClose={() => setComprar(null)}><h2>{comprar.name}</h2>
+        <div style={{ display: 'flex', justifyContent: 'center' }}><PipaIcon id={comprar.id} size={110} /></div>
+        <p>Comprar essa pipa por <b>💰 {comprar.price} fichas</b>? Ela fica sua pra sempre.</p>
+        <button className="go" disabled={busy || (profile?.coins || 0) < comprar.price} onClick={() => compra(comprar)}>{(profile?.coins || 0) < comprar.price ? 'Fichas insuficientes' : `Comprar · 💰 ${comprar.price}`}</button>
+        {(profile?.coins || 0) < comprar.price && <button className="sec" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas com Pix</button>}
+        <button className="sec" onClick={() => setComprar(null)}>Fechar</button></Modal>}
       {rules && <Regras onClose={() => setRules(false)} />}
       {semFichas && <Modal onClose={() => setSemFichas(false)}><h2>Sem fichas</h2>
         <p>Cada partida contra o computador custa 1 ficha. Compre fichas pra jogar.</p>
@@ -386,17 +453,36 @@ function Regras({ onClose }) {
 }
 
 const CSS = `
-.pp-menu .hdr{align-items:center}
-.pp-logo{font:700 clamp(24px,5.6vmin,40px) Oswald;color:var(--gold);font-style:italic;letter-spacing:1px;text-align:center}
-.pp-logo small{font:500 14px Oswald;color:var(--mut);font-style:normal;margin-left:6px}
-.pp-box{margin:auto;width:min(440px,94vw);background:linear-gradient(180deg,#1d2a3a,#0e141c);border:2px solid var(--gold2);border-radius:20px;padding:14px 18px;text-align:center}
-.pp-box h2{margin:0 0 6px;font:700 22px Oswald;color:var(--gold);text-transform:uppercase;font-style:italic}
-.pp-minha{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:4px}
-.pp-minha canvas{filter:drop-shadow(3px 5px 5px rgba(0,0,0,.5))}
-.pp-minha div{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
-.pp-minha b{font:600 17px Oswald;color:var(--gold)}
-.pp-minha a{font:500 14px Oswald;color:#9cc9ee;text-decoration:none}
-.pp-row{display:flex;gap:8px}.pp-row .sec{flex:1}
+.pp-menu{overflow:hidden;background:#0b0f16}
+.pp-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pp-hd{position:relative;display:flex;align-items:center;gap:10px;padding:8px 12px 4px}
+.pp-hd .coins{margin-left:auto}
+.pp-logo{font:700 clamp(22px,5vmin,34px) Oswald;color:#fff;font-style:italic;letter-spacing:1px;text-shadow:0 2px 0 #7a2d00,0 0 10px #0008}
+.pp-logo small{font:500 13px Oswald;color:#fff;opacity:.85;font-style:normal;margin-left:6px}
+.pp-sel{position:relative;flex:1;min-height:0;display:flex;gap:10px;padding:0 10px 10px}
+.pp-scroll{flex:1;min-width:0;overflow-y:auto;background:rgba(10,14,22,.72);backdrop-filter:blur(3px);border:2px solid var(--gold2);border-radius:16px;padding:6px 12px 12px;-webkit-overflow-scrolling:touch}
+.pp-scroll h3{margin:10px 0 6px;font:700 17px Oswald;color:var(--gold);text-transform:uppercase;font-style:italic;letter-spacing:.5px}
+.pp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px}
+.pp-k{position:relative;aspect-ratio:1;border-radius:10px;border:2px solid #ffffff22;background:radial-gradient(circle at 50% 40%,#2c3b52,#121a26);display:flex;align-items:center;justify-content:center;padding:0}
+.pp-k.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 0 12px #f2c94c88}
+.pp-k.lock canvas{filter:grayscale(.75) brightness(.7)}
+.pp-k em{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);font:600 11px Oswald;font-style:normal;color:#fde68a;background:#000b;border-radius:8px;padding:0 5px;white-space:nowrap}
+.pp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pp-chip{display:flex;align-items:center;gap:6px;border-radius:20px;border:2px solid #ffffff22;background:#121a26;padding:4px 10px 4px 4px;color:#eadfca;font:500 13px Oswald}
+.pp-chip i{width:24px;height:24px;border-radius:50%;border:2px solid #0006;display:block}
+.pp-chip.on,.pp-cen.on,.pp-pele.on{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}
+.pp-cens{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.pp-cen{position:relative;padding:0;border-radius:10px;overflow:hidden;border:2px solid #ffffff22;aspect-ratio:16/9;background:#000}
+.pp-cen canvas{width:100%;height:100%;display:block}
+.pp-cen span{position:absolute;left:0;right:0;bottom:0;font:600 12px Oswald;color:#fff;background:linear-gradient(transparent,#000c);padding:6px 4px 3px}
+.pp-pele{width:38px;height:38px;border-radius:50%;border:3px solid #0006}
+.pp-row{display:flex;gap:8px;margin-top:8px}.pp-row .sec{flex:1}
+.pp-play{flex:none;width:clamp(86px,15vw,130px);border-radius:18px;border:3px solid #fff;background:linear-gradient(180deg,#ff5a3c,#c8102e);box-shadow:0 6px 0 #6d0816,0 10px 20px #0008;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px}
+.pp-play b{font:700 clamp(22px,4.4vw,34px) Oswald;font-style:italic;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:-4px;text-shadow:0 2px 0 #6d0816}
+.pp-play small{font:600 13px Oswald;background:#0005;border-radius:10px;padding:1px 8px}
+.pp-play:active{transform:translateY(4px);box-shadow:0 2px 0 #6d0816}
+.pp-play:disabled{opacity:.6}
+@media (orientation:portrait){.pp-sel{flex-direction:column}.pp-play{width:auto;flex-direction:row;padding:10px}.pp-play b{writing-mode:horizontal-tb;letter-spacing:1px}}
 .pp-pills{display:flex;gap:6px;min-width:0;flex:1 1 auto;overflow:hidden}
 .pp-pill.off{opacity:.4;filter:grayscale(1)}
 .pp-pill.mini{padding:2px 8px 2px 3px;gap:5px}
