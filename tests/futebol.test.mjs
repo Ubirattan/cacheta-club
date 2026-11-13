@@ -191,3 +191,91 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   usarApi(null);
   console.log('OK — futebol Pro: placar ao vivo, pagamento antecipado com 2 gols e cash out (' + chamadasPro + ' chamadas)');
 }
+
+// ---- escanteios e cartões ----
+{
+  const { lerOdds: lo, situacao: si, rotulo: ro } = await import('../lib/futebol.js');
+  const bkx = [{ id: 8, bets: [{ id: 1, name: 'Match Winner', values: [v('Home', 2), v('Draw', 3), v('Away', 4)] },
+    { id: 45, name: 'Corners Over Under', values: [v('Over 8.5', 1.5), v('Under 8.5', 2.5), v('Over 9.5', 1.85), v('Under 9.5', 1.9), v('Over 10.5', 2.4), v('Under 10.5', 1.5)] },
+    { id: 57, name: 'Home Corners Over/Under', values: [v('Over 4.5', 1.9), v('Under 4.5', 1.9)] },
+    { id: 80, name: 'Cards Over/Under', values: [v('Over 4.5', 1.8), v('Under 4.5', 1.95)] }] }];
+  const ox = lo({ bookmakers: bkx });
+  assert.deepEqual(ox.escanteios, { linha: 9.5, mais: 1.85, menos: 1.9 }, 'linha mais equilibrada do jogo todo');
+  assert.deepEqual(ox.cartoes, { linha: 4.5, mais: 1.8, menos: 1.95 });
+  assert.equal(ro('escanteios', 'mais', 'a', 'b', 9.5), 'Mais de 9,5 escanteios');
+  const T = Date.UTC(2026, 10, 15, 12, 0), H = 3600e3;
+  const g = { 20: fx(20, 71, 'Grêmio', 'Inter', T + 2 * H) };
+  let stats = 0;
+  usarApi(async (c, p) => {
+    let r = [];
+    if (c === 'fixtures' && p.date) r = p.date === '2026-11-15' ? [g[20]] : [];
+    if (c === 'fixtures' && p.ids) r = [g[20]];
+    if (c === 'odds') r = [{ fixture: { id: p.fixture }, bookmakers: bkx }];
+    if (c === 'fixtures/statistics') { stats++; r = [{ statistics: [{ type: 'Corner Kicks', value: 6 }, { type: 'Yellow Cards', value: 2 }, { type: 'Red Cards', value: null }] },
+      { statistics: [{ type: 'Corner Kicks', value: 5 }, { type: 'Yellow Cards', value: 3 }, { type: 'Red Cards', value: 1 }] }]; }
+    r.limite = 7500; return r;
+  });
+  const R = memRepo(); Object.assign(R.T, { futebol_jogos: [], futebol_apostas: [], futebol_sync: [] });
+  const [u] = addUsers(R, 1, 1000);
+  const go = async (b, t) => { if (b.op !== 'apostar') await fb(R, u, { op: 'atualizar' }, t); return fb(R, u, b, t); };
+  await go({ op: 'jogos' }, T);
+  await assert.rejects(go({ op: 'apostar', valor: 10, selecoes: [{ jogo: 20, mercado: 'escanteios', escolha: 'mais', odd: 1.85, linha: 8.5 }] }, T), /odds mudaram/, 'linha diferente');
+  const e1 = await go({ op: 'apostar', valor: 10, selecoes: [{ jogo: 20, mercado: 'escanteios', escolha: 'mais', odd: 1.85, linha: 9.5 }] }, T);
+  const c1 = await go({ op: 'apostar', valor: 10, selecoes: [{ jogo: 20, mercado: 'cartoes', escolha: 'mais', odd: 1.8, linha: 4.5 }] }, T);
+  let m = await go({ op: 'minhas' }, T + 60e3);
+  assert.ok(m.apostas.find(a => a.id === e1.id).cashout > 0, 'cash out antes do jogo');
+  g[20] = fx(20, 71, 'Grêmio', 'Inter', T + 2 * H, '1H'); g[20].fixture.status.elapsed = 20; g[20].goals = { home: 0, away: 0 };
+  m = await go({ op: 'minhas' }, T + 2 * H + 21 * 60e3);
+  assert.equal(m.apostas.find(a => a.id === e1.id).cashout, null, 'sem cash out com o jogo rolando');
+  g[20] = fx(20, 71, 'Grêmio', 'Inter', T + 2 * H, 'FT', [1, 0]);
+  const antes = R.T.profiles[0].coins;
+  m = await go({ op: 'minhas' }, T + 4 * H);
+  assert.equal(m.apostas.find(a => a.id === e1.id).status, 'ganhou', '11 escanteios > 9,5');
+  assert.equal(m.apostas.find(a => a.id === e1.id).selecoes[0].total, 11);
+  assert.equal(m.apostas.find(a => a.id === c1.id).status, 'ganhou', '6 cartões > 4,5');
+  assert.equal(R.T.profiles[0].coins, r2(antes + 18.5 + 18)); assert.equal(stats, 1);
+  assert.equal(si({ mercado: 'escanteios', escolha: 'mais', linha: 9.5 }, { status: 'AET', inicio: '' }), 'anulada', 'prorrogação anula');
+  assert.equal(si({ mercado: 'cartoes', escolha: 'menos', linha: 4.5 }, { status: 'FT', inicio: new Date(T).toISOString(), cartoes: null }, T + 31 * H), 'anulada', 'sem estatística por 30 h anula');
+  usarApi(null);
+  console.log('OK — futebol: escanteios e cartões (linha, estatística do jogo, prorrogação anula)');
+}
+
+// ---- 1º tempo, quem marca primeiro, handicap e placar exato ----
+{
+  const F = await import('../lib/futebol.js');
+  const bky = [{ id: 8, bets: [{ id: 1, name: 'Match Winner', values: [v('Home', 2), v('Draw', 3.3), v('Away', 3.8)] },
+    { id: 13, name: 'First Half Winner', values: [v('Home', 2.7), v('Draw', 2.1), v('Away', 4.5)] },
+    { id: 14, name: 'Team To Score First', values: [v('Home', 1.7), v('Draw', 9), v('Away', 2.6)] },
+    { id: 4, name: 'Asian Handicap', values: [v('Home -1', 2.9), v('Away +1', 1.4), v('Home -0.5', 2.0), v('Away +0.5', 1.85), v('Home -1.5', 3.6), v('Away +1.5', 1.3), v('Home -0.25', 1.7), v('Away +0.25', 2.1)] },
+    { id: 10, name: 'Exact Score', values: ['1:0', '0:0', '1:1', '2:1', '0:1', '2:0', '1:2', '2:2', '3:0', '3:1', '0:2', '3:2', '4:0', '0:3', '4:1', '1:3', '5:0', '9:9'].map((k, i) => v(k, 6 + i * 2)) }] }];
+  const oy = F.lerOdds({ bookmakers: bky });
+  assert.deepEqual(oy.ht, { 1: 2.7, X: 2.1, 2: 4.5 }); assert.deepEqual(oy.primeiro, { casa: 1.7, nenhum: 9, fora: 2.6 });
+  assert.deepEqual(oy.handicap, { linha: -0.5, casa: 2, fora: 1.85 }, 'só linhas ,5 e a mais equilibrada');
+  assert.equal(Object.keys(oy.placar).length, 16); assert.ok(!oy.placar['9:9']);
+  assert.equal(F.rotulo('handicap', 'casa', 'Fla', 'Pal', -1.5), 'Fla -1,5'); assert.equal(F.rotulo('handicap', 'fora', 'Fla', 'Pal', -1.5), 'Pal +1,5');
+  assert.equal(F.acertou('handicap', 'casa', 2, 0, -1.5), true); assert.equal(F.acertou('handicap', 'casa', 1, 0, -1.5), false);
+  assert.equal(F.acertou('handicap', 'fora', 1, 0, -1.5), true);
+  assert.equal(F.acertou('placar', '2:1', 2, 1), true);
+  const T = Date.UTC(2026, 10, 15, 12, 0), H = 3600e3;
+  const s = (mercado, escolha, extra = {}) => ({ jogo: 1, mercado, escolha, odd: 2, ...extra });
+  // 1º tempo decide no intervalo
+  assert.equal(F.situacao(s('ht', '1'), { status: '1H', ht_casa: null }), null);
+  assert.equal(F.situacao(s('ht', '1'), { status: 'HT', ht_casa: 1, ht_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao(s('ht', 'X'), { status: '2H', ht_casa: 1, ht_fora: 0 }), 'perdeu');
+  // quem marca primeiro (acompanhando o placar)
+  assert.equal(F.primeiroGol(null, { status: '1H', ao_vivo_casa: 0, ao_vivo_fora: 1 }), 'fora');
+  assert.equal(F.primeiroGol({ primeiro: 'fora' }, { status: '2H', ao_vivo_casa: 3, ao_vivo_fora: 1 }), 'fora', 'não muda depois');
+  assert.equal(F.primeiroGol(null, { status: '2H', ao_vivo_casa: 1, ao_vivo_fora: 1 }), '?');
+  assert.equal(F.situacao(s('primeiro', 'fora'), { status: '2H', primeiro: 'fora' }), 'ganhou', 'paga quando sai o 1º gol');
+  assert.equal(F.situacao(s('primeiro', 'nenhum'), { status: 'FT', gols_casa: 0, gols_fora: 0 }), 'ganhou');
+  assert.equal(F.situacao(s('primeiro', 'casa'), { status: 'FT', gols_casa: 2, gols_fora: 0 }), 'ganhou', 'sem acompanhar: 2x0 foi a casa');
+  assert.equal(F.situacao(s('primeiro', 'casa'), { status: '2H', primeiro: '?' }), 'anulada');
+  assert.equal(F.situacao(s('handicap', 'casa', { linha: -1.5 }), { status: 'FT', gols_casa: 3, gols_fora: 1 }), 'ganhou');
+  // cash out com os novos palpites (chance entre 0 e 1)
+  const j = { status: '1H', minuto: 20, ao_vivo_casa: 0, ao_vivo_fora: 0, odds: oy, atualizado: new Date(T).toISOString(), inicio: '' };
+  for (const sl of [s('ht', '1'), s('primeiro', 'casa'), s('handicap', 'casa', { linha: -0.5 }), s('placar', '1:0')]) {
+    const c = F.chance(sl, j); assert.ok(c > 0 && c < 1, sl.mercado + ' ' + c);
+  }
+  assert.equal(F.conferirBilhete([{ jogo: 1, mercado: 'placar', escolha: '1:0', odd: oy.placar['1:0'] }], { 1: { status: 'NS', inicio: new Date(T + H).toISOString(), odds: oy, casa: 'A', fora: 'B' } }, T).odd, oy.placar['1:0']);
+  console.log('OK — futebol: 1º tempo, quem marca primeiro, handicap e placar exato');
+}

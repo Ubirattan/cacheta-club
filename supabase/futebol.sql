@@ -16,6 +16,11 @@ create table if not exists public.futebol_jogos (
   ao_vivo_casa integer,
   ao_vivo_fora integer,
   minuto       integer,
+  escanteios   integer,
+  cartoes      integer,
+  ht_casa      integer,
+  ht_fora      integer,
+  primeiro     text,
   odds         jsonb,
   odds_em      bigint,
   atualizado   timestamptz not null default now()
