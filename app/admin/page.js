@@ -311,8 +311,8 @@ function Resgates({ onChange }) {
   if (!list.length) return <div className="empty">Nenhum resgate esperando liberação. 🎉</div>;
   return <div className="rows">{list.map(x => (
     <div key={x.id} className="rowi" style={{ flexWrap: 'wrap' }}>
-      <span className="av" style={{ fontSize: 28 }}>{x.em}</span>
-      <div className="grow"><b>{x.who} quer o {x.item}</b>
+      {x.ouro ? <span className="trgold"><i>🏆</i><b>{fmt(x.coins)}</b></span> : <span className="av" style={{ fontSize: 28 }}>{x.em}</span>}
+      <div className="grow"><b>{x.who} quer o {x.item}{x.ouro ? ` de ${fmt(x.coins)} fichas` : ''}</b>
         <small>{new Date(x.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {fmt(x.coins)} fichas já descontadas</small></div>
       <button className="pillbtn" disabled={busy === x.id} style={{ background: 'linear-gradient(180deg,#34d399,#059669)', padding: '6px 14px' }} onClick={() => decidir(x, true)}>✔ Liberar</button>
       <button className="pillbtn dark" disabled={busy === x.id} style={{ padding: '6px 14px', color: '#fca5a5' }} onClick={() => decidir(x, false)}>✖ Recusar</button>

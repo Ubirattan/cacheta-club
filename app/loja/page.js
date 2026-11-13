@@ -131,7 +131,7 @@ function Body({ profile, reloadProfile, user }) {
       <button className="sec" style={{ marginTop: 8 }} onClick={() => { location.href = JOGOS[jogo].href; }}>↩ Voltar pro jogo</button></div>}
     {(jogo && JOGOS[jogo] ? (JOGOS[jogo].loja || []) : []).map(slot => (
       <div key={slot} id={slot === 'avatar' ? 'itens' : undefined} className="panel"><h3 style={{ fontSize: 20 }}>{LOJA_TITULO[slot]}</h3>
-        <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot && (!i.exclusive || owned.includes(i.id))).map(it => {
+        <div className="shopgrid" style={{ marginTop: 10 }}>{ITEMS.filter(i => i.slot === slot && !i.retirado && (!i.exclusive || owned.includes(i.id))).map(it => {
           const isEq = slot === 'avatar' ? profile.avatar === it.em : (eq[slot] || ({ back: 'back-azul', pipa: 'pipa-classica', felt: 'felt-verde', taco: 'taco-classico', bola: 'bola-leiteira' }[slot])) === it.id;
           const has = it.price === 0 && !it.vipOnly || owned.includes(it.id) || (it.vipOnly && vip);
           return (

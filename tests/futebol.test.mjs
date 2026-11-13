@@ -414,3 +414,20 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.ok(c.odd > 1.5 && c.odd < 2 * 1.3, 'combo com linha 1,5: ' + c.odd);
   console.log('OK — futebol: todas as linhas de gols, escanteios e handicap');
 }
+
+// seleções: nome em português e bandeira; clubes ficam como vêm da API
+{
+  const { selecao } = await import('../lib/selecoes.js');
+  const { lerJogo } = await import('../lib/futebol.js');
+  assert.deepEqual(selecao('Netherlands'), { nome: 'Holanda', bandeira: 'https://flagcdn.com/w80/nl.png' });
+  assert.equal(selecao('FYR Macedonia').nome, 'Macedônia do Norte');
+  assert.equal(selecao('Brazil U20').nome, 'Brasil Sub-20');
+  assert.equal(selecao('Germany W').nome, 'Alemanha (F)');
+  assert.equal(selecao('Flamengo'), null);
+  const t = (name, logo) => ({ name, logo });
+  const l = lerJogo({ fixture: { id: 1, date: '2026-11-13T19:45:00Z', status: { short: '2H', elapsed: 70 } }, league: { id: 5, name: 'UEFA Nations League' },
+    teams: { home: t('Scotland', 'x.png'), away: t('Flamengo', 'fla.png') }, goals: {}, score: {} });
+  assert.equal(l.casa, 'Escócia'); assert.equal(l.casa_logo, 'https://flagcdn.com/w80/gb-sct.png');
+  assert.equal(l.fora, 'Flamengo'); assert.equal(l.fora_logo, 'fla.png');
+  console.log('OK — futebol: seleções em português com bandeira');
+}
