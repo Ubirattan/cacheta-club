@@ -6,6 +6,7 @@ import { useAuth, useOnline } from '../../../components/useAuth.js';
 import { Header } from '../../../components/ui.js';
 import ProfileModal from '../../../components/ProfileModal.js';
 import { JOGOS } from '../../../lib/jogos.js';
+import { ARTES } from '../../../components/CassinoArte.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
 
@@ -27,7 +28,7 @@ export default function Jogo() {
       <div className="jg-ops" style={{ '--n': opcoes.length }}>
         {opcoes.map(o => (
           <button key={o.href} className="jg-op" style={{ '--g': o.g }} onClick={() => router.push(o.href)}>
-            <span className="jg-brilho" /><span className="jg-em">{o.em}</span>
+            <span className="jg-brilho" />{o.arte && ARTES[o.arte] ? <span className="jg-arte">{(() => { const A = ARTES[o.arte]; return <A />; })()}</span> : <span className="jg-em">{o.em}</span>}
             <b>{o.t}</b>{o.sub && <small>{o.sub}</small>}
           </button>
         ))}
@@ -43,6 +44,8 @@ export default function Jogo() {
 .jg-op:active{transform:translateY(4px);box-shadow:0 2px 0 #0007}
 .jg-brilho{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#ffffff55,transparent 55%),repeating-linear-gradient(115deg,#ffffff10 0 12px,transparent 12px 26px);pointer-events:none}
 .jg-em{position:absolute;left:0;right:0;top:12%;text-align:center;font-size:clamp(40px,9vmin,76px);filter:drop-shadow(0 6px 6px #0008);line-height:1}
+.jg-arte{position:absolute;left:12%;right:12%;top:6%;bottom:30%;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 8px 8px #0009)}
+.jg-arte>svg{width:100%;height:100%}
 .jg-op b{position:relative;font:700 clamp(16px,3.2vmin,24px) Oswald;font-style:italic;text-shadow:0 2px 0 #0008;text-align:center;line-height:1.05}
 .jg-op small{position:relative;font:500 clamp(10px,1.8vmin,12px) Rubik;opacity:.92;text-align:center}
 @media (orientation:portrait){.jg-ops{grid-template-columns:1fr 1fr;grid-template-rows:none;align-content:start}.jg-op{height:auto;aspect-ratio:1}}
