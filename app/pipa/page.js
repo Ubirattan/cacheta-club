@@ -22,9 +22,10 @@ import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib
 
 // gírias de pipa: o que você grita ao cortar e o que o computador grita quando cruza com você
 // escritas esticadas e com exclamação pra voz sair como grito
-const GRITO_CORTE = ['Rééééééélooooo!', 'Heeeeelooooou!', 'Heeeeelooou! Manda buuusca!'];
+const GRITO_CORTE = ['Rééééééélooooo!', 'Heeeeelooooou!', 'Heeeeelooou! Manda a buuusca!', 'Essa já foooi!', 'Coloca outraaa!'];
+const GRITO_INICIO = ['Bóóóra!', 'Coloca no aaalto!'];
 const GRITO_CRUZOU = ['Rééééélooo!', 'Vaaaai! Rééélo!'];
-const PROVOCA = ['Vem, medrooosoooo!', 'Manda buuuscaaa!', 'Descarrega, veeeem!', 'Vem, vem, veeeem!', 'Rééééélooo!'];
+const PROVOCA = ['Vem, medrooosoooo!', 'Manda buuuscaaa!', 'Descarrega, veeeem!', 'Vem, descarreeegaaa!', 'Vem, vem, veeeem!', 'Rééééélooo!', 'Bóóóra!'];
 const sorteia = l => l[(Math.random() * l.length) | 0];
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
@@ -255,6 +256,7 @@ export default function Pipa() {
     function popTxt(t, x, y) { if (v3) v3.pop(t, x, y); else fx.push({ x, y: y - 30, life: 1, t }); }
     function events() {
       for (const e of G.events) {
+        if (e.type === 'go' && Math.random() < .6) som3.grito(sorteia(GRITO_INICIO));
         if (e.type === 'go') setMsg(game.n > 2 ? 'Já! Corte todo mundo e seja o último no céu' : 'Já! Cruze a linha e puxe pra cortar');
         if (e.type === 'cruzou' && (e.a === 0 || e.b === 0)) {
           sfx('tick'); try { navigator.vibrate && navigator.vibrate(15); } catch {}
