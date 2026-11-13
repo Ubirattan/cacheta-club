@@ -7,7 +7,7 @@ import { useAuth, useOnline } from '../../../components/useAuth.js';
 import { sendInvite } from '../../../components/Convites.js';
 import { Header, Card, Modal, toast } from '../../../components/ui.js';
 import { Engine } from '../../../lib/engine.js';
-import { modeName, isGudeMode, fmt } from '../../../lib/modes.js';
+import { modeName, isGudeMode, isSinucaMode, fmt } from '../../../lib/modes.js';
 import { sfx } from '../../../lib/sfx.js';
 import { looks } from '../../../lib/shop-items.js';
 import { suitSvg } from '../../../lib/suits.js';
@@ -140,7 +140,7 @@ export default function Sala() {
   useEffect(() => { try { if (new URLSearchParams(location.search).get('assistir') === '1') setWatching(true); } catch {} }, []);
   const nOlho = useWatchers(isMember ? id : null, user, false); // jogadores veem quantos estão assistindo
   // sala de bolinha de gude tem a tela própria
-  useEffect(() => { if (room && isGudeMode(room.mode)) router.replace('/gude/sala/' + id); }, [room, id, router]);
+  useEffect(() => { if (room && isGudeMode(room.mode)) router.replace('/gude/sala/' + id); if (room && isSinucaMode(room.mode)) router.replace('/sinuca/sala/' + id); }, [room, id, router]);
 
   const loadRoom = useCallback(async () => {
     const { data } = await sb().from('rooms').select('*').eq('id', id).maybeSingle();
@@ -315,7 +315,7 @@ export default function Sala() {
   );
 
   // assistindo (sem sentar)
-  if (!isMember && watching && !room.is_private && !isGudeMode(room.mode)) return (
+  if (!isMember && watching && !room.is_private && !isGudeMode(room.mode) && !isSinucaMode(room.mode)) return (
     <Assistir id={id} user={user} profile={profile} onLeave={() => router.push('/lobby')}
       onSit={async () => { try { await api(`/api/rooms/${id}/join`, {}); loadPlayers(); } catch (e) { toast(e.message); } }} />
   );
