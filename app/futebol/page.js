@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
+import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
 import { criarTeste } from '../../lib/futebol-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -133,6 +133,12 @@ export default function Futebol() {
       return { ...c, partes: [...resto, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }] };
     });
   }
+  // no Criar aposta: esse palpite não dá pra juntar com os que já estão escolhidos?
+  function impossivel(j, m, e) {
+    if (criar?.jogo !== j.id || !criar.partes.length || criar.partes.some(p => p.mercado === m)) return false;
+    const c = oddCombo([...criar.partes, { mercado: m, escolha: e, ...(MERCADOS[m].linha ? { linha: j.odds[m].linha } : {}) }], j.odds);
+    return !!c.erro && /impossível/.test(c.erro);
+  }
   function abrirCriar(j) {            // toque no nome dos times: abre o Criar aposta do jogo
     if (criar?.jogo === j.id) { setCriar(null); setAberto(null); return; }
     setAberto(j.id); setCriar({ jogo: j.id, partes: [] });
@@ -254,7 +260,7 @@ export default function Futebol() {
                     <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span></div>
                   </div>
                   <div className="fb-odds">
-                    {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} onClick={() => criar?.jogo === j.id ? parte(j, '1x2', e) : escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
+                    {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} disabled={impossivel(j, '1x2', e)} onClick={() => criar?.jogo === j.id ? parte(j, '1x2', e) : escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
                     {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => { setAberto(aberto === j.id ? null : j.id); if (criar?.jogo === j.id) setCriar(null); }}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - 1)}</button>}
                   </div>
                   {aberto === j.id && <div className="fb-extra">
@@ -270,9 +276,9 @@ export default function Futebol() {
                         <button disabled={!c || !!c.erro} onClick={() => porCombo(j)}>{c && !c.erro ? `Pôr no bilhete · odd ${f2(c.odd)}` : 'Pôr no bilhete'}</button>
                       </>;
                     })()}</div>}
-                    {Object.keys(MERCADOS).filter(m => (m !== '1x2' || criar?.jogo === j.id) && j.odds[m] && m !== '1x2').map(m => <div key={m} className="fb-merc">
+                    {Object.keys(MERCADOS).filter(m => m !== '1x2' && j.odds[m] && !(criar?.jogo === j.id && FORA_DO_COMBO.includes(m))).map(m => <div key={m} className="fb-merc">
                       <span>{MERCADOS[m].nome}</span>
-                      <div className={m === 'placar' ? 'fb-grade' : ''}>{opcoes(m, j.odds).map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} onClick={() => criar?.jogo === j.id ? parte(j, m, e) : escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
+                      <div className={m === 'placar' ? 'fb-grade' : ''}>{opcoes(m, j.odds).map(e => <button key={e} className={naBil(j.id, m, e) ? 'on' : ''} disabled={impossivel(j, m, e)} onClick={() => criar?.jogo === j.id ? parte(j, m, e) : escolher(j, m, e)}><small>{curto(e, MERCADOS[m].linha ? j.odds[m].linha : null, m)}</small>{f2(j.odds[m][e])}</button>)}</div>
                     </div>)}
                   </div>}
                 </div>
@@ -315,7 +321,7 @@ export default function Futebol() {
           <p>• Prêmio = aposta × odd total. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas. Prêmio máximo de {fichas(MAX_PREMIO)} fichas por bilhete.</p>
           <p>• Vale o resultado dos <b>90 minutos</b> (com acréscimos). Prorrogação e pênaltis não contam.</p>
           <p>• <b>1º tempo</b>: vale o placar do intervalo (paga já no intervalo). <b>Quem marca primeiro</b>: o time do 1º gol nos 90 minutos; "Sem gol" ganha no 0 x 0. <b>Handicap</b>: soma ou tira gols do time (ex.: Flamengo −1,5 precisa ganhar por 2 ou mais). <b>Placar exato</b>: o placar dos 90 minutos.</p>
-          <p>• <b>🧩 Criar aposta</b>: no <b>+</b> de um jogo, junte de 2 a 6 palpites do mesmo jogo num só (um de cada tipo). A odd é calculada pra todos acontecerem juntos, por isso é menor que multiplicar. Ganha só se todos acertarem; se um for anulado, o combo inteiro é anulado. Pode entrar numa múltipla com outros jogos.</p>
+          <p>• <b>🧩 Criar aposta</b>: toque no nome dos times e junte de 2 a 6 palpites do mesmo jogo num só (um de cada tipo; placar exato fica só nos palpites normais). Palpites que não combinam com os já escolhidos ficam apagados. A odd é calculada pra todos acontecerem juntos, por isso é menor que multiplicar. Ganha só se todos acertarem; se um for anulado, o combo inteiro é anulado. Pode entrar numa múltipla com outros jogos.</p>
           <p>• <b>Escanteios</b> e <b>cartões</b>: total dos dois times no jogo. Nos cartões, amarelo e vermelho contam 1 cada. Jogo com prorrogação anula esses palpites. Esses palpites não têm cash out depois que o jogo começa.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
           <p>• As apostas fecham 1 minuto antes do jogo começar. O resultado é conferido sozinho e o prêmio cai no seu saldo.</p>
@@ -359,6 +365,7 @@ export default function Futebol() {
 .fb-odds button small,.fb-merc button small{font:500 10px Rubik;color:#86b39a}
 .fb-odds button.on,.fb-merc button.on{background:#fbbf24;color:#1a1300;border-color:#fde68a}
 .fb-odds button.on small,.fb-merc button.on small{color:#4a3500}
+.fb-odds button:disabled,.fb-merc button:disabled{opacity:.25}
 .fb-odds .fb-mais{width:38px;justify-content:center;font:600 14px Rubik;color:#a7f3d0}
 .fb-extra{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px 16px;border-top:1px dashed #ffffff22;padding-top:7px}
 .fb-merc{display:flex;flex-direction:column;gap:4px}

@@ -292,7 +292,7 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.match(F.oddCombo([P('1x2', '1'), P('1x2', 'X')], odds).erro, /um palpite de cada tipo/i);
   assert.ok(F.oddCombo([P('1x2', '1'), P('ht', '2'), P('gols', 'mais')], odds).odd > 10, 'virada: improvável mas possível');
   assert.match(F.oddCombo([P('1x2', '1'), P('ht', '2'), P('ambos', 'nao')], odds).erro, /impossível/, 'casa vence virando sem os dois marcarem');
-  assert.match(F.oddCombo([P('gols', 'menos'), P('1x2', '1'), P('placar', '3:0')], { ...odds, placar: { '3:0': 15 } }).erro, /impossível/);
+  assert.match(F.oddCombo([P('gols', 'menos'), P('1x2', '1'), P('placar', '3:0')], { ...odds, placar: { '3:0': 15 } }).erro, /Placar exato não entra/);
   const jogo = { status: 'NS', inicio: new Date(T + H).toISOString(), odds, casa: 'A', fora: 'B', liga_nome: 'L' };
   const sel = { jogo: 1, mercado: 'combo', escolha: 'combo', odd: c.odd, partes: [P('1x2', '1'), P('gols', 'mais')] };
   const b = F.conferirBilhete([sel], { 1: jogo }, T);
