@@ -23,6 +23,8 @@ import { CENARIOS, CENARIO_PADRAO, LINHAS, PELES, pintaPreview } from '../../lib
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱'], ['Brisa', '🦜']];
 const QUANTAS = [[2, '1 x 1'], [3, '3 pipas'], [4, '4 pipas']];
 const PIPAS = ITEMS.filter(i => i.slot === 'pipa');
+// link de teste do Netlify (deploy-preview-N--...): joga sem login e sem ficha, todas as pipas liberadas
+const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
 // total de pipas cortadas e aparadas (guardado no aparelho)
 const lerTot = () => { try { return { cortou: 0, aparou: 0, ...JSON.parse(localStorage.getItem('pp_tot') || '{}') }; } catch { return { cortou: 0, aparou: 0 }; } };
 const somaTot = campo => { try { const t = lerTot(); t[campo]++; localStorage.setItem('pp_tot', JSON.stringify(t)); } catch {} };
@@ -139,7 +141,7 @@ function desenhaPipa(c, k, id) {
 
 export default function Pipa() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth();
+  const { profile, reloadProfile } = useAuth({ required: !TESTE });
   const [level, setLevel] = useState('medio');
   const [quantas, setQuantas] = useState(2);
   const [cen, setCen] = useState(CENARIO_PADRAO);
@@ -163,10 +165,11 @@ export default function Pipa() {
   const [puxando, setPuxando] = useState(false);
   const puxa = on => { if (ctlRef.current) ctlRef.current.puxa = on; setPuxando(on); };
   const minha = escolha || (profile?.equipped && profile.equipped.pipa) || PIPA_PADRAO;
-  const tenho = id => { const it = PIPAS.find(p => p.id === id); return !!it && (it.price === 0 || (profile?.owned || []).includes(id)); };
+  const tenho = id => { const it = PIPAS.find(p => p.id === id); return !!it && (TESTE || it.price === 0 || (profile?.owned || []).includes(id)); };
   async function usar(id) {
     if (!tenho(id)) return setComprar(PIPAS.find(p => p.id === id));
     setEscolha(id); sfx('tick');
+    if (TESTE) return;
     try { await api('/api/shop', { op: 'equip', item: id }); reloadProfile && reloadProfile(); } catch (e) { toast(e.message); }
   }
   async function compra(it) {
@@ -190,12 +193,12 @@ export default function Pipa() {
   useEffect(() => { try { localStorage.setItem('pp_level', level); localStorage.setItem('pp_n', String(quantas)); localStorage.setItem('pp_cen', cen); localStorage.setItem('pp_linha', lin); localStorage.setItem('pp_pele', String(pele)); } catch {} }, [level, quantas, cen, lin, pele]);
 
   async function start() {
-    if (!profile || busy) return;
-    if ((profile.coins || 0) < 1) return setSemFichas(true);
+    if ((!profile && !TESTE) || busy) return;
+    if (!TESTE && (profile.coins || 0) < 1) return setSemFichas(true);
     unlockAudio();   // liga o som no toque do botão
     setBusy(true);
     try {
-      await api('/api/treino', { jogo: 'pipa' });
+      if (!TESTE) await api('/api/treino', { jogo: 'pipa' });
       reloadProfile && reloadProfile();
       const pool = [...BOTS].sort(() => Math.random() - .5), n = quantas;
       setGame({ id: Date.now(), bots: pool.slice(0, n - 1), level, n, cen, lin, pele, night: cen === 'noite', models: [minha, ...modelosBots(minha, n - 1)] });
@@ -389,6 +392,7 @@ export default function Pipa() {
       <div className="pp-hd">
         <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
         <div className="pp-logo">PIPA <small>batalha de cortar</small></div>
+        {TESTE && <div className="pp-tot" style={{ background: '#b45309' }}>🧪 MODO TESTE · sem login e sem fichas</div>}
         {tot && (tot.cortou > 0 || tot.aparou > 0) && <div className="pp-tot">✂️ {tot.cortou} cortadas · 🪁 {tot.aparou} aparadas</div>}
         <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a>
       </div>
@@ -426,9 +430,9 @@ export default function Pipa() {
             <button className="sec" onClick={() => { const v = !modo3d; setModo3d(v); try { localStorage.setItem('pp_2d', v ? '0' : '1'); } catch {} }}>{modo3d ? '🎥 Visão 3D' : '🖼 Visão 2D'}</button>
           </div>
         </div>
-        <button className="pp-play" disabled={!profile || busy} onClick={start}>
+        <button className="pp-play" disabled={(!profile && !TESTE) || busy} onClick={start}>
           <PipaIcon id={minha} size={54} />
-          <b>{busy ? '...' : 'JOGAR'}</b><small>1 ficha</small>
+          <b>{busy ? '...' : 'JOGAR'}</b><small>{TESTE ? 'teste grátis' : '1 ficha'}</small>
         </button>
       </div>
       {comprar && <Modal onClose={() => setComprar(null)}><h2>{comprar.name}</h2>
