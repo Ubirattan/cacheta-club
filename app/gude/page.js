@@ -85,7 +85,7 @@ export default function Gude() {
     <div className="page lounge gd-menu">
       <div className="hdr"><a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a>
         <div className="gd-logo">BOLINHA DE GUDE</div>
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button></div>
+        <button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/gude')}>↩</button></div>
       <div className="gd-box">
         <div className="gd-art"><i className="mb a" /><i className="mb b" /><i className="mb c" /><i className="mb w" /></div>
         <div className="gd-modes">

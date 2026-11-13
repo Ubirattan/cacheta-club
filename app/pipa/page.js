@@ -415,7 +415,7 @@ export default function Pipa() {
     <div className="page pp-menu">
       <Cena id={cen} className="pp-bg" />
       <div className="pp-hd">
-        <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
+        <button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/pipa')}>↩</button>
         <div className="pp-logo">PIPA <small>batalha de cortar</small></div>
         {TESTE && <div className="pp-tot" style={{ background: '#b45309' }}>🧪 MODO TESTE · sem login e sem fichas</div>}
         {tot && (tot.cortou > 0 || tot.aparou > 0) && <div className="pp-tot">✂️ {tot.cortou} cortadas · 🪁 {tot.aparou} aparadas</div>}

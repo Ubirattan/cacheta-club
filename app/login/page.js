@@ -103,7 +103,7 @@ export default function Login() {
 
   const card = (
     <form className="authcard" onSubmit={submit}>
-      {!kb && <div className="logo"><b>Cacheta Club</b><small>MESA DE CARTAS</small></div>}
+      {!kb && <div className="logo"><b>Casa de Jogos</b><small>CARTAS · SINUCA · GUDE · PIPA</small></div>}
       <div className="seg" style={{ marginTop: kb ? 0 : 10 }}>
         <button type="button" className={tab === 'entrar' ? 'on' : ''} onClick={() => setTab('entrar')}>Entrar</button>
         <button type="button" className={tab === 'criar' ? 'on' : ''} onClick={() => setTab('criar')}>Criar conta</button>
@@ -129,7 +129,7 @@ export default function Login() {
       {tab === 'esqueci' && <button type="button" className="forgot" onClick={() => setTab('entrar')}>← Voltar para entrar</button>}
       {!kb && <><div className="or">ou</div>
         <button type="button" className="gbtn" onClick={google}><span style={{ fontWeight: 800, color: '#4285F4' }}>G</span> Entrar com Google</button>
-        <p className="hint" style={{ textAlign: 'center', marginTop: 14 }}>As fichas do Cacheta Club são virtuais: não valem dinheiro e não podem ser sacadas.</p></>}
+        <p className="hint" style={{ textAlign: 'center', marginTop: 14 }}>As fichas da Casa de Jogos são virtuais: não valem dinheiro e não podem ser sacadas.</p></>}
       {kb && <div className="kblinks"><button type="button" onClick={google}>Entrar com Google</button><button type="button" onClick={() => setKbOff(true)}>Usar teclado do celular</button></div>}
       {!kb && kbAuto && <div className="kblinks"><button type="button" onClick={() => setKbOff(false)}>Usar teclado do jogo</button></div>}
     </form>

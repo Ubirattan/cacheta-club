@@ -91,7 +91,7 @@ export default function Truco() {
   /* ------------------------- MENU ------------------------- */
   if (!M || M === 'semfichas') return (
     <div className="page lounge tr-menu">
-      <div className="hdr"><button className="rbtn" onClick={() => router.push('/')}>↩</button>
+      <div className="hdr"><button className="rbtn" onClick={() => router.push('/jogos/truco')}>↩</button>
         <div className="tr-logo">TRUCO <small>paulista</small></div>
         <a className="coins" href="/loja#comprar"><i>💰</i><span>{fmt(profile?.coins)}</span></a></div>
       <div className="tr-box">
@@ -134,7 +134,7 @@ export default function Truco() {
       </div>
 
       <div id="arena"><div className="rail"><div className="felt">
-        <div className="wm"><b>Cacheta Club</b><small>TRUCO PAULISTA</small></div>
+        <div className="wm"><b>Casa de Jogos</b><small>TRUCO PAULISTA</small></div>
         <div className="tr-vira"><Card c={G.vira} /><span>Vira · manilha <b>{man}</b></span></div>
         {G.players.map((p, i) => i === 0 ? null : (
           <div key={i} className={`seat ${SEATS[G.n][i][0] > 60 ? 'rt' : ''} ${nd.pi === i && (nd.kind === 'play' || nd.kind === 'resp') ? 'turn' : ''}`} style={{ left: SEATS[G.n][i][0] + '%', top: SEATS[G.n][i][1] + '%' }}>

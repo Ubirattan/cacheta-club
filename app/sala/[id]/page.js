@@ -365,7 +365,7 @@ export default function Sala() {
               <button className="pillbtn" onClick={async () => { try { await navigator.clipboard.writeText(`Bora jogar cacheta! ${link}${room.is_private ? ' (peça a senha pra quem te convidou)' : ''}`); toast('Convite copiado'); } catch { toast('Copie o link acima'); } }}>Copiar convite</button></div>
             <div className="invite" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
               <a className="pillbtn" style={{ background: 'linear-gradient(180deg,#25d366,#128c4a)', textDecoration: 'none' }} target="_blank" rel="noreferrer"
-                href={`https://wa.me/?text=${encodeURIComponent(`Bora jogar cacheta no Cacheta Club! 🃏 Entra na minha mesa: ${link}${room.is_private ? ' (peça a senha)' : ''}`)}`}>📲 Convidar no WhatsApp</a>
+                href={`https://wa.me/?text=${encodeURIComponent(`Bora jogar cacheta na Casa de Jogos! 🃏 Entra na minha mesa: ${link}${room.is_private ? ' (peça a senha)' : ''}`)}`}>📲 Convidar no WhatsApp</a>
               {(() => {
                 const inRoom = new Set(players.map(p => p.user_id));
                 const free = online.filter(o => o.uid !== user.id && !inRoom.has(o.uid) && o.where !== 'sala');
@@ -463,7 +463,7 @@ export default function Sala() {
       </div>
       <div id="arena">
         <div className="rail"><div className="felt" style={{ background: feltBg }}>
-          <div className="wm"><b>CACHETA CLUB</b><small>{modeName(room.mode)} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
+          <div className="wm"><b>CASA DE JOGOS</b><small>{modeName(room.mode)} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
           {myIdx >= 0 && !game.over && game.phase !== 'decide' && <button className={`cdisc ${canEnd ? '' : 'off'}`} onClick={() => !canEnd ? toast(canDraw ? 'Primeiro compre do monte ou pegue o descarte' : 'Espere a sua vez') : sel == null ? toast('Toque na carta que vai descartar') : act({ type: 'discard', cardId: sel })}>DESCARTAR</button>}
           <div className="center">
             {game.phase === 'decide' && !game.over && myIdx >= 0 && me.fichas > 0

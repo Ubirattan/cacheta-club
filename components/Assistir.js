@@ -161,7 +161,7 @@ export default function Assistir({ id, user, profile, onSit, onLeave }) {
       </div>
       <div id="arena">
         <div className="rail"><div className="felt" style={{ background: feltBg }}>
-          <div className="wm"><b>CACHETA CLUB</b><small>{modeName(room.mode)} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
+          <div className="wm"><b>CASA DE JOGOS</b><small>{modeName(room.mode)} · {game.cfg.entry ? `Pote ${fmt(game.pot)} · ` : ''}Sala {room.code}</small></div>
           <div className="center">
             <div id="msg"><span dangerouslySetInnerHTML={{ __html: msg }} /></div>
             <div className="piles">
