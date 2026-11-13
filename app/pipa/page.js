@@ -465,7 +465,7 @@ function Regras({ onClose }) {
       <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
         <p>• <b>Toque no lado esquerdo</b> da tela: a pipa vai pra esquerda. <b>No lado direito</b>: vai pra direita.</p>
         <p>• <b>Arraste o dedo pra cima</b> pra pipa subir e <b>pra baixo</b> pra descer. Sem tocar, ela fica no vento e desce devagar.</p>
-        <p>• <b>🧵 Descarregar</b> (segure o botão): solta linha, a pipa vai embora com o vento.</p>
+        <p>• <b>🧵 Descarregar</b> (segure o botão redondo): a linha corre e a pipa vai pra longe, lá no fundo do céu. Mexendo de novo, ela volta.</p>
         <p>• <b>Cruze a sua linha com a do adversário.</b> Enquanto estão cruzadas, as duas se gastam, e quem está <b>mexendo ou descarregando corta muito mais rápido</b>.</p>
         <p>• Linha acabou = pipa cortada. Pipa que encosta no telhado <b>cai</b>. Rodada de até 1 minuto: se ninguém cortar, ganha quem tem mais linha.</p>
         <p>• <b>Várias pipas no céu:</b> todo mundo corta todo mundo. A rodada é de quem ficar por último no céu. Se a sua cair, a rodada acaba.</p>
@@ -536,8 +536,8 @@ const CSS = `
 .pp-top .pp-mid{flex:none}
 .pp-top .rbtn{width:42px;height:42px;font-size:18px}
 .pp-field{flex:1;min-height:0;position:relative;margin:0 8px;touch-action:none;user-select:none;-webkit-user-select:none}
-.pp-desc{position:absolute;right:12px;bottom:12px;z-index:4;display:flex;align-items:center;gap:6px;border-radius:24px;border:2px solid #fff;background:#000a;color:#fff;font:600 14px Oswald;padding:8px 14px;touch-action:none;user-select:none;-webkit-user-select:none}
-.pp-desc b{font-weight:600;letter-spacing:.5px}
-.pp-desc.on{background:#f59e0b;border-color:#fde68a;color:#000;transform:scale(.96)}
+.pp-desc{position:absolute;right:14px;bottom:14px;z-index:4;width:clamp(64px,11vmin,84px);height:clamp(64px,11vmin,84px);border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#4b5563,#111827);box-shadow:0 4px 0 #000a,0 6px 14px #0008;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:0;font-size:24px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
+.pp-desc b{font:600 8.5px Oswald;letter-spacing:.3px;margin-top:3px}
+.pp-desc.on{background:radial-gradient(circle at 40% 30%,#fcd34d,#d97706);border-color:#fde68a;color:#000;transform:translateY(3px);box-shadow:0 1px 0 #000a}
 .pp-field canvas{position:absolute;inset:0;display:block;touch-action:none;border-radius:14px;cursor:pointer;user-select:none;-webkit-user-select:none}
 `;
