@@ -12,6 +12,7 @@ import { sfx } from '../../../lib/sfx.js';
 import { looks } from '../../../lib/shop-items.js';
 import { suitSvg } from '../../../lib/suits.js';
 import Chat from '../../../components/Chat.js';
+import Assistir, { useWatchers } from '../../../components/Assistir.js';
 
 // animação de carta voando (mesmo efeito do modo offline)
 function cardStr(c, cor) {
@@ -134,6 +135,10 @@ export default function Sala() {
   chatOpenRef.current = chatOpen;
 
   const isMember = !!user && players.some(p => p.user_id === user.id);
+  // assistir a mesa (só sala pública): vem do lobby com ?assistir=1 ou pelo botão da tela de entrada
+  const [watching, setWatching] = useState(false);
+  useEffect(() => { try { if (new URLSearchParams(location.search).get('assistir') === '1') setWatching(true); } catch {} }, []);
+  const nOlho = useWatchers(isMember ? id : null, user, false); // jogadores veem quantos estão assistindo
   // sala de bolinha de gude tem a tela própria
   useEffect(() => { if (room && isGudeMode(room.mode)) router.replace('/gude/sala/' + id); }, [room, id, router]);
 
@@ -309,6 +314,12 @@ export default function Sala() {
       <p>Todo mundo saiu e a sala foi fechada.</p><button className="go" onClick={() => router.push('/lobby')}>Ver salas</button></div></div></div>
   );
 
+  // assistindo (sem sentar)
+  if (!isMember && watching && !room.is_private && !isGudeMode(room.mode)) return (
+    <Assistir id={id} user={user} profile={profile} onLeave={() => router.push('/lobby')}
+      onSit={async () => { try { await api(`/api/rooms/${id}/join`, {}); loadPlayers(); } catch (e) { toast(e.message); } }} />
+  );
+
   // ainda não sentou: tela de entrada (chegou pelo link de convite)
   if (!isMember) return (
     <div className="page lounge"><Header profile={profile} right={<button className="rbtn" onClick={() => router.push('/lobby')}>↩</button>} />
@@ -316,7 +327,8 @@ export default function Sala() {
         <h2 style={{ font: '700 28px Oswald', fontStyle: 'italic', color: 'var(--gold)', margin: 0 }}>{room.is_private ? '🔒 ' : ''}{room.name}</h2>
         {room.vip_only && <p className="vip">👑 Sala exclusiva para VIP</p>}
         <p>{modeName(room.mode)} · 👥 {players.length}/{room.max_players} · Pontos {room.points} · {room.entry ? `Entrada 💰 ${fmt(room.entry)}` : 'Grátis'}</p>
-        {room.status === 'playing' ? <p>Essa mesa está jogando agora. Assim que a partida acabar, dá pra sentar.</p> : <>
+        {room.status === 'playing' ? <><p>Essa mesa está jogando agora. Assim que a partida acabar, dá pra sentar.</p>
+          {!room.is_private && <button className="go" onClick={() => setWatching(true)}>👁 Assistir a partida</button>}</> : <>
           {room.is_private && <input className="field" placeholder="Senha da sala" value={pass} onChange={e => setPass(e.target.value)} />}
           {joinErr && <div className="err">{joinErr}</div>}
           <button className="go" onClick={join}>Sentar na mesa</button></>}
@@ -348,7 +360,7 @@ export default function Sala() {
           <div className="panel">
             <h3>{room.is_private ? '🔒 ' : ''}{room.name}</h3>
             <div className="meta"><span>{modeName(room.mode)}</span><span>👥 {players.length}/{room.max_players}</span><span>Pontos {room.points}</span>
-              <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · pote ${fmt(room.entry * players.length)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span><span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
+              <span>{room.entry ? `Entrada 💰 ${fmt(room.entry)} · pote ${fmt(room.entry * players.length)}` : 'Grátis'}</span><span>⏱ {room.turn_seconds} s</span>{nOlho > 0 && <span>👁 {nOlho} assistindo</span>}<span>Código <b style={{ color: 'var(--gold)' }}>{room.code}</b></span></div>
             <div className="invite"><input readOnly value={link} onFocus={e => e.target.select()} />
               <button className="pillbtn" onClick={async () => { try { await navigator.clipboard.writeText(`Bora jogar cacheta! ${link}${room.is_private ? ' (peça a senha pra quem te convidou)' : ''}`); toast('Convite copiado'); } catch { toast('Copie o link acima'); } }}>Copiar convite</button></div>
             <div className="invite" style={{ justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -445,6 +457,7 @@ export default function Sala() {
           <button className="ico" onClick={() => setModal('placar')}>👥</button>
           <button className="ico" onClick={() => { setChatOpen(o => !o); setUnread(0); }}>💬{unread > 0 && <span className="badge-n">{unread}</span>}</button>
           <div className="cpill">{game.cor >= 0 ? <>Coringa <b>{corTxt(game.cor)}</b> ★</> : 'Sem coringa'}</div>
+          {nOlho > 0 && <div className="cpill" title="Pessoas assistindo">👁 {nOlho}</div>}
         </div>
         <button className="mesas" onClick={() => setModal('sair')}><i>🃏</i><span>Sair</span></button>
       </div>

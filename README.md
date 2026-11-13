@@ -31,6 +31,13 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 - O motor fica em `lib/truco.js` e já está pronto pra rodar no servidor quando vier o truco online.
 - A página do truco só é baixada quando o jogador toca no botão: a tela inicial continua leve.
 
+### Assistir mesa de cacheta (novo)
+- No lobby, mesa **pública** de cacheta que está jogando mostra **Jogando · 👁 Assistir**: toque pra ver a partida ao vivo.
+- Quem assiste vê a mesa (descarte, vira, monte, de quem é a vez, quantas cartas cada um tem), mas **nunca as cartas da mão** de ninguém: o servidor só manda o estado público (rota `/api/rooms/[id]/watch`).
+- Só lê o chat, não escreve. É grátis. Sala privada não pode ser assistida.
+- Os jogadores veem 👁 e o número de pessoas assistindo.
+- Não precisa rodar nada novo no Supabase.
+
 ### Pipa (novo)
 - Botão **🪁 Pipa** no topo da tela inicial: **batalha de cortar** contra o computador (Fácil, Esperto ou Difícil), melhor de 3 rodadas.
 - **Segure o dedo pra puxar** (a pipa vai pra onde o bico aponta) e **solte pra dar linha** (ela gira e o vento leva).

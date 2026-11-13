@@ -76,6 +76,8 @@ export default function Lobby() {
     && (r.status === 'waiting' ? filt.waiting : filt.playing) && (!r.is_private || filt.priv));
 
   async function sit(r) {
+    // mesa pública de cacheta jogando: entra só pra assistir
+    if (r.status === 'playing' && !r.is_private && !isGudeMode(r.mode)) return router.push('/sala/' + r.id + '?assistir=1');
     if (r.is_private) return setModal({ t: 'senha', room: r });
     try { await api(`/api/rooms/${r.id}/join`, {}); router.push(salaUrl(r.id, r.mode)); }
     catch (e) { toast(e.message); }
@@ -106,7 +108,7 @@ export default function Lobby() {
         {rooms && !list.length && <div className="empty">Nenhuma sala aberta agora. Crie uma e chame os amigos!</div>}
         {list.map(r => (
           <button key={r.id} className={`tbl ${r.status === 'playing' ? 'lock' : ''} ${r.entry >= 100 ? 'hot' : ''}`} onClick={() => sit(r)}>
-            <span className={`st ${r.status === 'playing' ? 'play' : ''}`}>{r.status === 'playing' ? 'Jogando' : 'Aguardando'}</span>
+            <span className={`st ${r.status === 'playing' ? 'play' : ''}`}>{r.status === 'playing' ? (!r.is_private && !isGudeMode(r.mode) ? 'Jogando · 👁 Assistir' : 'Jogando') : 'Aguardando'}</span>
             {(r.is_private || r.vip_only) && <span className="lk">{r.vip_only ? '👑' : ''}{r.is_private ? '🔒' : ''}</span>}
             <div className="val">{fmt(r.entry)}<small>{modeName(r.mode)}</small></div>
             <div className="nm">{r.name}</div>
