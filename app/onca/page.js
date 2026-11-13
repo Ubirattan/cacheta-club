@@ -16,7 +16,7 @@ const f2 = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 
 const aleat = () => 1 + Math.floor(Math.random() * (SIMBOLOS.length - 1));
 const espera = ms => new Promise(r => setTimeout(r, ms));
 const coluna = (g, c) => [g[c], g[c + 3], g[c + 6]];
-const MSGS = ['Ganhe até 1000x!', 'Rodada da Onça: ganho garantido!', 'Tela cheia multiplica por x10!', 'A onça é coringa!', 'Faça 3 iguais numa das 5 linhas'];
+const MSGS = ['Ganhe até 1700x!', 'Rodada da Onça: ganho garantido!', 'Tela cheia multiplica por x10!', 'A onça é coringa!', 'Faça 3 iguais numa das 5 linhas'];
 const PONTO = c => [16.67 + (c % 3) * 33.33, 16.67 + Math.floor(c / 3) * 33.33];
 
 export default function Onca() {
