@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import { memRepo, addUsers } from './memrepo.mjs';
 import { lerOdds, lerJogo, acertou, fechar, conferirBilhete, premioDe, oddTotal, MAX_PREMIO, r2 } from '../lib/futebol.js';
-import { futebol as fb, usarApi, sincronizar, CFG } from '../lib/futebol-service.js';
+import { futebol as fb, usarApi, usarCorte, sincronizar, CFG } from '../lib/futebol-service.js';
+usarCorte(0);   // os testes antigos usam as odds da API sem o corte
 // como o celular faz: manda 'atualizar' e depois lê
 const futebol = async (R, u, b, t) => { if (b.op !== 'apostar') await fb(R, u, { op: 'atualizar' }, t); return fb(R, u, b, t); };
 
@@ -466,4 +467,14 @@ assert.match(F.oddCombo([{ mercado: 'dnb', escolha: 'casa' }, { mercado: 'htft',
 assert.equal(F.rotulo('htft', 'X/1', 'Flamengo', 'Vasco'), 'Intervalo/Final: Empate / Flamengo');
 assert.equal(F.rotulo('dnb', 'fora', 'Flamengo', 'Vasco'), 'Vasco (empate devolve)');
 console.log('OK — futebol: Intervalo/Final e Empate anula aposta');
+}
+
+// cotações sempre 5% abaixo das da API
+{
+  const { CORTE_ODDS } = await import('../lib/futebol-service.js');
+  usarCorte(null);
+  const { comCorte } = await import('../lib/futebol.js');
+  assert.equal(CORTE_ODDS, 0.05); assert.equal(CFG.corte(), 0.05);
+  assert.equal(comCorte(2.0, CFG.corte()), 1.9); assert.equal(comCorte(3.5, CFG.corte()), 3.32); assert.equal(comCorte(1.04, CFG.corte()), 1.01);
+  console.log('OK — futebol: cotações 5% abaixo da API');
 }
