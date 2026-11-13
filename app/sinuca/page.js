@@ -13,7 +13,7 @@ import { W, H, R, POCKETS, NIVEIS, MODOS, BOLINHO_JOGOS, escolhe, podeEscolher, 
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱']];
-const RAIL = 46;                 // largura da tabela (madeira) em volta da área de jogo
+const RAIL = 34;                 // largura da tabela (madeira) em volta da área de jogo
 const COR = { 1: '#f5c518', 2: '#1d4ed8', 3: '#dc2626', 4: '#6d28d9', 5: '#f97316', 6: '#15803d', 7: '#7f1d1d', 8: '#111' };
 const corBola = n => (n > 200 ? '#facc15' : n > 100 ? '#dc2626' : COR[n > 8 ? n - 8 : n] || '#fff');
 const NOME_MODO = { bola8: 'bola 8', lisa: 'bola lisa', bolinho: 'bolinho' };
@@ -39,7 +39,7 @@ function bola(c, b, s = 1) {
   c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x + 2.5, y + 3, r, r * .9, 0, 0, 7); c.fill();
   c.beginPath(); c.arc(x, y, r, 0, 7); c.clip();
   if (b.n === 0) { c.fillStyle = '#f8f6ee'; c.fillRect(x - r, y - r, r * 2, r * 2); }
-  else if (b.n > 8) { c.fillStyle = '#f8f6ee'; c.fillRect(x - r, y - r, r * 2, r * 2); c.fillStyle = corBola(b.n); c.fillRect(x - r, y - r * .55, r * 2, r * 1.1); }
+  else if (b.n > 8 && b.n < 100) { c.fillStyle = '#f8f6ee'; c.fillRect(x - r, y - r, r * 2, r * 2); c.fillStyle = corBola(b.n); c.fillRect(x - r, y - r * .55, r * 2, r * 1.1); }
   else { c.fillStyle = corBola(b.n); c.fillRect(x - r, y - r, r * 2, r * 2); }
   if (b.n && b.n < 100) {
     c.fillStyle = '#fff'; c.beginPath(); c.arc(x, y, r * .48, 0, 7); c.fill();
@@ -183,7 +183,10 @@ export default function Sinuca() {
         if (hit && S.turn === 0) {
           const nx = hit.b.x - hit.gx, ny = hit.b.y - hit.gy, d = Math.hypot(nx, ny) || 1, bom = meus.includes(hit.b);
           c.strokeStyle = bom ? 'rgba(255,255,255,.85)' : 'rgba(239,68,68,.9)'; c.lineWidth = 2;
-          c.beginPath(); c.moveTo(hit.b.x, hit.b.y); c.lineTo(hit.b.x + nx / d * 70, hit.b.y + ny / d * 70); c.stroke();
+          c.beginPath(); c.moveTo(hit.b.x, hit.b.y); c.lineTo(hit.b.x + nx / d * 130, hit.b.y + ny / d * 130); c.stroke();
+          // pra onde a bola da tacada desvia depois de bater (tangente)
+          const ax = Math.cos(ang), ay = Math.sin(ang), dot = ax * nx / d + ay * ny / d, tx = ax - dot * nx / d, ty = ay - dot * ny / d, tl = Math.hypot(tx, ty);
+          if (tl > .05) { c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(hit.gx, hit.gy); c.lineTo(hit.gx + tx / tl * 60 * tl, hit.gy + ty / tl * 60 * tl); c.stroke(); }
           if (!bom) { c.beginPath(); c.moveTo(hit.b.x - 7, hit.b.y - 7); c.lineTo(hit.b.x + 7, hit.b.y + 7); c.moveTo(hit.b.x + 7, hit.b.y - 7); c.lineTo(hit.b.x - 7, hit.b.y + 7); c.stroke(); }
         }
       }
@@ -233,16 +236,23 @@ export default function Sinuca() {
         const i = S.balls.findIndex((b, k) => k !== S.sel && podeEscolher(S, k) && Math.hypot(x - b.x, y - b.y) < R * 2.2);
         if (i >= 0) { escolhe(S, i); toc(.3); return; }
       }
-      mirando = true; ang = Math.atan2(y - cb.y, x - cb.x);
+      mirando = { a: Math.atan2(y - cb.y, x - cb.x), t: performance.now(), x: e.clientX, y: e.clientY, moveu: false };
     }
     function move(e) {
       if (S.phase === 'monta') { if (arrastaLisa >= 0) { const [x, y] = toMesa(e); arrumaBola(S, arrastaLisa, x, y); } return; }
       if (S.phase !== 'aim' || S.turn !== 0) return;
       const [x, y] = toMesa(e), cb = branca(S);
       if (arrastaBranca) { if (podeColocar(S, x, y)) colocaBranca(S, x, y); return; }
-      if (mirando) ang = Math.atan2(y - cb.y, x - cb.x);
+      if (mirando) {   // arrastar gira a mira em volta da bola, mais devagar que o dedo (mira fina)
+        const a = Math.atan2(y - cb.y, x - cb.x); let d = a - mirando.a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+        if (Math.hypot(e.clientX - mirando.x, e.clientY - mirando.y) > 6) mirando.moveu = true;
+        if (mirando.moveu) { ang += d * .45; mirando.a = a; }
+      }
     }
-    const up = () => { arrastaBranca = false; mirando = false; arrastaLisa = -1; };
+    const up = e => {   // toque rápido sem arrastar: aponta direto pro lugar tocado
+      if (mirando && !mirando.moveu && performance.now() - mirando.t < 350 && e && e.clientX != null) { const [x, y] = toMesa(e), cb = branca(S); ang = Math.atan2(y - cb.y, x - cb.x); }
+      arrastaBranca = false; mirando = false; arrastaLisa = -1;
+    };
     comecarRef.current = () => { if (comecaLisa(S)) { const b = branca(S); ang = Math.atan2(H / 2 - b.y, W * .75 - b.x); sync(); } };
     // barra de força: puxa pra baixo e solta
     let y0 = 0;
@@ -312,9 +322,9 @@ export default function Sinuca() {
       <div className="sn-area">
         <div className="sn-bar" ref={barRef} style={h.phase === 'monta' ? { display: 'none' } : null}><i /><span>FORÇA</span></div>
         {h.phase === 'monta' && <button className="sn-comeca" onClick={() => comecarRef.current && comecarRef.current()}>▶<b>COMEÇAR</b></button>}
-        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} /></div>
+        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} /><div className="sn-msg">{msg}</div></div>
+        <div className="sn-caiu">{h.caidas.slice(-12).map(n => <span key={n} style={{ background: n > 8 && n < 100 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }}>{n < 100 ? <b>{n}</b> : null}</span>)}</div>
       </div>
-      <div id="msg">{msg || ' '}</div>
       {h.phase === 'over' && <Modal><h2>{h.winner === 0 ? '🏆 Você ganhou!' : `${game.bot[0]} ganhou`}</h2>
         <p>{msg}</p>
         <button className="go" disabled={busy} onClick={start}>🎱 Jogar de novo · {TESTE ? 'teste grátis' : '1 ficha'}</button>
@@ -350,31 +360,35 @@ const CSS = `
 .sn-prev{display:flex;justify-content:center;gap:6px;margin:4px 0}
 .sn-prev span{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:inset -4px -5px 8px #0006,inset 3px 3px 5px #fff5,0 3px 5px #0007}
 .sn-prev b{width:16px;height:16px;border-radius:50%;background:#fff;color:#111;font:700 10px Rubik,Arial;display:flex;align-items:center;justify-content:center}
-.sn{overflow:hidden;background:radial-gradient(circle at 50% 40%,#1a2433,#06090f)}
-.sn-top{display:flex;align-items:center;gap:8px;padding:6px 10px 2px}
-.sn-pl{flex:1;min-width:0;max-width:340px;display:flex;align-items:center;gap:8px;background:#000a;border:2px solid #ffffff22;border-radius:30px;padding:3px 10px 3px 3px}
-.sn-pl.dir{flex-direction:row-reverse;padding:3px 3px 3px 10px;text-align:right}
-.sn-pl.vez{border-color:var(--gold);box-shadow:0 0 12px #f2c94c88}
-.sn-pl .av{width:34px;height:34px;border-radius:50%;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
-.sn-pl>div{min-width:0;display:flex;flex-direction:column;gap:3px}
-.sn-pl.dir>div{align-items:flex-end}
-.sn-pl b{font:500 14px Oswald;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sn-pl b small{color:var(--gold);font-size:12px}
-.sn-fila{display:flex;flex-direction:row;gap:3px}
-.sn-fila span{width:12px;height:12px;border-radius:50%;box-shadow:inset -2px -2px 3px #0007}
-.sn-fila span.vazio{background:#ffffff18;box-shadow:none}
-.sn-fila span.foi{opacity:.2}
-.sn-fila span.ganho{background:var(--gold);box-shadow:0 0 6px #f2c94c}
-.sn-vs{font:700 18px Oswald;color:var(--gold);font-style:italic;text-align:center;line-height:1}
-.sn-top{justify-content:center}
+.sn{overflow:hidden;background:radial-gradient(ellipse at 50% 55%,#1c2a3c,#070a10 75%)}
+.sn-top{display:flex;align-items:center;gap:8px;padding:max(4px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 2px max(10px,env(safe-area-inset-left));justify-content:center}
 .sn-top .rbtn:first-child{margin-right:auto}.sn-top .rbtn:last-child{margin-left:auto}
-.sn-top .rbtn{width:38px;height:38px;font-size:16px;border-width:2px}
-.sn-area{flex:1;min-height:0;display:flex;gap:8px;padding:0 10px}
-.sn-bar{flex:none;width:40px;max-height:420px;align-self:center;height:80%;margin:10px 0;border-radius:22px;border:2px solid #ffffff55;background:linear-gradient(#ef4444,#f59e0b 50%,#22c55e);position:relative;overflow:hidden;touch-action:none;cursor:ns-resize;display:flex;align-items:flex-end;justify-content:center}
-.sn-bar i{position:absolute;left:0;right:0;top:0;height:0;background:#000b;border-bottom:3px solid #fff;transition:height .03s}
-.sn-bar span{position:relative;writing-mode:vertical-rl;transform:rotate(180deg);font:600 12px Oswald;color:#fff;letter-spacing:2px;margin-bottom:10px;text-shadow:0 1px 2px #000;pointer-events:none}
+.sn-top .rbtn{width:34px;height:34px;font-size:15px;border-width:2px}
+.sn-pl{flex:1;min-width:0;max-width:300px;display:flex;align-items:center;gap:7px;background:linear-gradient(#0f1622,#05080d);border:2px solid #ffffff1c;border-radius:12px;padding:2px 8px 2px 2px}
+.sn-pl.dir{flex-direction:row-reverse;padding:2px 2px 2px 8px;text-align:right}
+.sn-pl.vez{border-color:var(--gold);box-shadow:0 0 10px #f2c94c77}
+.sn-pl .av{width:30px;height:30px;border-radius:9px;background:#1e3a5f;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.sn-pl>div{min-width:0;display:flex;flex-direction:column;gap:2px}
+.sn-pl.dir>div{align-items:flex-end}
+.sn-pl b{font:500 13px Oswald;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1}
+.sn-pl b small{color:var(--gold);font-size:11px}
+.sn-fila{display:flex;flex-direction:row;gap:3px}
+.sn-fila span{width:11px;height:11px;border-radius:50%;box-shadow:inset -2px -2px 3px #0007}
+.sn-fila span.vazio{background:#ffffff18;box-shadow:none}
+.sn-fila span.foi{opacity:.18}
+.sn-fila span.ganho{background:var(--gold);box-shadow:0 0 6px #f2c94c}
+.sn-vs{font:700 15px Oswald;color:var(--gold);font-style:italic;text-align:center;line-height:1}
+.sn-area{flex:1;min-height:0;display:flex;align-items:stretch;gap:6px;padding:2px max(6px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+.sn-bar{flex:none;width:30px;align-self:center;height:78%;max-height:380px;border-radius:15px;border:2px solid #ffffff44;background:linear-gradient(#ef4444,#f59e0b 50%,#22c55e);position:relative;overflow:hidden;touch-action:none;cursor:ns-resize;display:flex;align-items:flex-end;justify-content:center;box-shadow:0 0 0 3px #0008}
+.sn-bar i{position:absolute;left:0;right:0;top:0;height:0;background:#000c;border-bottom:3px solid #fff}
+.sn-bar span{position:relative;writing-mode:vertical-rl;transform:rotate(180deg);font:600 10px Oswald;color:#fff;letter-spacing:2px;margin-bottom:8px;text-shadow:0 1px 2px #000;pointer-events:none}
+.sn-comeca{flex:none;width:64px;align-self:center;height:64px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#ffe08a,#c8901c);color:#3a2300;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 0 #6b4a05,0 6px 14px #0008;padding:0}
+.sn-comeca b{font:700 9px Oswald;letter-spacing:.3px}
 .sn-mesa{flex:1;min-width:0;position:relative;touch-action:none}
-.sn-comeca{flex:none;width:72px;align-self:center;height:72px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#ffe08a,#c8901c);color:#3a2300;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 0 #6b4a05,0 6px 14px #0008;padding:0}
-.sn-comeca b{font:700 10px Oswald;letter-spacing:.3px}
 .sn-mesa canvas{position:absolute;inset:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
+.sn-msg{position:absolute;left:50%;top:2px;transform:translateX(-50%);max-width:80%;pointer-events:none;font:500 clamp(11px,2.2vmin,14px) Oswald;color:#fff;background:#000a;border-radius:10px;padding:2px 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sn-msg:empty{display:none}
+.sn-caiu{flex:none;width:22px;align-self:center;height:78%;max-height:380px;border-radius:11px;background:linear-gradient(90deg,#05080d,#1a2232,#05080d);border:2px solid #ffffff22;display:flex;flex-direction:column-reverse;align-items:center;gap:2px;padding:3px 0;overflow:hidden}
+.sn-caiu span{width:16px;height:16px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;box-shadow:inset -2px -3px 4px #0007}
+.sn-caiu b{width:8px;height:8px;border-radius:50%;background:#fff;color:#111;font:700 6px Arial;display:flex;align-items:center;justify-content:center}
 `;
