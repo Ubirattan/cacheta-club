@@ -478,3 +478,15 @@ console.log('OK — futebol: Intervalo/Final e Empate anula aposta');
   assert.equal(comCorte(2.0, CFG.corte()), 1.9); assert.equal(comCorte(3.5, CFG.corte()), 3.32); assert.equal(comCorte(1.04, CFG.corte()), 1.01);
   console.log('OK — futebol: cotações 5% abaixo da API');
 }
+
+// prêmio máximo de 4 mil: pode juntar mais jogos, o prêmio para em 4.000; apostas antigas mantêm o teto gravado
+{
+  const F = await import('../lib/futebol.js');
+  assert.equal(F.MAX_PREMIO, 4000);
+  assert.equal(F.premioDe(1000, 12), 4000); assert.equal(F.premioDe(100, 3), 300);
+  const sel = o => ({ jogo: 1, mercado: '1x2', escolha: '1', odd: o });
+  const jg = { 1: { status: 'FT', gols_casa: 2, gols_fora: 0 } };
+  assert.equal(F.fechar({ valor: 1000, premio: 4000, selecoes: [sel(12)] }, jg).ganho, 4000, 'nova: para em 4 mil');
+  assert.equal(F.fechar({ valor: 1000, premio: 12000, selecoes: [sel(12)] }, jg).ganho, 12000, 'antiga: mantém');
+  console.log('OK — futebol: prêmio máximo de 4 mil');
+}
