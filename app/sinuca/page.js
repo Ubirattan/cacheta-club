@@ -132,9 +132,10 @@ export default function Sinuca() {
         if (e.type === 'caiu') { toc(6, true); if (e.n === 0) setMsg('A branca caiu!'); }
         if (e.type === 'grupos') setMsg(e.p === 0 ? `Você é das ${e.g.toUpperCase()}` : `${game.bot[0]} é das ${e.g.toUpperCase()} · você é das ${e.g === 'lisas' ? 'LISTRADAS' : 'LISAS'}`);
         if (e.type === 'falta') { setMsg(e.semMao ? `${e.motivo}: passou a vez` : `Falta: ${e.motivo}. ${e.p === 0 ? `${game.bot[0]} joga com a bola na mão` : 'Bola na mão: arraste a branca pra onde quiser'}`); sfx('err'); }
+        if (e.type === 'perdeu') setMsg(e.quem === 0 ? `Caiu bola sua! Vez do ${game.bot[0]}` : `${game.bot[0]} matou bola dele mesmo. Sua vez`);
         if (e.type === 'vez') setMsg(e.p === 0 ? 'Sua vez' : `Vez do ${game.bot[0]}`);
-        if (e.type === 'boa') { setMsg(e.p === 0 ? 'Boa! Joga de novo' : `${game.bot[0]} encaçapou e joga de novo`); if (e.p === 0) sfx('coin'); }
-        if (e.type === 'comecou') setMsg('Começou! Ninguém mexe mais nas bolas. Toque numa bola sua, mire e puxe a força');
+        if (e.type === 'boa') { setMsg(e.p === 0 ? (game.modo === 'lisa' ? 'Matou bola dele! Joga de novo' : 'Boa! Joga de novo') : `${game.bot[0]} encaçapou e joga de novo`); if (e.p === 0) sfx('coin'); }
+        if (e.type === 'comecou') setMsg('Começou! Taque com qualquer bola vermelha pra matar as amarelas');
         if (e.type === 'jogo') { setMsg(`Jogo ${e.jogo}: ${e.winner === 0 ? 'você ganhou' : game.bot[0] + ' ganhou'} (${e.why})`); sfx(e.winner === 0 ? 'coin' : 'err'); }
         if (e.type === 'fim') { setMsg(e.winner === 0 ? `Você ganhou: ${e.why}!` : `${game.bot[0]} ganhou (${e.why})`); setTimeout(() => sfx(e.winner === 0 ? 'win' : 'lose'), 400); }
       }
@@ -271,7 +272,7 @@ export default function Sinuca() {
         {TESTE && <p className="hint" style={{ color: '#fbbf24', textAlign: 'center' }}>🧪 MODO TESTE · sem login e sem fichas</p>}
         <div className="sn-prev">{[1, 9, 8, 3, 11].map(n => <span key={n} style={{ background: n > 8 ? `linear-gradient(#f8f6ee 22%, ${corBola(n)} 22% 78%, #f8f6ee 78%)` : corBola(n) }}><b>{n}</b></span>)}</div>
         <Seg label="Modalidade" value={modo} onChange={setModo} options={MODOS} />
-        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Arrume as suas no seu lado, depois taque uma bola sua. Quem matar as 5 primeiro ganha.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
+        <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Arrume as suas no seu lado e taque com elas pra matar as do outro. Quem ficar sem bolas perde.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
         <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '1 ficha'}`}</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
@@ -309,9 +310,9 @@ export default function Sinuca() {
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); if (!som) unlockAudio(); }}>{som ? '🔊' : '🔇'}</button>
       </div>
       <div className="sn-area">
-        <div className="sn-bar" ref={barRef}><i /><span>FORÇA</span></div>
-        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} />
-          {h.phase === 'monta' && <button className="go sn-comeca" onClick={() => comecarRef.current && comecarRef.current()}>▶ COMEÇAR</button>}</div>
+        <div className="sn-bar" ref={barRef} style={h.phase === 'monta' ? { display: 'none' } : null}><i /><span>FORÇA</span></div>
+        {h.phase === 'monta' && <button className="sn-comeca" onClick={() => comecarRef.current && comecarRef.current()}>▶<b>COMEÇAR</b></button>}
+        <div className="sn-mesa" ref={boxRef}><canvas ref={cvRef} /></div>
       </div>
       <div id="msg">{msg || ' '}</div>
       {h.phase === 'over' && <Modal><h2>{h.winner === 0 ? '🏆 Você ganhou!' : `${game.bot[0]} ganhou`}</h2>
@@ -333,7 +334,7 @@ function Regras({ onClose }) {
         <p>• Encaçapou uma bola sua: <b>joga de novo</b>.</p>
         <p>• <b>Falta</b> (branca na caçapa, não encostar em nada ou bater primeiro na bola do outro): o adversário joga com a <b>bola na mão</b> e coloca a branca onde quiser.</p>
         <p>• <b>A 8 é a última.</b> Matou a 8 depois de limpar as suas: ganhou. Matou antes da hora: perdeu.</p>
-        <p><b>Bola lisa:</b> sem a branca. Você é das vermelhas, o computador das amarelas. Antes de começar, cada um arruma as suas 5 bolas onde quiser, no seu lado da mesa (você arrasta as suas na metade da esquerda). Depois de COMEÇAR ninguém mexe mais. Toque numa bola sua pra tacar com ela. Encaçapou bola sua: joga de novo. Quem matar as 5 primeiro ganha.</p>
+        <p><b>Bola lisa:</b> sem a branca. Você é das vermelhas, o computador das amarelas. Antes de começar, cada um arruma as suas 5 bolas onde quiser, no seu lado da mesa (você arrasta as suas na metade da esquerda). Depois de COMEÇAR ninguém mexe mais. Na sua vez, toque em qualquer bola vermelha e taque com ela pra <b>matar as amarelas</b>. Matou bola dele: joga de novo. Se cair bola sua, você perdeu ela. Quem ficar sem bolas perde.</p>
         <p><b>Bolinho:</b> 3 bolas na mesa por jogo (são 5 jogos com as 15 bolas). Quem matar a última ganha o jogo. Se cegar (não encostar em nenhuma) ou a branca cair, perde o jogo. Sempre se jogam os 5 jogos: quem ganhar mais leva a partida.</p>
       </div>
       <button className="go" onClick={onClose}>Entendi</button>
@@ -373,6 +374,7 @@ const CSS = `
 .sn-bar i{position:absolute;left:0;right:0;top:0;height:0;background:#000b;border-bottom:3px solid #fff;transition:height .03s}
 .sn-bar span{position:relative;writing-mode:vertical-rl;transform:rotate(180deg);font:600 12px Oswald;color:#fff;letter-spacing:2px;margin-bottom:10px;text-shadow:0 1px 2px #000;pointer-events:none}
 .sn-mesa{flex:1;min-width:0;position:relative;touch-action:none}
-.sn-comeca{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:auto;padding:10px 28px;z-index:2}
+.sn-comeca{flex:none;width:72px;align-self:center;height:72px;border-radius:50%;border:3px solid #fff;background:radial-gradient(circle at 40% 30%,#ffe08a,#c8901c);color:#3a2300;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 0 #6b4a05,0 6px 14px #0008;padding:0}
+.sn-comeca b{font:700 10px Oswald;letter-spacing:.3px}
 .sn-mesa canvas{position:absolute;inset:0;display:block;touch-action:none;user-select:none;-webkit-user-select:none}
 `;
