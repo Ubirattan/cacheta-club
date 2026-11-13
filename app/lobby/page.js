@@ -7,17 +7,17 @@ import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header, Modal, Seg, toast } from '../../components/ui.js';
 import ProfileModal from '../../components/ProfileModal.js';
 import JoinCode from '../../components/JoinCode.js';
-import { MODES, GUDE_ROOMS, SINUCA_ROOMS, isGudeMode, isSinucaMode, is1x1Mode, modeName, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
+import { MODES, GUDE_ROOMS, SINUCA_ROOMS, TRUCO_ROOMS, isGudeMode, isSinucaMode, isTrucoMode, isMiniMode, is1x1Mode, modeName, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
 
-const salaUrl = (id, m) => (isGudeMode(m) ? '/gude/sala/' : isSinucaMode(m) ? '/sinuca/sala/' : '/sala/') + id;
-const JOGO_ABA = { gude: ['gude-triangulo', isGudeMode], sinuca: ['sinuca-bola8', isSinucaMode] };
+const salaUrl = (id, m) => (isGudeMode(m) ? '/gude/sala/' : isSinucaMode(m) ? '/sinuca/sala/' : isTrucoMode(m) ? '/truco/sala/' : '/sala/') + id;
+const JOGO_ABA = { gude: ['gude-triangulo', isGudeMode], sinuca: ['sinuca-bola8', isSinucaMode], truco: ['truco-1x1', isTrucoMode] };
 
 function CreateRoom({ profile, onClose, gude, jogo }) {
   const router = useRouter();
   const [f, setF] = useState({ name: '', mode: JOGO_ABA[jogo] ? JOGO_ABA[jogo][0] : 'cacheta', maxPlayers: 4, points: 5, entry: JOGO_ABA[jogo] ? 2 : 1, turnSeconds: 30, isPrivate: false, password: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
   // gude: entrada mínima de 2 fichas
-  const set = (k, v) => setF(o => { const n = { ...o, [k]: v }; if (is1x1Mode(n.mode) && n.entry < 2) n.entry = 2; return n; });
+  const set = (k, v) => setF(o => { const n = { ...o, [k]: v }; if (isMiniMode(n.mode) && n.entry < 2) n.entry = 2; return n; });
   async function create() {
     setErr(''); setBusy(true);
     try { const r = await api('/api/rooms', f); router.push(salaUrl(r.id, f.mode)); }
@@ -29,10 +29,11 @@ function CreateRoom({ profile, onClose, gude, jogo }) {
       <input className="field" placeholder={`Nome da sala (ex.: Mesa de ${profile?.nickname || 'amigos'})`} maxLength={30} value={f.name} onChange={e => set('name', e.target.value)} />
       <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />
       <Seg label="Bolinha de gude (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(GUDE_ROOMS).map(([k, m]) => [k, m.name.replace('Gude · ', '')])} />
+      <Seg label="Truco paulista" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(TRUCO_ROOMS).map(([k, m]) => [k, m.name.replace('Truco · ', '')])} />
       <Seg label="Sinuca (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(SINUCA_ROOMS).map(([k, m]) => [k, m.name.replace('Sinuca · ', '')])} />
-      {!is1x1Mode(f.mode) && <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />}
-      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).filter(e => !is1x1Mode(f.mode) || e >= 2).map(e => [e, fmt(e)])} />
-      {is1x1Mode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>{isSinucaMode(f.mode) ? 'Sinuca' : 'Gude'} é sempre 1 contra 1, entrada mínima de 2 fichas. Quem ganha leva {fmt(premioOnline(+f.entry || 0))}{taxaPct(+f.entry || 0) ? ` (a casa fica com ${taxaPct(+f.entry || 0)}% do pote)` : ' (a entrada dele + metade da do outro; o resto fica pra casa)'}. Até 10 fichas: metade da entrada do outro fica pra casa · acima de 10: 10% do pote · acima de 100: 20%.</div>
+      {!isMiniMode(f.mode) && <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />}
+      <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).filter(e => !isMiniMode(f.mode) || e >= 2).map(e => [e, fmt(e)])} />
+      {isMiniMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>{isTrucoMode(f.mode) ? (f.mode === 'truco-duplas' ? 'Truco em duplas: 4 jogadores, a mesa começa cheia. Cada um da dupla vencedora leva o mesmo prêmio.' : 'Truco 1 contra 1') : isSinucaMode(f.mode) ? 'Sinuca é sempre 1 contra 1' : 'Gude é sempre 1 contra 1'}, entrada mínima de 2 fichas. Quem ganha leva {fmt(premioOnline(+f.entry || 0))}{taxaPct(+f.entry || 0) ? ` (a casa fica com ${taxaPct(+f.entry || 0)}% do pote)` : ' (a entrada dele + metade da do outro; o resto fica pra casa)'}. Até 10 fichas: metade da entrada do outro fica pra casa · acima de 10: 10% do pote · acima de 100: 20%.</div>
         : <Seg label="Pontos" value={f.points} onChange={v => set('points', v)} options={POINTS.map(p => [p, String(p)])} />}
       <Seg label="Tempo por jogada" value={f.turnSeconds} onChange={v => set('turnSeconds', v)} options={TURN_SECONDS.map(t => [t, t + ' s'])} />
       <Seg label="Tipo de sala" value={f.isPrivate} onChange={v => set('isPrivate', v)} options={[[false, '🌐 Pública'], [true, '🔒 Privada']]} />
@@ -51,7 +52,7 @@ export default function Lobby() {
   const online = useOnline(user, profile, 'lobby');
   const [rooms, setRooms] = useState(null);
   const [mode, setMode] = useState('todas');
-  useEffect(() => { try { const j = new URLSearchParams(location.search).get('jogo'); if (j === 'gude' || j === 'sinuca') setMode(j); } catch {} }, []);
+  useEffect(() => { try { const j = new URLSearchParams(location.search).get('jogo'); if (j === 'gude' || j === 'sinuca' || j === 'truco') setMode(j); } catch {} }, []);
   const [filt, setFilt] = useState({ waiting: true, playing: true, priv: true });
   const [modal, setModal] = useState(null);
   const tRef = useRef(null);
@@ -75,18 +76,18 @@ export default function Lobby() {
     return () => { sb().removeChannel(ch); clearTimeout(tRef.current); clearInterval(tk); clearInterval(lp); };
   }, [user, load]);
 
-  const list = (rooms || []).filter(r => !r.tournament_id && r.status !== 'closed' && (mode === 'todas' || r.mode === mode || (mode === 'gude' && isGudeMode(r.mode)) || (mode === 'sinuca' && isSinucaMode(r.mode)))
+  const list = (rooms || []).filter(r => !r.tournament_id && r.status !== 'closed' && (mode === 'todas' || r.mode === mode || (mode === 'gude' && isGudeMode(r.mode)) || (mode === 'sinuca' && isSinucaMode(r.mode)) || (mode === 'truco' && isTrucoMode(r.mode)))
     && (r.status === 'waiting' ? filt.waiting : filt.playing) && (!r.is_private || filt.priv));
 
   async function sit(r) {
     // mesa pública de cacheta jogando: entra só pra assistir
-    if (r.status === 'playing' && !r.is_private && !is1x1Mode(r.mode)) return router.push('/sala/' + r.id + '?assistir=1');
+    if (r.status === 'playing' && !r.is_private && !isMiniMode(r.mode)) return router.push('/sala/' + r.id + '?assistir=1');
     if (r.is_private) return setModal({ t: 'senha', room: r });
     try { await api(`/api/rooms/${r.id}/join`, {}); router.push(salaUrl(r.id, r.mode)); }
     catch (e) { toast(e.message); }
   }
   async function quick() {
-    const ab = JOGO_ABA[mode], m0 = ab ? ab[0] : 'cacheta', tipo = m => (ab ? ab[1](m) : !is1x1Mode(m));
+    const ab = JOGO_ABA[mode], m0 = ab ? ab[0] : 'cacheta', tipo = m => (ab ? ab[1](m) : !isMiniMode(m));
     const r = (rooms || []).find(x => x.status === 'waiting' && tipo(x.mode) && !x.is_private && !x.vip_only && !x.tournament_id && x.n < x.max_players && x.entry <= (profile?.coins || 0));
     if (r) return sit(r);
     try { const c = await api('/api/rooms', { mode: m0, maxPlayers: 4, points: 5, entry: ab ? 2 : 1, turnSeconds: 30 }); router.push(salaUrl(c.id, m0)); }
@@ -97,7 +98,7 @@ export default function Lobby() {
       <Header profile={profile} onProfile={() => setModal('perfil')}
         right={<><button className="online" onClick={() => setModal('online')}><i />{online.length} online</button><button className="rbtn" onClick={() => router.push('/')}>↩</button></>} />
       <div className="tabs">
-        {[['todas', 'Todas'], ...Object.entries(MODES).map(([k, m]) => [k, m.name]), ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca']].map(([k, t]) =>
+        {[['todas', 'Todas'], ...Object.entries(MODES).map(([k, m]) => [k, m.name]), ['truco', '♣️ Truco'], ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca']].map(([k, t]) =>
           <button key={k} className={mode === k ? 'on' : ''} onClick={() => setMode(k)}>{t}</button>)}
       </div>
       <div className="lobbar">
@@ -115,7 +116,7 @@ export default function Lobby() {
             {(r.is_private || r.vip_only) && <span className="lk">{r.vip_only ? '👑' : ''}{r.is_private ? '🔒' : ''}</span>}
             <div className="val">{fmt(r.entry)}<small>{modeName(r.mode)}</small></div>
             <div className="nm">{r.name}</div>
-            <div className="row"><span>👥 {r.n}/{r.max_players}</span><span>{is1x1Mode(r.mode) ? '1 contra 1' : `Pontos: ${r.points}`}</span></div>
+            <div className="row"><span>👥 {r.n}/{r.max_players}</span><span>{isTrucoMode(r.mode) ? (r.mode === 'truco-duplas' ? 'Duplas' : '1 contra 1') : is1x1Mode(r.mode) ? '1 contra 1' : `Pontos: ${r.points}`}</span></div>
           </button>
         ))}
       </div>
