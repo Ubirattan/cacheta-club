@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx, soundOn, setSound } from '../../lib/sfx.js';
-import { SIMBOLOS, LINHAS, APOSTAS, MULT_CHEIA, gira, premio } from '../../lib/onca.js';
+import { SIMBOLOS, LINHAS, APOSTAS, MULT_CHEIA, RETORNO, gira, premio } from '../../lib/onca.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
 const fichas = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: Number(n) % 1 ? 2 : 0, maximumFractionDigits: 2 });
@@ -139,7 +139,7 @@ export default function Onca() {
           <div className="on-tab">{SIMBOLOS.map(s => <div key={s.id}><span>{s.em} {s.em} {s.em}</span><b>{s.paga}x</b></div>)}</div>
           <p>• O prêmio é a aposta vezes o valor da tabela, somando todas as linhas que acertar.</p>
           <p>• <b>Tela cheia</b> com o mesmo símbolo (contando a onça) multiplica tudo por <b>{MULT_CHEIA}</b>.</p>
-          <p>• Em média o jogo devolve 95% do que é apostado.</p>
+          <p>• Em média o jogo devolve {Math.round(RETORNO * 100)}% do que é apostado.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
