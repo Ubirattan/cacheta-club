@@ -191,7 +191,7 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.equal(ligaDe({ id: 9999, name: 'Paulista - A1', country: 'Brazil' }).nome, 'Paulistão');
   assert.equal(ligaDe({ id: 9998, name: 'Paulista - A2', country: 'Brazil' }), null);
   assert.equal(ligaDe({ id: 9997, name: 'Carioca - 1', country: 'Brazil' }).nome, 'Carioca');
-  assert.equal(ligaDe({ id: 5, name: 'Outra', country: 'Peru' }), null);
+  assert.equal(ligaDe({ id: 99999, name: 'Outra', country: 'Peru' }), null); assert.equal(ligaDe({ id: 10, name: 'Friendlies', country: 'World' }).nome, 'Amistosos');
   assert.equal(temAntecipa({ liga: 72 }), false); assert.equal(temAntecipa({ liga: 169 }), true); assert.equal(temAntecipa({ liga: 9999, liga_nome: 'Paulistão' }), true);
   const jb = { status: 'NS', inicio: new Date(T + 5 * H).toISOString(), odds: { '1x2': { 1: 2, X: 3, 2: 4 } }, casa: 'A', fora: 'B', liga: 72 };
   assert.equal(cb([{ jogo: 1, mercado: '1x2', escolha: '1', odd: 2 }], { 1: jb }, T).selecoes[0].antecipa, undefined, 'Série B sem antecipado');
@@ -337,7 +337,7 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   let chamadasVivo = [];
   usarApi(async (c, p) => {
     chamadasVivo.push(c); let r = [];
-    if (c === 'fixtures' && p.live) r = [jogo, { ...live(31, 0, 0, 10), league: { id: 5, name: 'Outra', country: 'Peru' } }];
+    if (c === 'fixtures' && p.live) r = [jogo, { ...live(31, 0, 0, 10), league: { id: 99999, name: 'Outra', country: 'Peru' } }];
     if (c === 'fixtures' && p.ids) r = [jogo];
     if (c === 'fixtures' && p.date) r = [];
     if (c === 'odds/live') r = [oddsVivo()];

@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx, soundOn, setSound, audioCtx } from '../../lib/sfx.js';
-import { multEm, ganhoDe, fichas, MIN_APOSTA, MAX_APOSTA, MAX_MULT, K } from '../../lib/foguete.js';
+import { multEm, ganhoDe, fichas, somaF, MIN_APOSTA, MAX_APOSTA, MAX_MULT, K } from '../../lib/foguete.js';
 const f2 = n => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 import { criarTeste } from '../../lib/foguete-teste.js';
 
@@ -75,7 +75,9 @@ export default function Foguete() {
           faseAnt = f;
         }
         if (s.coins != null) setCoins(s.coins);
-        stRef.current = s; setSt(s);
+        const ocupado = Object.values(busy.current).some(Boolean) || Date.now() - ultimaAcao.current < 1500;
+        const s2 = ocupado && stRef.current && stRef.current.rodada.id === s.rodada.id ? { ...s, minhas: stRef.current.minhas } : s;
+        stRef.current = s2; setSt(s2);
       } catch (e) { if (vivo) avisar(e.message || 'Sem conexão'); }
       if (vivo) timer = setTimeout(puxa, stRef.current?.rodada.fase === 'voando' ? 450 : 1000);
     }
@@ -83,16 +85,36 @@ export default function Foguete() {
     return () => { vivo = false; clearTimeout(timer); };
   }, [maior, local, !!profile]); // eslint-disable-line
 
+  // a tela responde na hora (otimista) e o servidor confirma depois; se der erro, volta como estava
+  const ultimaAcao = useRef(0);
+  function otimista(fn) { const s = stRef.current; if (!s) return; const n = { ...s, minhas: fn(s.minhas.map(m => ({ ...m }))) }; stRef.current = n; setSt(n); }
   async function acao(slot, op, extra = {}) {
-    if (busy.current[slot]) return; busy.current[slot] = true;
+    if (busy.current[slot]) return; busy.current[slot] = true; ultimaAcao.current = Date.now();
+    const antes = stRef.current, coinsAntes = coins;
+    if (op === 'apostar') {
+      sfx('coin');
+      otimista(ms => [...ms.filter(m => m.slot !== slot || m.status === 'cancelada'), { slot, valor: Number(extra.valor), auto: extra.auto ? Number(extra.auto) : null, status: 'aberta', mult: null, ganho: 0 }]);
+      setCoins(c => c == null ? c : somaF(c, -Number(extra.valor)));
+    } else if (op === 'cancelar') {
+      const m0 = antes?.minhas.find(m => m.slot === slot && m.status === 'aberta');
+      otimista(ms => ms.filter(m => !(m.slot === slot && m.status === 'aberta')));
+      if (m0) setCoins(c => c == null ? c : somaF(c, m0.valor));
+    } else if (op === 'sacar' && antes?.rodada.fase === 'voando') {
+      const mt = multEm(agora() - antes.rodada.start);
+      sfx('win');
+      otimista(ms => ms.map(m => m.slot === slot && m.status === 'aberta' ? { ...m, status: 'sacou', mult: mt, ganho: ganhoDe(m.valor, mt) } : m));
+    }
     try {
       const r = await chama({ op, slot, ...extra });
       if (r.coins != null) setCoins(r.coins);
-      if (op === 'sacar') { sfx('win'); avisar(`Sacou em ${fx(r.mult)}: +${fichas(r.ganho)} fichas`); }
-      if (op === 'apostar') sfx('coin');
-      const s = await chama({ op: 'estado' }); stRef.current = s; setSt(s);
+      if (op === 'sacar') { otimista(ms => ms.map(m => m.slot === slot ? { ...m, status: 'sacou', mult: r.mult, ganho: r.ganho } : m)); avisar(`Sacou em ${fx(r.mult)}: +${fichas(r.ganho)} fichas`); }
+      ultimaAcao.current = Date.now();
+      chama({ op: 'estado' }).then(s => { if (!Object.values(busy.current).some(Boolean)) { stRef.current = s; setSt(s); } }).catch(() => {});
       reloadProfile && reloadProfile();
-    } catch (e) { sfx('err'); avisar(e.message || 'Erro'); }
+    } catch (e) {
+      if (antes) { stRef.current = antes; setSt(antes); }
+      setCoins(coinsAntes); sfx('err'); avisar(e.message || 'Erro');
+    }
     busy.current[slot] = false;
   }
   function filaAposta(s) {
@@ -205,14 +227,14 @@ export default function Foguete() {
   function painel(slot) {
     const b = bets[slot], minha = st?.minhas.find(m => m.slot === slot && m.status !== 'cancelada');
     let btn;
-    if (minha && minha.status === 'aberta' && fase === 'apostas') btn = <button className="fg-btn red" onClick={() => acao(slot, 'cancelar')}>Cancelar<small>{minha.valor} fichas</small></button>;
+    if (minha && minha.status === 'aberta' && fase === 'apostas') btn = <button className="fg-btn red" onClick={() => acao(slot, 'cancelar')}>Cancelar<small>{minha.valor} {minha.valor === 1 ? 'ficha' : 'fichas'}</small></button>;
     else if (minha && minha.status === 'aberta' && fase === 'voando') {
       const autoOk = minha.auto && mAgora >= minha.auto;
       btn = autoOk ? <button className="fg-btn ok" disabled>SACOU {fx(minha.auto)}<small>+{f2(ganhoDe(minha.valor, minha.auto))} fichas</small></button>
         : <button className="fg-btn orange" onClick={() => acao(slot, 'sacar')}>Sacar<small>{f2(ganhoDe(minha.valor, mAgora))} fichas</small></button>;
     } else if (minha && minha.status === 'sacou') btn = <button className="fg-btn ok" disabled>SACOU {fx(minha.mult)}<small>+{f2(minha.ganho)} fichas</small></button>;
     else if (b.fila) btn = <button className="fg-btn red" onClick={() => setB(slot, 'fila', false)}>Cancelar<small>aguardando</small></button>;
-    else if (fase === 'apostas') btn = <button className="fg-btn green" onClick={() => acao(slot, 'apostar', { valor: b.valor, auto: b.auto ? b.autoV : null })}>Aposta<small>{b.valor} fichas</small></button>;
+    else if (fase === 'apostas') btn = <button className="fg-btn green" onClick={() => acao(slot, 'apostar', { valor: b.valor, auto: b.auto ? b.autoV : null })}>Aposta<small>{b.valor} {b.valor === 1 ? 'ficha' : 'fichas'}</small></button>;
     else btn = <button className="fg-btn green" onClick={() => setB(slot, 'fila', true)}>Aposta<small>próxima rodada</small></button>;
     const trava = !!minha && minha.status !== 'perdeu' || b.fila;
     const aba = b.aba || 'aposta';
