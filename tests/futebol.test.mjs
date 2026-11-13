@@ -184,7 +184,19 @@ console.log('OK — futebol: odds da API, simples e múltipla, odds mudaram, jog
   assert.equal(bs(mul.id).status, 'ganhou', 'múltipla: 1º jogo antecipado + 2º acertado');
   assert.equal(R.T.profiles[0].coins, r2(fim + 10 * oddTotal([2.1, 3.6])));
   // regras puras
-  assert.equal(antecipa({ mercado: '1x2', escolha: '2' }, { status: '2H', ao_vivo_casa: 0, ao_vivo_fora: 2 }), true);
+  assert.equal(antecipa({ mercado: '1x2', escolha: '2', antecipa: true }, { status: '2H', ao_vivo_casa: 0, ao_vivo_fora: 2 }), true);
+  assert.equal(antecipa({ mercado: '1x2', escolha: '2' }, { status: '2H', ao_vivo_casa: 0, ao_vivo_fora: 2 }), false, 'campeonato sem antecipado');
+  const { ligaDe, temAntecipa, conferirBilhete: cb } = await import('../lib/futebol.js');
+  assert.equal(ligaDe({ id: 39, name: 'Premier League', country: 'England' }).nome, 'Inglês');
+  assert.equal(ligaDe({ id: 9999, name: 'Paulista - A1', country: 'Brazil' }).nome, 'Paulistão');
+  assert.equal(ligaDe({ id: 9998, name: 'Paulista - A2', country: 'Brazil' }), null);
+  assert.equal(ligaDe({ id: 9997, name: 'Carioca - 1', country: 'Brazil' }).nome, 'Carioca');
+  assert.equal(ligaDe({ id: 5, name: 'Outra', country: 'Peru' }), null);
+  assert.equal(temAntecipa({ liga: 72 }), false); assert.equal(temAntecipa({ liga: 169 }), true); assert.equal(temAntecipa({ liga: 9999, liga_nome: 'Paulistão' }), true);
+  const jb = { status: 'NS', inicio: new Date(T + 5 * H).toISOString(), odds: { '1x2': { 1: 2, X: 3, 2: 4 } }, casa: 'A', fora: 'B', liga: 72 };
+  assert.equal(cb([{ jogo: 1, mercado: '1x2', escolha: '1', odd: 2 }], { 1: jb }, T).selecoes[0].antecipa, undefined, 'Série B sem antecipado');
+  assert.equal(cb([{ jogo: 1, mercado: '1x2', escolha: '1', odd: 2 }], { 1: { ...jb, liga: 71 } }, T).selecoes[0].antecipa, true);
+  assert.equal(cb([{ jogo: 1, mercado: '1x2', escolha: 'X', odd: 3 }], { 1: { ...jb, liga: 71 } }, T).selecoes[0].antecipa, undefined);
   assert.equal(antecipa({ mercado: '1x2', escolha: '1' }, { status: 'ET', ao_vivo_casa: 3, ao_vivo_fora: 1 }), false, 'prorrogação não conta');
   assert.equal(antecipa({ mercado: 'dc', escolha: '1X' }, { status: '2H', ao_vivo_casa: 2, ao_vivo_fora: 0 }), false, 'só resultado final');
   assert.equal(cashOut({ valor: 10, selecoes: [{ jogo: 1, mercado: '1x2', escolha: '1', odd: 2, status: 'perdeu' }] }, {}), null);

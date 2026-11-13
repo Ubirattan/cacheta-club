@@ -25,7 +25,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 
 ### Futebol (novo)
 - Cartão **⚽ Futebol** na tela inicial (abre direto, sem loja). Apostas só para maiores de 18, com fichas sem valor em dinheiro.
-- Jogos e odds de verdade vindos da **API-Football**: Brasileirão A e B, Copa do Brasil, Libertadores, Sul-Americana e Champions (dá pra trocar em `FUTEBOL_LIGAS`).
+- Jogos e odds de verdade vindos da **API-Football**: Brasileirão A e B, Copa do Brasil, Paulistão, Carioca, Mineiro, Libertadores, Sul-Americana, Champions, Europa League, Inglês, Espanhol, Italiano, Alemão, Francês, Português, Argentino, Chinês e Japonês (lista em `lib/futebol.js`; ids a mais em `FUTEBOL_LIGAS`). Pagamento antecipado em todos, menos Brasileirão B e Sul-Americana (selo 💰 2 gols no jogo).
 - Mercados: resultado final (1 X 2), dupla chance, mais/menos de 2,5 gols, ambos marcam, **resultado do 1º tempo**, **quem marca primeiro**, **handicap** (só linhas ,5), **placar exato**, **escanteios** e **cartões** (mais/menos da linha mais equilibrada das casas; total do jogo pelas estatísticas da API, amarelo e vermelho valem 1; prorrogação anula). Vale o placar dos 90 minutos.
 - ⚠️ Esses palpites novos precisam do `supabase/futebol-mercados.sql`.
 - **🧩 Criar aposta:** de 2 a 6 palpites do mesmo jogo (um de cada tipo), com odd calculada pela chance de todos acontecerem juntos (modelo de gols do 1º e 2º tempo ajustado pelas odds; escanteios/cartões pela odd deles) menos 10% da casa, nunca maior que multiplicar. Combinação impossível é recusada. Vale dentro de múltipla, tem cash out e é anulado inteiro se um palpite for anulado.

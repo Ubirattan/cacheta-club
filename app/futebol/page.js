@@ -200,7 +200,7 @@ export default function Futebol() {
         {!bil.length && <div className="fb-vazio">Toque nas odds dos jogos pra montar seu bilhete. Escolha vários jogos pra fazer uma múltipla: as odds se multiplicam.</div>}
         {bil.map(x => { const j = J[x.jogo]; if (!j) return null; return (
           <div className="fb-sel" key={x.jogo}>
-            <div><small>{j.casa} x {j.fora}</small><b>{rotuloSel(x, j.casa, j.fora)}</b><small>{nomeMerc(x.mercado)}</small></div>
+            <div><small>{j.casa} x {j.fora}</small><b>{rotuloSel(x, j.casa, j.fora)}</b><small>{nomeMerc(x.mercado)}{j.antecipa && x.mercado === '1x2' && x.escolha !== 'X' && ' · 💰 pagamento antecipado'}</small></div>
             <span className="fb-so">{f2(x.odd)}</span>
             <button onClick={() => setBil(b => b.filter(y => y.jogo !== x.jogo))}>✕</button>
           </div>); })}
@@ -239,7 +239,7 @@ export default function Futebol() {
         <div className="fb-esq">
           <div className="fb-novs">
             <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Toque no nome dos times</small></button>
-            <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Abriu 2 gols, já ganhou</small></button>
+            <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
             <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
           </div>
           <div className="fb-ligas">
@@ -255,7 +255,7 @@ export default function Futebol() {
               {d.js.map(j => (
                 <div className="fb-jogo" key={j.id}>
                   <div className="fb-info" onClick={() => abrirCriar(j)} title="Criar aposta com este jogo">
-                    <small>{hora(j.inicio)} · {j.ligaNome}</small>
+                    <small>{hora(j.inicio)} · {j.ligaNome}{j.antecipa && <i className="fb-selo" title="Pagamento antecipado">💰 2 gols</i>}</small>
                     <div className="fb-time"><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span></div>
                     <div className="fb-time"><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span></div>
                   </div>
@@ -263,6 +263,7 @@ export default function Futebol() {
                     {['1', 'X', '2'].map(e => <button key={e} className={naBil(j.id, '1x2', e) ? 'on' : ''} disabled={impossivel(j, '1x2', e)} onClick={() => criar?.jogo === j.id ? parte(j, '1x2', e) : escolher(j, '1x2', e)}><small>{e}</small>{f2(j.odds['1x2'][e])}</button>)}
                     {Object.keys(j.odds).length > 1 && <button className={'fb-mais' + (aberto === j.id ? ' on' : '')} onClick={() => { setAberto(aberto === j.id ? null : j.id); if (criar?.jogo === j.id) setCriar(null); }}>{aberto === j.id ? '−' : '+' + (Object.keys(j.odds).length - 1)}</button>}
                   </div>
+                  {j.antecipa && criar?.jogo !== j.id && (() => { const x = bil.find(y => y.jogo === j.id && y.mercado === '1x2' && y.escolha !== 'X'); return x && <div className="fb-antaviso">💰 <b>Pagamento antecipado:</b> se o {x.escolha === '1' ? j.casa : j.fora} abrir <b>2 gols de vantagem</b>, você já ganha, mesmo que o outro time reaja.</div>; })()}
                   {aberto === j.id && <div className="fb-extra">
                     <div className="fb-modo">
                       <button className={criar?.jogo !== j.id ? 'on' : ''} onClick={() => setCriar(null)}>Palpites</button>
@@ -325,7 +326,7 @@ export default function Futebol() {
           <p>• <b>Escanteios</b> e <b>cartões</b>: total dos dois times no jogo. Nos cartões, amarelo e vermelho contam 1 cada. Jogo com prorrogação anula esses palpites. Esses palpites não têm cash out depois que o jogo começa.</p>
           <p>• Jogo cancelado ou adiado por mais de 2 dias é anulado: na simples a aposta volta, na múltipla aquele jogo conta como odd 1.</p>
           <p>• As apostas fecham 1 minuto antes do jogo começar. O resultado é conferido sozinho e o prêmio cai no seu saldo.</p>
-          <p>• <b>Pagamento antecipado:</b> apostou na vitória de um time (1 ou 2) e ele abriu <b>2 gols de vantagem</b> no tempo normal? O palpite já conta como ganho, mesmo que o outro time reaja. Na simples o prêmio cai na hora.</p>
+          <p>• <b>Pagamento antecipado:</b> nos jogos com o selo <b>💰 2 gols</b>, apostou na vitória de um time (1 ou 2) e ele abriu <b>2 gols de vantagem</b> no tempo normal? O palpite já conta como ganho, mesmo que o outro time reaja. Na simples o prêmio cai na hora. Não vale no Brasileirão B e na Sul-Americana.</p>
           <p>• <b>Cash out:</b> em Minhas apostas dá pra encerrar o bilhete antes do fim e receber o valor mostrado na hora. O valor muda com o placar e o tempo de jogo.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Jogos e odds: API-Football. Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>
@@ -354,6 +355,9 @@ export default function Futebol() {
 .fb-jogo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#0b2416e6;border:1px solid #ffffff14;border-radius:14px;padding:8px 10px;margin-bottom:6px}
 .fb-info{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px}
 .fb-info{cursor:pointer}
+.fb-selo{font-style:normal;font:600 10px Rubik;color:#fde68a;background:#78350f;border-radius:7px;padding:0 5px;margin-left:6px}
+.fb-antaviso{flex-basis:100%;background:linear-gradient(90deg,#78350f,#451a03);border:1px solid #f59e0b88;border-radius:10px;padding:6px 9px;font:400 12px Rubik;color:#fde68a;line-height:1.35}
+.fb-antaviso b{color:#fff}
 .fb-info:active{opacity:.7}
 .fb-info small{font:400 11px Rubik;color:#86b39a}
 .fb-time{display:flex;align-items:center;gap:6px;font:500 14px Rubik;color:#fff;min-width:0}
