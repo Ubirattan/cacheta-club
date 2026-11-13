@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { premioOnline, taxaPct } from '../../lib/taxa.js';
 import { useRouter } from 'next/navigation';
 import { sb, api } from '../../lib/supabase-browser.js';
 import { useAuth, useOnline } from '../../components/useAuth.js';
@@ -29,7 +30,7 @@ function CreateRoom({ profile, onClose, gude }) {
       <Seg label="Bolinha de gude (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(GUDE_ROOMS).map(([k, m]) => [k, m.name.replace('Gude · ', '')])} />
       {!isGudeMode(f.mode) && <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />}
       <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).filter(e => !isGudeMode(f.mode) || e >= 2).map(e => [e, fmt(e)])} />
-      {isGudeMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>Gude é sempre 1 contra 1, entrada mínima de 2 fichas. Quem ganha leva {fmt(f.entry + Math.floor(f.entry / 2))} (a entrada dele + metade da do outro); o resto fica pra casa.</div>
+      {isGudeMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>Gude é sempre 1 contra 1, entrada mínima de 2 fichas. Quem ganha leva {fmt(premioOnline(+f.entry || 0))}{taxaPct(+f.entry || 0) ? ` (a casa fica com ${taxaPct(+f.entry || 0)}% do pote)` : ' (a entrada dele + metade da do outro; o resto fica pra casa)'}. Até 10 fichas: metade da entrada do outro fica pra casa · acima de 10: 10% do pote · acima de 100: 20%.</div>
         : <Seg label="Pontos" value={f.points} onChange={v => set('points', v)} options={POINTS.map(p => [p, String(p)])} />}
       <Seg label="Tempo por jogada" value={f.turnSeconds} onChange={v => set('turnSeconds', v)} options={TURN_SECONDS.map(t => [t, t + ' s'])} />
       <Seg label="Tipo de sala" value={f.isPrivate} onChange={v => set('isPrivate', v)} options={[[false, '🌐 Pública'], [true, '🔒 Privada']]} />

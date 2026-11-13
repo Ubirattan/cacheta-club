@@ -527,7 +527,7 @@ export default function Sala() {
 
       {modal === 'placar' && <Modal onClose={() => setModal(null)}><h2>Placar</h2>
         <div className="score">{game.players.map((p, i) => <div key={p.uid}><span>{p.avatar} {p.name}{i === myIdx ? ' (você)' : ''}</span><b>{p.left ? 'saiu' : p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>)}</div>
-        {game.cfg.entry ? <p>Pote: 💰 {fmt(game.pot)}</p> : null}<button className="go" onClick={() => setModal(null)}>Fechar</button></Modal>}
+        {game.cfg.entry ? <p>Pote: 💰 {fmt(game.pot)}{game.prize != null && game.prize < game.pot ? ` · quem ganhar leva 💰 ${fmt(game.prize)}` : ''}</p> : null}<button className="go" onClick={() => setModal(null)}>Fechar</button></Modal>}
       {modal === 'sair' && <Modal onClose={() => setModal(null)}><h2>Sair da mesa?</h2>
         <p>{room.status === 'playing' ? `A partida não acabou. Saindo agora você é eliminado${game.cfg.entry ? ` e perde a entrada de 💰 ${fmt(game.cfg.entry)}` : ''}.` : 'Você vai voltar para a lista de salas.'}</p>
         <button className="go" onClick={leave}>Sair</button><button className="sec" onClick={() => setModal(null)}>Continuar jogando</button></Modal>}
@@ -544,7 +544,7 @@ export default function Sala() {
             <h2>{res.matchOver ? (res.champion === myIdx ? 'Você venceu! 🏆' : `${game.players[res.champion]?.name || 'Ninguém'} venceu`) : res.winner === myIdx ? 'Você bateu!' : `${game.players[res.winner]?.name} bateu`}</h2>
             {res.forfeit ? <p>Os outros jogadores saíram da mesa.</p> : res.semJogo ? <p>Os outros correram.</p> : game.cfg.correr ? <p>Quem jogou e perdeu perde {res.loss} pontos.</p> : <p>{res.limpa && game.cfg.limpaDobro ? <><b>Batida limpa</b>, sem coringa: os outros perdem 2 pontos.</> : `Os outros perdem ${res.loss} ponto.`}</p>}
             {res.melds && <div className="melds">{res.melds.map((m, i) => <div key={i} className="meld">{m.map(c => <Card key={c.id} c={c} cor={game.cor} />)}</div>)}</div>}
-            {res.matchOver && res.champion === myIdx && game.pot > 0 && <div className="prize">+ 💰 {fmt(game.pot)}</div>}
+            {res.matchOver && res.champion === myIdx && game.pot > 0 && <div className="prize">+ 💰 {fmt(game.prize != null ? game.prize : game.pot)}</div>}
             <div className="score">{game.players.map((p, i) => {
               const d = res.before ? p.fichas - res.before[i] : 0;
               return <div key={p.uid}><span>{p.avatar} {p.name}</span>{d < 0 && <span className="d" style={{ flex: 'none' }}>{d}</span>}{i === res.winner && <span className="w" style={{ flex: 'none' }}>{res.semJogo ? 'ganhou' : 'bateu'}</span>}<b>{p.fichas > 0 ? p.fichas + ' pts' : 'fora'}</b></div>;
