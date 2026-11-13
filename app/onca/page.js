@@ -126,7 +126,7 @@ export default function Onca() {
       <p>Jogo só para <b>maiores de 18 anos</b>.</p>
       <p style={{ fontSize: 13, color: 'var(--mut)' }}>As fichas da Casa de Jogos são para diversão: <b>não valem dinheiro</b> e não podem ser trocadas por dinheiro.</p>
       <button className="go" onClick={() => { try { localStorage.setItem('on_18', '1'); } catch {} setMaior(true); }}>Tenho 18 anos ou mais</button>
-      <button className="sec" onClick={() => router.push('/')}>Voltar</button>
+      <button className="sec" onClick={() => router.push('/jogos/cassino')}>Voltar</button>
     </div></div></div>
   );
 
@@ -137,7 +137,7 @@ export default function Onca() {
       <OncaDefs />
       <div className="on-cel-tela">
         <div className="on-top">
-          <button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button>
+          <button className="rbtn" title="Voltar" onClick={() => router.push('/jogos/cassino')}>↩</button>
           <div className="on-logo">ONÇA DA SORTE</div>
           <button className="rbtn" title="Prêmios" onClick={() => setRegras(true)}>📖</button>
           <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
