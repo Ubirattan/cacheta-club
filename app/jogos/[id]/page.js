@@ -17,7 +17,7 @@ export default function Jogo() {
   const [modal, setModal] = useState(null);
   const J = JOGOS[id];
   if (!J || !J.opcoes) { if (typeof window !== 'undefined') router.replace('/'); return null; }
-  const rank = !['roleta', 'foguete'].includes(id) ? [{ t: `Ranking ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Só as partidas online deste jogo', em: '🏆', href: `/ranking?jogo=${id}`, g: 'linear-gradient(180deg,#ffd76a,#c8901c 60%,#7a5208)' }] : [];
+  const rank = !['roleta', 'foguete', 'onca'].includes(id) ? [{ t: `Ranking ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Só as partidas online deste jogo', em: '🏆', href: `/ranking?jogo=${id}`, g: 'linear-gradient(180deg,#ffd76a,#c8901c 60%,#7a5208)' }] : [];
   const opcoes = [...J.opcoes, ...rank, { t: `Loja ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Itens pra usar no jogo', em: '🛒', href: `/loja?jogo=${id}`, g: 'linear-gradient(180deg,#c084fc,#7e22ce 60%,#4c0d8a)' }];
   return (
     <div className="page lounge">
