@@ -39,18 +39,18 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
   );
 }
 
-export function Header({ profile, right, mid, onProfile }) {
+export function Header({ profile, right, mid, onProfile, semVisitante }) {
   const visitante = useVisitante() && !profile;
   return (
     <div className="hdr">
-      {visitante ? (
+      {visitante ? (semVisitante ? <div /> :
         <div className="plate vis">
           <a className="badge" href={contaUrl('entrar')} title="Entrar">👤</a>
           <div className="who"><b>Visitante</b><small>Crie sua conta pra jogar</small></div>
           <a className="vis-btn cad" href={contaUrl('criar')}>📝 Cadastrar</a>
           <a className="vis-btn ent" href={contaUrl('entrar')}>🔑 Entrar</a>
         </div>
-      ) : <div className="plate">
+      )) : <div className="plate">
         <button className="badge" onClick={onProfile}>{profile?.avatar || '😎'}</button>
         <div className="who"><b>{profile?.nickname || '...'}{profile?.vip_until && new Date(profile.vip_until) > new Date() ? ' 👑' : ''}</b><small>ID: {profile ? profile.id.slice(0, 8).toUpperCase() : ''}</small></div>
         <a className="coins" href="/loja#comprar" title="Comprar fichas"><i>💰</i><span>{fmt(profile?.coins)}</span><b className="plus">+</b></a>

@@ -478,13 +478,17 @@ export default function Futebol() {
           <button className={'fb-tvivo' + (aba === 'vivo' ? ' on' : '')} onClick={() => setAba('vivo')}><span className="fb-ponto" />Ao vivo{st?.aoVivo ? <i>{st.aoVivo}</i> : null}</button>
           <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
         </div>
-        {visitante && !local ? <span className="fb-vis"><a className="vis-btn cad" href={contaUrl('criar')}>Cadastrar</a><a className="vis-btn ent" href={contaUrl('entrar')}>Entrar</a></span>
+        {visitante && !local ? null
           : <><span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
           <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button></>}
         <button className={'fb-sair' + (naInicial ? ' ini' : '')} title={naInicial ? 'Outros jogos' : 'Voltar'} aria-label="Outros jogos da Casa de Jogos" onClick={() => router.push('/inicio')}>
           {naInicial ? <span style={{ fontSize: 20 }}>🎮</span> : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>}
         </button>
       </div>
+      {visitante && <div className="fb-visrow">
+        <a className="vis-btn cad" href={contaUrl('criar')}>📝 Cadastrar</a>
+        <a className="vis-btn ent" href={contaUrl('entrar')}>🔑 Entrar</a>
+      </div>}
       {st?.admin && (st.admin.erro || !st.admin.chave) && <div className="fb-adm">🛠 {!st.admin.chave ? 'Falta cadastrar APIFOOTBALL_KEY no Netlify.' : `Erro da API (${st.admin.erro.passo}): ${st.admin.erro.msg}`} · chamadas hoje: {st.admin.chamadasHoje}/{st.admin.limite}</div>}
       {aviso && <div className={'fb-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
       {confirmando && <div className="fb-conf"><div className="fb-conf-c"><span className="fb-ponto" /> Confirmando sua aposta ao vivo… <b>{Math.max(0, Math.ceil((confirmando.fim - Date.now()) / 1000))}</b><small>Se sair gol ou a odd cair nesse tempo, a aposta é recusada e as fichas voltam.</small></div></div>}
@@ -667,7 +671,7 @@ export default function Futebol() {
 .fb-top .rbtn{width:36px;height:36px;font-size:15px}
 .fb-sair{flex:none;margin-left:auto;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;box-shadow:0 3px 8px #0008;cursor:pointer}
 .fb-sair:active{transform:scale(.94)}
-.fb-vis{display:flex;gap:6px;margin-left:auto}.fb-vis .vis-btn{padding:6px 12px;font-size:14px}
+.fb-visrow{display:flex;gap:10px;padding:8px 10px 2px}.fb-visrow .vis-btn{flex:1;text-align:center;font-size:18px;padding:10px 12px}
 .fb-adm{margin:0 10px 4px;padding:5px 10px;border-radius:10px;background:#7f1d1d;color:#fecaca;font:500 12px Rubik}
 .fb-aviso{position:fixed;left:50%;top:54px;transform:translateX(-50%);z-index:30;background:#000d;border:1px solid #f87171;border-radius:14px;padding:7px 14px;font:500 14px Rubik;color:#fff;max-width:90vw;text-align:center}
 .fb-aviso.bom{border-color:#4ade80}

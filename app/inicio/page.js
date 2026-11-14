@@ -8,9 +8,9 @@ import { sb } from '../../lib/supabase-browser.js';
 import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header } from '../../components/ui.js';
-import { JOGOS as J, ORDEM } from '../../lib/jogos.js';
-// Na aba Jogos não entram os jogos de cassino (eles têm a aba Cassino própria).
-const JOGOS = ORDEM.filter(id => id !== 'cassino').map(id => ({ id, ...J[id] }));
+import { JOGOS as J } from '../../lib/jogos.js';
+// Na aba Jogos ficam só sinuca, pipa e bolinha de gude (cacheta, futebol e cassino têm aba própria na barra de baixo).
+const JOGOS = ['sinuca', 'pipa', 'gude'].map(id => ({ id, ...J[id] }));
 import ProfileModal from '../../components/ProfileModal.js';
 
 
@@ -26,7 +26,7 @@ export default function Home() {
   useEffect(() => { if (user) sb().from('app_settings').select('value').eq('key', 'motd').maybeSingle().then(({ data }) => setMotd(data ? data.value : '')); }, [user]);
   return (
     <div className="page lounge">
-      <Header profile={profile} onProfile={() => setModal('perfil')}
+      <Header profile={profile} onProfile={() => setModal('perfil')} semVisitante
         mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>} />
       <div className="cj-hero"><b>CASA DE <i>JOGOS</i></b><small>Escolha o seu jogo</small></div>
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
