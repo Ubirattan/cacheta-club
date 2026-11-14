@@ -178,7 +178,7 @@ export default function Double() {
 .db-seta::before{content:'';position:absolute;left:50%;top:0;transform:translateX(-50%);border:9px solid transparent;border-top-color:#facc15}
 .db-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#000a;z-index:3;color:#fff}
 .db-msg b{font:700 clamp(18px,4.5vh,26px) Oswald;letter-spacing:.5px}
-.db-msg.res{background:#0006}.db-msg.res.vermelho b{color:#fda4af}.db-msg.res.branco b{color:#fff}.db-msg.res.preto b{color:#cbd5e1}
+.db-msg.res{inset:auto;top:6px;left:8px;padding:2px 12px;border-radius:10px;background:#000c;border:1.5px solid #facc15}.db-msg.res b{font-size:clamp(14px,3vh,18px)}.db-msg.res.vermelho b{color:#fda4af}.db-msg.res.branco b{color:#fff}.db-msg.res.preto b{color:#cbd5e1}
 .db-bar{width:min(320px,60%);height:7px;border-radius:4px;background:#334155;overflow:hidden}
 .db-bar i{display:block;height:100%;background:#f43f5e}
 .db-aviso{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#000d;color:#fff;font:600 15px Rubik;padding:8px 14px;border-radius:12px;border:1.5px solid #facc15;z-index:4;white-space:nowrap}

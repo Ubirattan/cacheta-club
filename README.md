@@ -9,7 +9,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 
 ## O que já funciona
 
-- **Mines e Double (cassino):** Mines com grade 5x5, de 3 a 24 bombas, a casa fica com 10% e prêmio máximo de 4 mil fichas. Double ao vivo com 15 casas (7 vermelhas 2x, 7 pretas 2x, 1 branca 14x). ⚠️ Rode uma vez o `supabase/mines-double.sql` no SQL Editor do Supabase.
+- **Mines e Double (cassino):** Mines com grade 5x5, de 1 a 24 bombas, a casa fica com 3% e prêmio máximo de 4 mil fichas. Double ao vivo com 15 casas (7 vermelhas 2x, 7 pretas 2x, 1 branca 14x), girando 10 s. ⚠️ Rode uma vez o `supabase/mines-double.sql` no SQL Editor do Supabase.
 - **Cadastro e login** com apelido, e-mail e senha, ou **com o Google**.
 - **Perfil:** apelido, avatar, fichas, partidas, vitórias e aproveitamento.
 - **Lobby em tempo real:** salas aparecem e somem sozinhas. Tem abas por modalidade (Cacheta, Cacheta 10 cartas, Pif Paf) e filtros Aguardando, Jogando e Privadas.
