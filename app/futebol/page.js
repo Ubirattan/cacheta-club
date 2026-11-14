@@ -53,6 +53,8 @@ export default function Futebol() {
   const [falha, setFalha] = useState('');
   const [minhas, setMinhas] = useState(null);
   const [liga, setLiga] = useState(0);
+  const [tempo, setTempo] = useState('todos');          // filtro: todos | hoje | 12 | 6 | 3 (horas)
+  const [menuLiga, setMenuLiga] = useState(false);      // lista de campeonatos aberta
   const [aberto, setAberto] = useState(null);           // jogo com os outros mercados à mostra
   const [criar, setCriar] = useState(null);
   const [jogoAberto, setJogoAberto] = useState(null);   // página do jogo (antes do jogo)
@@ -154,12 +156,46 @@ export default function Futebol() {
     const t = setInterval(carregarVivo, 8000), u = setInterval(atualizar, 25000);
     return () => { clearInterval(t); clearInterval(u); };
   }, [aba, maior]); // eslint-disable-line
+  useEffect(() => {
+    if (aba !== 'jogos' || !maior) return;
+    const f = () => chama({ op: 'vivo' }).then(v => setVivoSt(v)).catch(() => {});
+    f(); const t = setInterval(f, 30000);
+    return () => clearInterval(t);
+  }, [aba, maior, local]); // eslint-disable-line
   useEffect(() => { if (!confirma) return; const t = setTimeout(() => setConfirma(null), 5000); return () => clearTimeout(t); }, [confirma]);
 
   const jogos = st?.jogos || [];
   // abas por nome (as eliminatórias de cada continente ficam juntas numa aba só)
-  const ligas = useMemo(() => { const m = new Map(); jogos.forEach(j => m.has(j.ligaNome) || m.set(j.ligaNome, j.ligaNome)); return [...m]; }, [jogos]);
-  const lista = liga ? jogos.filter(j => j.ligaNome === liga) : jogos;
+  // filtro de horário: jogos de hoje ou que começam nas próximas 12/6/3 horas
+  const porTempo = useMemo(() => {
+    if (tempo === 'todos') return jogos;
+    const agora = Date.now();
+    if (tempo === 'hoje') { const hoje = new Date().toDateString(); return jogos.filter(j => new Date(j.inicio).toDateString() === hoje); }
+    const lim = agora + Number(tempo) * 3600000;
+    return jogos.filter(j => Date.parse(j.inicio) <= lim);
+  }, [jogos, tempo]);
+  // campeonatos (com quantos jogos cada um tem no filtro de horário), em ordem alfabética
+  const ligas = useMemo(() => { const m = new Map(); porTempo.forEach(j => m.set(j.ligaNome, (m.get(j.ligaNome) || 0) + 1)); return [...m].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')); }, [porTempo]);
+  const lista = liga ? porTempo.filter(j => j.ligaNome === liga) : porTempo;
+  // DESTAQUES: faixa que passa sozinha em cima da lista, com os principais jogos
+  // (primeiro os ao vivo, depois os próximos dos campeonatos principais)
+  const destaques = useMemo(() => {
+    const vs = (vivoSt?.jogos || []).slice().sort((a, b) => (b.antecipa ? 1 : 0) - (a.antecipa ? 1 : 0)).slice(0, 3).map(j => ({ ...j, aoVivo: true }));
+    const prox = jogos.filter(j => j.antecipa).slice(0, 8 - vs.length);
+    const mais = prox.length + vs.length < 4 ? jogos.filter(j => !j.antecipa).slice(0, 4 - prox.length - vs.length) : [];
+    return [...vs, ...prox, ...mais].slice(0, 8);
+  }, [vivoSt, jogos]);
+  const [dIdx, setDIdx] = useState(0);
+  const dRef = useRef(null), dPausa = useRef(0);
+  useEffect(() => {
+    const n = destaques.length; if (n < 2) return;
+    const t = setInterval(() => {
+      const el = dRef.current; if (!el || Date.now() < dPausa.current) return;
+      const prox = (Math.round(el.scrollLeft / (el.firstChild?.offsetWidth + 8 || 1)) + 1) % n;
+      const alvo = el.children[prox]; if (alvo) el.scrollTo({ left: alvo.offsetLeft - el.offsetLeft - 8, behavior: 'smooth' });
+    }, 4000);
+    return () => clearInterval(t);
+  }, [destaques.length]);
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
   const igualL = (a, b) => (a == null && b == null) || Number(a) === Number(b);
@@ -263,9 +299,9 @@ export default function Futebol() {
 
   function abrirJogo(j) { setJogoAberto(j.id); setAbaM('principais'); setTodos({}); }
   function fecharJogo() { setJogoAberto(null); setCriar(c => c?.partes?.length ? c : null); }   // Criar aposta começado fica guardado
-  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dnb', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
+  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dnb', 'dc', 'gols', 'ambos', 'ambosMais']], ['gols', 'Gols', ['gols', 'ambos', 'ambosMais', 'primeiro', 'placar']],
     ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht', 'htft']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
-    ['todos', 'Todos', ['1x2', 'dnb', 'dc', 'gols', 'ambos', 'ht', 'htft', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
+    ['todos', 'Todos', ['1x2', 'dnb', 'dc', 'gols', 'ambos', 'ambosMais', 'ht', 'htft', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
   const nl = l => String(l).replace('.', ',');
   const sn = l => (l > 0 ? '+' : '') + nl(l);
   const curtoNome = n => n.length > 12 ? n.slice(0, 11) + '.' : n;
@@ -274,7 +310,7 @@ export default function Futebol() {
     if (m === 'dc') return ({ '1X': '1 ou empate', '12': '1 ou 2', X2: '2 ou empate' })[e];
     if (m === 'dnb') return curtoNome(e === 'casa' ? j.casa : j.fora);
     if (m === 'htft') return e.replace('/', ' / ');
-    if (m === 'ambos') return e === 'sim' ? 'Sim' : 'Não';
+    if (m === 'ambos' || m === 'ambosMais') return e === 'sim' ? 'Sim' : 'Não';
     if (m === 'primeiro') return e === 'casa' ? curtoNome(j.casa) : e === 'fora' ? curtoNome(j.fora) : 'Sem gol';
     if (m === 'placar') return e.replace(':', ' x ');
     if (m === 'handicap') return e === 'casa' ? `${curtoNome(j.casa)} ${sn(l)}` : `${curtoNome(j.fora)} ${sn(-l)}`;
@@ -334,6 +370,35 @@ export default function Futebol() {
         <span>🧩 {criar.partes.length} {criar.partes.length === 1 ? 'palpite' : 'palpites'}{combo?.erro ? <em>{combo.erro}</em> : combo ? <b> · odd {f2(combo.odd)}</b> : <em> · escolha pelo menos 2</em>}</span>
         <button disabled={!combo || !!combo.erro} onClick={() => porCombo(j)}>Pôr no bilhete</button>
       </div>}
+    </div>;
+  }
+  function destaque() {
+    if (!destaques.length) return null;
+    return <div className="fb-dest">
+      <div className="fb-dest-faixa" ref={dRef} onPointerDown={() => { dPausa.current = Date.now() + 9000; }}
+        onScroll={e => { const el = e.currentTarget, w = (el.firstChild?.offsetWidth || 1) + 8; setDIdx(Math.min(destaques.length - 1, Math.round(el.scrollLeft / w))); }}>
+        {destaques.map(j => {
+          const o = j.aoVivo ? j.odds?.['1x2'] : j.odds?.['1x2'];
+          return <div key={(j.aoVivo ? 'v' : 'p') + j.id} className={'fb-dcard' + (j.aoVivo ? ' vivo' : '')}>
+            <div className="fb-dtopo" onClick={() => j.aoVivo ? setAba('vivo') : abrirJogo(j)}>
+              {j.aoVivo ? <span className="fb-dmin"><span className="fb-ponto" />{j.status === 'HT' ? 'Intervalo' : `${j.minuto || 0}'`}</span>
+                : <span className="fb-dhora">{nomeDia(j.inicio)} · {hora(j.inicio)}</span>}
+              <span className="fb-dliga">{j.ligaNome}</span>
+              {j.antecipa && !j.aoVivo && <i className="fb-dselo">💰 2 GOLS</i>}
+            </div>
+            <div className="fb-dtimes" onClick={() => j.aoVivo ? setAba('vivo') : abrirJogo(j)}>
+              <div><Escudo src={j.casaLogo} nome={j.casa} /><span>{j.casa}</span>{j.aoVivo && <b>{j.placar?.[0] ?? 0}</b>}</div>
+              <div><Escudo src={j.foraLogo} nome={j.fora} /><span>{j.fora}</span>{j.aoVivo && <b>{j.placar?.[1] ?? 0}</b>}</div>
+            </div>
+            <div className="fb-dodds">
+              {['1', 'X', '2'].map(e => !o?.[e]
+                ? <button key={e} disabled><small>{e}</small>🔒</button>
+                : <button key={e} className={!j.aoVivo && naBil(j.id, '1x2', e) ? 'on' : ''} onClick={() => j.aoVivo ? setAba('vivo') : escolher(j, '1x2', e)}><small>{e}</small>{f2(o[e])}</button>)}
+            </div>
+          </div>;
+        })}
+      </div>
+      {destaques.length > 1 && <div className="fb-dpontos">{destaques.map((_, i) => <i key={i} className={i === dIdx ? 'on' : ''} />)}</div>}
     </div>;
   }
   function listaVivo() {
@@ -424,14 +489,29 @@ export default function Futebol() {
             <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
             <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
           </div>
-          <div className="fb-ligas">
-            <button className={!liga ? 'on' : ''} onClick={() => setLiga(0)}>Todos</button>
-            {ligas.map(([id, n]) => <button key={id} className={liga === id ? 'on' : ''} onClick={() => setLiga(id)}>{n}</button>)}
+          <div className="fb-filtros">
+            <button className={'fb-campbtn' + (liga ? ' on' : '')} onClick={() => setMenuLiga(v => !v)}>
+              🏆 <span>{liga || 'Todos os campeonatos'}</span> <i>{menuLiga ? '▴' : '▾'}</i></button>
+            <div className="fb-ligas">
+              {[['todos', 'Todos'], ['hoje', 'Hoje'], ['12', '12 horas'], ['6', '6 horas'], ['3', '3 horas']].map(([v, t]) =>
+                <button key={v} className={tempo === v ? 'on' : ''} onClick={() => setTempo(v)}>{v === 'todos' ? t : v === 'hoje' ? '📅 ' + t : '⏱ ' + t}</button>)}
+            </div>
+            {menuLiga && <>
+              <div className="fb-campfundo" onClick={() => setMenuLiga(false)} />
+              <div className="fb-campmenu">
+                <button className={!liga ? 'on' : ''} onClick={() => { setLiga(0); setMenuLiga(false); }}><span>Todos os campeonatos</span><i>{porTempo.length}</i></button>
+                {liga && !ligas.some(([n]) => n === liga) && <button className="on" onClick={() => setMenuLiga(false)}><span>{liga}</span><i>0</i></button>}
+                {ligas.map(([n, q]) => <button key={n} className={liga === n ? 'on' : ''} onClick={() => { setLiga(n); setMenuLiga(false); }}><span>{n}</span><i>{q}</i></button>)}
+                {!ligas.length && <div className="fb-campvazio">Nenhum jogo nesse horário</div>}
+              </div>
+            </>}
           </div>
           <div className="fb-lista">
+            {destaque()}
             {!st && !falha && <div className="fb-vazio">Carregando os jogos…</div>}
             {!st && falha && <div className="fb-vazio">Não deu pra carregar os jogos ({falha}).<br /><button className="fb-tenta" onClick={() => { setFalha(''); carregar(); }}>Tentar de novo</button></div>}
-            {st && !lista.length && <div className="fb-vazio">Nenhum jogo com odds agora. Os jogos dos próximos dias aparecem aqui assim que as casas abrem as odds.{st.admin && ' (admin: veja o aviso acima)'}</div>}
+            {st && !lista.length && (liga || tempo !== 'todos') && jogos.length > 0 && <div className="fb-vazio">Nenhum jogo nesse filtro.<br /><button className="fb-tenta" onClick={() => { setLiga(0); setTempo('todos'); }}>Ver todos os jogos</button></div>}
+            {st && !jogos.length && <div className="fb-vazio">Nenhum jogo com odds agora. Os jogos dos próximos dias aparecem aqui assim que as casas abrem as odds.{st.admin && ' (admin: veja o aviso acima)'}</div>}
             {dias.map(d => <div key={d.n}>
               <div className="fb-dia">{d.n}</div>
               {d.js.map(j => (
@@ -574,11 +654,49 @@ export default function Futebol() {
 .fb-aviso.bom{border-color:#4ade80}
 .fb-main{flex:1;min-height:0;display:flex;gap:8px;padding:0 8px 8px}
 .fb-esq{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.fb-ligas{display:flex;gap:6px;overflow-x:auto;flex:none;scrollbar-width:none}
+.fb-filtros{position:relative;display:flex;align-items:center;gap:6px;flex:none;min-width:0}
+.fb-campbtn{flex:none;display:flex;align-items:center;gap:5px;max-width:46%;border:1px solid #fbbf2488;background:#0009;color:#fff;font:600 13px Rubik;border-radius:16px;padding:5px 11px;cursor:pointer}
+.fb-campbtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-campbtn i{font-style:normal;color:#fbbf24}
+.fb-campbtn.on{background:#fbbf24;color:#1a1300;border-color:#fbbf24}.fb-campbtn.on i{color:#1a1300}
+.fb-campfundo{position:fixed;inset:0;z-index:24}
+.fb-campmenu{position:absolute;left:0;top:calc(100% + 4px);z-index:25;width:min(340px,92vw);max-height:min(60vh,360px);overflow-y:auto;background:#0b2416;border:1px solid #fbbf2488;border-radius:14px;padding:6px;box-shadow:0 12px 30px #000c;display:flex;flex-direction:column;gap:2px}
+.fb-campmenu button{display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:transparent;color:#e5f5ea;font:500 14px Rubik;text-align:left;border-radius:10px;padding:8px 10px;cursor:pointer}
+.fb-campmenu button:active{background:#ffffff14}
+.fb-campmenu button.on{background:#fbbf24;color:#1a1300}
+.fb-campmenu i{font-style:normal;font:600 12px Rubik;background:#ffffff1a;border-radius:9px;padding:1px 7px;flex:none}
+.fb-campmenu button.on i{background:#0002}
+.fb-campvazio{font:400 13px Rubik;color:#86b39a;padding:8px 10px}
+.fb-ligas{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
 .fb-ligas::-webkit-scrollbar{display:none}
 .fb-ligas button{flex:none;border:1px solid #ffffff22;background:#0007;color:#d1fae5;font:500 13px Rubik;border-radius:16px;padding:5px 12px}
 .fb-ligas button.on{background:#fbbf24;color:#1a1300;border-color:#fbbf24}
 .fb-lista{flex:1;min-height:0;overflow-y:auto;padding-right:2px}
+.fb-dest{margin:2px 0 8px}
+.fb-dest-faixa{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:0 8px;scroll-padding:0 8px}
+.fb-dest-faixa::-webkit-scrollbar{display:none}
+.fb-dcard{flex:none;width:min(88%,380px);scroll-snap-align:start;border-radius:16px;overflow:hidden;position:relative;color:#fff;border:2px solid #fbbf2466;
+  background:repeating-linear-gradient(120deg,#ffffff0d 0 14px,transparent 14px 34px),linear-gradient(135deg,#16a34a,#065f2c 55%,#033d1c);box-shadow:0 6px 16px #0008}
+.fb-dcard.vivo{border-color:#ef444499;background:repeating-linear-gradient(120deg,#ffffff0d 0 14px,transparent 14px 34px),linear-gradient(135deg,#dc2626,#7f1d1d 60%,#3b0a0a)}
+.fb-dcard::after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,#ffffff22,transparent 70%);pointer-events:none}
+.fb-dtopo{display:flex;align-items:center;gap:6px;padding:8px 10px 2px;font:500 11px Rubik;cursor:pointer;min-width:0}
+.fb-dmin{display:flex;align-items:center;gap:5px;background:#fff;color:#dc2626;font:700 12px Oswald;border-radius:10px;padding:1px 8px}
+.fb-dhora{background:#0006;border-radius:10px;padding:1px 8px;font:600 11px Rubik;white-space:nowrap;text-transform:capitalize}
+.fb-dliga{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.9}
+.fb-dselo{font-style:normal;background:#fbbf24;color:#1a1300;font:700 10px Rubik;border-radius:8px;padding:1px 6px;flex:none}
+.fb-dtimes{padding:4px 12px 6px;display:flex;flex-direction:column;gap:3px;cursor:pointer}
+.fb-dtimes div{display:flex;align-items:center;gap:8px;font:700 clamp(15px,4vw,18px) Oswald;font-style:italic;text-transform:uppercase;text-shadow:0 2px 0 #0006;min-width:0}
+.fb-dtimes span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-dtimes b{font:700 20px Oswald;font-style:normal}
+.fb-dtimes .fb-esc{width:24px;height:24px}
+.fb-dodds{display:flex;gap:6px;padding:6px 8px 8px;background:#0005}
+.fb-dodds button{flex:1;display:flex;align-items:center;justify-content:space-between;gap:4px;border:1px solid #ffffff2a;background:#fff;color:#111;font:700 15px Oswald;border-radius:10px;padding:5px 9px}
+.fb-dodds button small{font:600 11px Rubik;color:#64748b}
+.fb-dodds button.on{background:#fbbf24;border-color:#fde68a}
+.fb-dodds button:disabled{opacity:.55}
+.fb-dpontos{display:flex;justify-content:center;gap:5px;margin-top:6px}
+.fb-dpontos i{width:6px;height:6px;border-radius:3px;background:#ffffff40;transition:width .2s}
+.fb-dpontos i.on{width:16px;background:#fbbf24}
 .fb-dia{font:600 13px Oswald;letter-spacing:.5px;color:#fbbf24;text-transform:uppercase;padding:6px 4px 4px}
 .fb-jogo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:#0b2416e6;border:1px solid #ffffff14;border-radius:14px;padding:8px 10px;margin-bottom:6px}
 .fb-info{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px}
