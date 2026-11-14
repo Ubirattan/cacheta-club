@@ -1,4 +1,4 @@
-// Desenhos grandes dos cartões do Cassino: a roleta do jogo, a onça mascote e o foguete.
+// Desenhos grandes dos cartões do Cassino: a roleta do jogo, a onça mascote, o foguete, o Mines e o Double.
 import { RODA, cor } from '../lib/roleta.js';
 import { OncaDefs, Rosto } from './OncaIcones.js';
 
@@ -48,4 +48,34 @@ export function FogueteArte() {
     </svg>
   );
 }
-export const ARTES = { onca: OncaArte, roleta: RoletaArte, foguete: FogueteArte };
+export function MinesArte() {
+  const B = [6, 12, 18];     // casas com bomba no desenho
+  return (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <defs><linearGradient id="ca-gema" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#a5f3fc" /><stop offset="1" stopColor="#0891b2" /></linearGradient></defs>
+      <rect x="4" y="4" width="92" height="92" rx="12" fill="#0b1224" stroke="#38bdf8" strokeWidth="2" />
+      {Array.from({ length: 16 }, (_, i) => {
+        const x = 10 + (i % 4) * 21, y = 10 + Math.floor(i / 4) * 21, aberta = [0, 3, 5, 9, 10, 15].includes(i), bomba = B.includes(i) && i === 6;
+        return <g key={i}>
+          <rect x={x} y={y} width="17" height="17" rx="3.5" fill={bomba ? '#b91c1c' : aberta ? '#0e7490' : '#334155'} />
+          {aberta && <path d={`M${x + 5} ${y + 4}h7l3.5 4-7 7-7-7z`} fill="url(#ca-gema)" stroke="#ecfeff" strokeWidth=".6" />}
+          {bomba && <g><circle cx={x + 8.5} cy={y + 9.5} r="4.6" fill="#111" /><path d={`M${x + 11} ${y + 6} l2.5 -2.5`} stroke="#facc15" strokeWidth="1.4" /><circle cx={x + 7} cy={y + 8} r="1.2" fill="#fff8" /></g>}
+        </g>;
+      })}
+    </svg>
+  );
+}
+export function DoubleArte() {
+  const T = ['v', 'p', 'v', 'b', 'p', 'v', 'p'];
+  const cor = { v: '#e11d48', p: '#1e293b', b: '#f8fafc' };
+  return (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+      <rect x="2" y="26" width="96" height="48" rx="10" fill="#0b0710" stroke="#f43f5e" strokeWidth="2" />
+      {T.map((c, i) => <g key={i}><rect x={5 + i * 13.3} y="34" width="11.5" height="32" rx="3" fill={cor[c]} stroke="#0008" strokeWidth=".8" />
+        {c === 'b' && <path d={`M${10.75 + i * 13.3} 44 l4 6 -4 6 -4 -6z`} fill="#e11d48" />}</g>)}
+      <rect x="49" y="22" width="2.4" height="56" fill="#facc15" />
+      <path d="M45 20 h10 l-5 7z" fill="#facc15" />
+    </svg>
+  );
+}
+export const ARTES = { onca: OncaArte, roleta: RoletaArte, foguete: FogueteArte, mines: MinesArte, double: DoubleArte };
