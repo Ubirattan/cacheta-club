@@ -13,7 +13,7 @@ export default function Indique({ profile, onClose }) {
     sb().from('indicacoes').select('pago').eq('indicador', profile.id)
       .then(({ data }) => setLista(data || []), () => setLista([]));
   }, [profile]);
-  const msg = `Bora jogar comigo na Casa de Jogos! Cacheta, truco, sinuca, pipa e mais. Cria sua conta por esse link: ${link}`;
+  const msg = `Bora jogar comigo na Casa de Jogos! Cacheta, truco, sinuca, pipa, apostas no futebol e mais. Cria sua conta por esse link: ${link}`;
   async function compartilhar() {
     try { if (navigator.share) { await navigator.share({ title: 'Casa de Jogos', text: msg }); return; } } catch { return; }
     copiar();

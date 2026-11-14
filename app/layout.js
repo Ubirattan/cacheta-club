@@ -4,7 +4,7 @@ import Convites from '../components/Convites.js';
 import PixGate from '../components/PixGate.js';
 import PedirConta from '../components/PedirConta.js';
 import TempoJogo from '../components/TempoJogo.js';
-export const metadata = { title: 'Casa de Jogos', description: 'Cacheta, truco, sinuca, gude e pipa: online e contra o computador. Fichas virtuais, sem dinheiro de verdade.', manifest: '/manifest.webmanifest', icons: { icon: '/icon-192.png', apple: '/icon-192.png' }, appleWebApp: { capable: true, title: 'Cacheta Club', statusBarStyle: 'black' } };
+export const metadata = { title: 'Casa de Jogos', description: 'Cacheta, truco, sinuca, gude, pipa e apostas no futebol: online e contra o computador. Fichas virtuais, sem dinheiro de verdade.', manifest: '/manifest.webmanifest', icons: { icon: '/icon-192.png', apple: '/icon-192.png' }, appleWebApp: { capable: true, title: 'Cacheta Club', statusBarStyle: 'black' } };
 export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: 'cover', themeColor: '#1a1410' };
 export default function RootLayout({ children }) {
   return (
