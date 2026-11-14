@@ -28,4 +28,20 @@ const r = await gerapixWebhook(R, 'Bearer seg', { status: 'aprovado', external_r
 assert.equal(r.credited, 20);
 assert.equal((await R.getProfile(A)).coins, 120, 'indicação paga pelo Pix');
 assert.equal((await R.getProfile(C)).coins, 20);
-console.log('OK — indicação: cadastro pelo link, paga 10 fichas no primeiro depósito, uma vez só');
+
+// promoção: 50 amigos que depositaram = +300 fichas (uma vez)
+{
+  const { bonusMeta, META_INDICACAO, BONUS_META } = await import('../lib/indicacao.js');
+  const R2 = memRepo(); const X = 'dddddddd-0000-4000-8000-000000000009';
+  R2.T.profiles.push({ id: X, nickname: 'X', coins: 0, games: 0, wins: 0 });
+  const avisos = []; const n = async (_r, t, b) => { avisos.push(b); };
+  for (let i = 0; i < META_INDICACAO - 1; i++) R2.T.indicacoes.push({ indicado: 'f' + i, indicador: X, pago: true });
+  assert.equal(await bonusMeta(R2, X, n), false, '49 ainda não');
+  R2.T.indicacoes.push({ indicado: 'f49', indicador: X, pago: true });
+  assert.equal(await bonusMeta(R2, X, n), true, '50 ganha');
+  assert.equal((await R2.getProfile(X)).coins, BONUS_META);
+  R2.T.indicacoes.push({ indicado: 'f50', indicador: X, pago: true });
+  assert.equal(await bonusMeta(R2, X, n), false, 'uma vez só');
+  assert.equal((await R2.getProfile(X)).coins, BONUS_META); assert.equal(avisos.length, 1);
+}
+console.log('OK — indicação: cadastro pelo link, paga 10 fichas no primeiro depósito, uma vez só, +300 com 50 amigos');
