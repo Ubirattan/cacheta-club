@@ -26,12 +26,10 @@ function nomeDia(t) {
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
 const AVISOS = [
   { id: 'promo', em: '🎁', t: 'Promoções', sub: 'Ranking da cacheta e indique amigos: ganhe fichas!', btn: 'Ver promoções', href: '/promocoes', g: 'linear-gradient(135deg,#f472b6,#db2777 50%,#7e22ce)' },
-  { id: 'criar', em: '🧩', t: 'Criar aposta', sub: 'Junte vários palpites do mesmo jogo num bilhete só', btn: 'Como funciona', g: 'linear-gradient(135deg,#a855f7,#6d28d9 55%,#3b0764)' },
-  { id: 'antecipa', em: '💰', t: 'Pagamento antecipado', sub: 'Seu time abriu 2 gols de vantagem? Você já ganhou!', btn: 'Como funciona', g: 'linear-gradient(135deg,#f59e0b,#c2410c 55%,#7c2d12)' },
-  { id: 'cashout', em: '💸', t: 'Cash out', sub: 'Encerre a aposta antes do fim e receba na hora', btn: 'Como funciona', g: 'linear-gradient(135deg,#0ea5e9,#1d4ed8 55%,#172554)' },
   { id: 'sinuca', em: '🎱', t: 'Sinuca', sub: 'Bola 8, bola lisa e bolinho · online valendo fichas', btn: 'Jogar agora', href: '/jogos/sinuca', g: 'linear-gradient(135deg,#4ade80,#15803d 55%,#0b4d25)' },
   { id: 'pipa', em: '🪁', t: 'Pipa', sub: 'Corta, apara e manda a busca · online valendo fichas', btn: 'Jogar agora', href: '/jogos/pipa', g: 'linear-gradient(135deg,#fbbf24,#ea7a0a 55%,#9a3412)' },
   { id: 'gude', em: null, t: 'Bolinha de gude', sub: 'Triângulo, buraco e mata-mata · online valendo fichas', btn: 'Jogar agora', href: '/jogos/gude', g: 'linear-gradient(135deg,#a78bfa,#6d28d9 55%,#3b0f80)' },
+  { id: 'bicho', em: '🐾', t: 'Jogo do Bicho', sub: 'Sorteios às 11h, 14h, 16h, 18h e 21h · grupo, dezena, centena e milhar', btn: 'Jogar agora', href: '/bicho', g: 'linear-gradient(135deg,#facc15,#16a34a 55%,#052e16)' },
 ];
 const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'], pendente: ['Confirmando…', '#f87171'], recusada: ['Recusada', '#94a3b8'] };
 const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
@@ -203,7 +201,7 @@ export default function Futebol() {
     const mais = prox.length + vs.length < 4 ? jogos.filter(j => !j.antecipa).slice(0, 4 - prox.length - vs.length) : [];
     return [...vs, ...prox, ...mais].slice(0, 8);
   }, [vivoSt, jogos]);
-  // na faixa também passam os avisos: Promoções, Criar aposta, Pagamento antecipado e Cash out
+  // na faixa também passam os cartões de Promoções e dos jogos (sinuca, pipa, gude e bicho)
   const faixa = useMemo(() => {
     const out = [], av = AVISOS.map(a => ({ aviso: a }));
     for (let i = 0; i < Math.max(destaques.length, av.length); i++) { if (destaques[i]) out.push(destaques[i]); if (av[i]) out.push(av[i]); }
