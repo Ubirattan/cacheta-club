@@ -26,6 +26,7 @@ export default function Home() {
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
         mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>} />
+      <div className="cj-hero"><b>CASA DE <i>JOGOS</i></b><small>Escolha o seu jogo</small></div>
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div className="cj-grade">
         {JOGOS.map(j => (
@@ -65,7 +66,23 @@ export default function Home() {
 .cj-jogo small{position:relative;font:500 clamp(9px,1.7vmin,12px) Rubik;opacity:.92;text-align:center;line-height:1.2}
 .cj-jogo em{position:absolute;top:10px;right:-30px;transform:rotate(35deg);background:#facc15;color:#3a2300;font:700 11px Oswald;font-style:normal;padding:2px 34px;box-shadow:0 2px 4px #0006}
 .cj-acoes{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:0 10px 8px}
-@media (orientation:portrait){.cj-grade{grid-template-columns:1fr 1fr;grid-template-rows:none;align-content:start}.cj-jogo{height:auto;aspect-ratio:1}}
+.cj-hero{display:none}
+@media (orientation:portrait){
+.hdr .games{display:none}
+.cj-hero{display:flex;flex-direction:column;align-items:center;padding:10px 12px 2px}
+.cj-hero b{font:700 clamp(28px,9vw,40px) Oswald;font-style:italic;color:#fff;letter-spacing:1px;text-shadow:0 3px 0 #000a;line-height:1}
+.cj-hero b i{color:var(--gold)}
+.cj-hero small{font:500 13px Rubik;color:#e8dcc0;opacity:.85;margin-top:4px}
+.cj-grade{flex:none;grid-template-columns:1fr 1fr;grid-template-rows:none;align-content:start;gap:12px;padding:10px 14px}
+.cj-jogo{height:auto;max-height:none;aspect-ratio:1/1.05;border-radius:24px}
+.cj-jogo:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:2.3/1}
+.cj-jogo:last-child:nth-child(odd) .cj-em{top:14%}
+.cj-em{font-size:clamp(46px,15vw,70px)}
+.cj-jogo b{font-size:clamp(18px,5.4vw,24px)}
+.cj-jogo small{font-size:clamp(10px,3vw,13px)}
+.cj-acoes{flex-direction:column;align-items:stretch;padding:4px 14px 12px;gap:8px}
+.cj-acoes .buybtn{margin:0!important;width:100%;justify-content:center}
+}
 `}</style>
     </div>
   );
