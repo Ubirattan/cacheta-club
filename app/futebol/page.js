@@ -373,7 +373,8 @@ export default function Futebol() {
           </div>}
         </div>;
       })}
-      {ca && <div className="fb-cbar">
+      {ca && <div className="fb-cbar-esp" />}
+      {ca && <div className={'fb-cbar' + (bil.length > 0 && !bilAberto ? ' sobe' : '')}>
         <span>🧩 {criar.partes.length} {criar.partes.length === 1 ? 'palpite' : 'palpites'}{combo?.erro ? <em>{combo.erro}</em> : combo ? <b> · odd {f2(combo.odd)}</b> : <em> · escolha pelo menos 2</em>}</span>
         <button disabled={!combo || !!combo.erro} onClick={() => porCombo(j)}>Pôr no bilhete</button>
       </div>}
@@ -636,6 +637,7 @@ export default function Futebol() {
 .fb-cbar span{flex:1;min-width:0}.fb-cbar em{font-style:normal;font-size:12px;color:#fca5a5;display:block}
 .fb-cbar button{flex:none;border:none;border-radius:12px;background:#fbbf24;color:#1a1300;font:700 14px Rubik;padding:9px 12px}
 .fb-cbar button:disabled{opacity:.5}
+.fb-cbar-esp{display:none}
 .fb-tvivo{display:inline-flex;align-items:center;gap:5px}
 .fb-ponto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 #ef4444;animation:fbvivo 1.2s infinite;vertical-align:middle}
 @keyframes fbvivo{0%{box-shadow:0 0 0 0 #ef4444cc}70%{box-shadow:0 0 0 6px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
@@ -799,7 +801,9 @@ export default function Futebol() {
 .fb-bil.aberto{transform:none}
 .fb-fecha{display:block}
 .fb-flut{display:block;position:fixed;left:8px;right:8px;bottom:8px;z-index:15;border:none;border-radius:14px;background:linear-gradient(90deg,#ea580c,#f97316);color:#fff;font:700 16px Rubik;padding:12px 16px;text-align:left;box-shadow:0 6px 16px #000a}
-.fb-cbar{bottom:60px}
+.fb-cbar{position:fixed;left:8px;right:8px;bottom:8px;margin:0;z-index:16}
+.fb-cbar.sobe{bottom:66px}
+.fb-cbar-esp{display:block;height:130px}
 .fb-logo{display:none}
 .fb-top{gap:6px;padding:6px 8px 4px}
 .fb-abas{margin-left:0;min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
