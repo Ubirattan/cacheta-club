@@ -2,7 +2,7 @@ import './globals.css';
 import Tela from '../components/Tela.js';
 import Convites from '../components/Convites.js';
 import PixGate from '../components/PixGate.js';
-export const metadata = { title: 'Casa de Jogos', description: 'Cacheta, truco, sinuca, gude e pipa: online e contra o computador. Fichas virtuais, sem dinheiro de verdade.', manifest: '/manifest.webmanifest', icons: { icon: '/icon-192.png', apple: '/icon-192.png' }, appleWebApp: { capable: true, title: 'Cacheta Club', statusBarStyle: 'black' } };
+export const metadata = { title: 'Casa de Jogos', description: 'Cacheta, truco, sinuca, gude e pipa: online e contra o computador. Fichas virtuais, sem dinheiro de verdade.', manifest: '/manifest.webmanifest', icons: { icon: '/icon-192.png', apple: '/icon-192.png' }, appleWebApp: { capable: true, title: 'Casa de Jogos', statusBarStyle: 'black' } };
 export const viewport = { width: 'device-width', initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: 'cover', themeColor: '#1a1410' };
 export default function RootLayout({ children }) {
   return (
@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
         <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Rubik:wght@400;500;700;800;900&family=Playfair+Display:ital,wght@1,800&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('cc_four')==='1')document.body.classList.add('four')}catch(e){}try{if(/netlify\\.app$/.test(location.hostname))document.body.classList.add('nfb')}catch(e){}" }} />
+        <script dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('cc_four')==='1')document.body.classList.add('four')}catch(e){}try{if(/netlify\\.app$/.test(location.hostname))document.body.classList.add('nfb')}catch(e){}window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__bip=e});try{if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js',{scope:'/'})}catch(e){}" }} />
         {children}<div id="toast" /><Tela /><Convites /><PixGate />
       </body>
     </html>
