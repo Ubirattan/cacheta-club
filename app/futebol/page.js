@@ -29,6 +29,9 @@ const AVISOS = [
   { id: 'criar', em: '🧩', t: 'Criar aposta', sub: 'Junte vários palpites do mesmo jogo num bilhete só', btn: 'Como funciona', g: 'linear-gradient(135deg,#a855f7,#6d28d9 55%,#3b0764)' },
   { id: 'antecipa', em: '💰', t: 'Pagamento antecipado', sub: 'Seu time abriu 2 gols de vantagem? Você já ganhou!', btn: 'Como funciona', g: 'linear-gradient(135deg,#f59e0b,#c2410c 55%,#7c2d12)' },
   { id: 'cashout', em: '💸', t: 'Cash out', sub: 'Encerre a aposta antes do fim e receba na hora', btn: 'Como funciona', g: 'linear-gradient(135deg,#0ea5e9,#1d4ed8 55%,#172554)' },
+  { id: 'sinuca', em: '🎱', t: 'Sinuca', sub: 'Bola 8, bola lisa e bolinho · online valendo fichas', btn: 'Jogar agora', href: '/jogos/sinuca', g: 'linear-gradient(135deg,#4ade80,#15803d 55%,#0b4d25)' },
+  { id: 'pipa', em: '🪁', t: 'Pipa', sub: 'Corta, apara e manda a busca · online valendo fichas', btn: 'Jogar agora', href: '/jogos/pipa', g: 'linear-gradient(135deg,#fbbf24,#ea7a0a 55%,#9a3412)' },
+  { id: 'gude', em: null, t: 'Bolinha de gude', sub: 'Triângulo, buraco e mata-mata · online valendo fichas', btn: 'Jogar agora', href: '/jogos/gude', g: 'linear-gradient(135deg,#a78bfa,#6d28d9 55%,#3b0f80)' },
 ];
 const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'], pendente: ['Confirmando…', '#f87171'], recusada: ['Recusada', '#94a3b8'] };
 const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
@@ -402,7 +405,7 @@ export default function Futebol() {
         {faixa.map(j => {
           if (j.aviso) { const a = j.aviso; return <div key={'a' + a.id} className="fb-dcard fb-daviso" style={{ '--g': a.g }}
             onClick={() => a.href ? router.push(a.href) : setRegras(true)}>
-            <span className="fb-daem">{a.em}</span>
+            <span className="fb-daem">{a.em || <i className="fb-gude" />}</span>
             <div className="fb-datx"><b>{a.t}</b><small>{a.sub}</small><u>{a.btn} ›</u></div>
           </div>; }
           const o = j.aoVivo ? j.odds?.['1x2'] : j.odds?.['1x2'];
@@ -679,6 +682,7 @@ export default function Futebol() {
 .fb-conta .fb-saldo i{font-style:normal;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#22c55e;color:#fff;font:700 18px Rubik}
 .fb-daviso{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-color:#ffffffaa!important;background:repeating-linear-gradient(120deg,#ffffff12 0 14px,transparent 14px 34px),var(--g)!important}
 .fb-daem{font-size:54px;line-height:1;filter:drop-shadow(0 4px 4px #0008);flex:none}
+.fb-gude{display:block;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#fff 0 14%,#93c5fd 22%,#2563eb 58%,#0b2a6b);box-shadow:2px 4px 8px rgba(0,0,0,.5)}
 .fb-datx{display:flex;flex-direction:column;gap:4px;min-width:0}
 .fb-datx b{font:700 clamp(20px,5.4vw,24px) Oswald;font-style:italic;text-transform:uppercase;text-shadow:0 2px 0 #0006;line-height:1}
 .fb-datx small{font:500 13px Rubik;opacity:.95;line-height:1.25}
