@@ -20,7 +20,7 @@ export function Pedra({ a, b, deitada, u, cls = '', onClick, style }) {
 // monta a "cobrinha" da mesa: linha da esquerda pra direita, quebrando em fileiras que vão e voltam
 export function montar(linha, W, H) {
   if (!linha.length || !W) return { u: 20, itens: [] };
-  for (let u = Math.min(26, Math.floor(H / 5)); u >= 9; u--) {
+  for (let u = Math.min(36, Math.floor(H / 3.2)); u >= 10; u--) {
     const gap = 2, rowH = 2 * u + 8, maxRows = Math.max(1, Math.floor((H + 8) / rowH));
     const rows = [[]]; let x = 0;
     for (const p of linha) {
@@ -42,7 +42,13 @@ export function montar(linha, W, H) {
     });
     return { u, itens };
   }
-  return { u: 9, itens: [] };
+  return { u: 10, itens: [] };
+}
+
+// tamanho das pedras da sua mão (maiores no celular deitado)
+export function uDaMao() {
+  if (typeof window === 'undefined') return 28;
+  return Math.max(22, Math.min(36, Math.floor(Math.min(window.innerWidth / 24, window.innerHeight / 10))));
 }
 
 export function RegrasDomino({ onClose }) {
@@ -85,7 +91,7 @@ export const DOMINO_CSS = `
 .dm-top .rbtn{width:38px;height:38px;font-size:16px}
 .dm-feltro{flex:1;min-height:0;position:relative;margin:6px clamp(6px,3vw,50px) 0;border-radius:26px;border:6px solid #5a3a1a;box-shadow:inset 0 0 40px #0009,0 6px 18px #000a;
   background:radial-gradient(ellipse at 50% 45%,#1d8a52,#0d5a33 60%,#073d22)}
-.dm-mesa{position:absolute;left:clamp(70px,13%,140px);right:clamp(70px,13%,140px);top:clamp(46px,17%,70px);bottom:8px}
+.dm-mesa{position:absolute;left:clamp(58px,10%,110px);right:clamp(58px,10%,110px);top:clamp(38px,13%,56px);bottom:6px}
 .dm-mesa .dm-pedra{position:absolute;transition:left .25s,top .25s}
 .dm-mesa .dm-pedra.ponta{box-shadow:0 2px 0 #b9ad8f,0 0 0 2px #fde04799,0 3px 6px #0007}
 .dm-vazio{position:absolute;inset:0;display:grid;place-items:center;color:#ffffffaa;font:500 16px Rubik}

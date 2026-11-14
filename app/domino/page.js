@@ -9,7 +9,7 @@ import { fmt } from '../../lib/modes.js';
 import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
 import { novaPartida, agir, precisa, seguir, jogadaBot, lados, META, NOME_BATIDA } from '../../lib/domino.js';
-import { Pedra, montar, RegrasDomino, DOMINO_CSS } from '../../components/Domino.js';
+import { Pedra, montar, uDaMao, RegrasDomino, DOMINO_CSS } from '../../components/Domino.js';
 
 const BOTS = [['Tião', '🤠'], ['Dona Cida', '🦉'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zé', '🎩'], ['Biu', '🧔'], ['Lurdes', '👵']];
 export default function Domino() {
@@ -116,7 +116,7 @@ export default function Domino() {
   const G = M, nd = precisa(G), eu = G.players[0];
   const minhaVez = nd.kind === 'jogar' && nd.pi === 0;
   const { u, itens } = montar(G.linha, mesa.w, mesa.h);
-  const uMao = Math.max(16, Math.min(26, Math.floor((typeof window !== 'undefined' ? window.innerWidth : 800) / 34)));
+  const uMao = uDaMao();
   function tocar(p) {
     if (!minhaVez) return;
     const ls = lados(G, p);
@@ -144,7 +144,7 @@ export default function Domino() {
             <div className="dm-av">{p.avatar}</div>
             <div className="dm-np"><b>{p.name}</b><small>{i === 2 ? 'parceiro' : 'adversário'} · {p.mao.length}</small></div>
             {G.fase !== 'jogo' && G.resultado?.tipo === 'trancou'
-              ? <div className="dm-aberta">{p.mao.map(x => <Pedra key={x.id} a={x.a} b={x.b} u={9} />)}</div>
+              ? <div className="dm-aberta">{p.mao.map(x => <Pedra key={x.id} a={x.a} b={x.b} u={11} />)}</div>
               : <div className="dm-costas">{p.mao.map(x => <i key={x.id} />)}</div>}
             {grito && grito.pi === i && <div className="dm-grito">{grito.t}</div>}
           </div>); })}
