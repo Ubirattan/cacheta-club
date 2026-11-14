@@ -8,8 +8,8 @@ import { useEffect } from 'react';
 const ITENS = [
   ['/', '⚽', 'Futebol', p => p === '/' || p.startsWith('/futebol')],
   ['/jogos/cassino', '🎰', 'Cassino', p => p.startsWith('/jogos/cassino')],
-  ['/cacheta', '🃏', 'Cacheta', p => p.startsWith('/cacheta') || p.startsWith('/jogos/cacheta')],
-  ['/inicio', '🎮', 'Jogos', p => p.startsWith('/inicio') || (p.startsWith('/jogos/') && !p.startsWith('/jogos/cassino'))],
+  ['/cacheta', '🃏', 'Cacheta', p => p.startsWith('/cacheta') || p.startsWith('/jogos/cacheta') || p.startsWith('/jogos/truco')],
+  ['/inicio', '🎮', 'Jogos', p => p.startsWith('/inicio') || (p.startsWith('/jogos/') && !p.startsWith('/jogos/cassino') && !p.startsWith('/jogos/truco'))],
   ['/home', '🏠', 'Home', p => p.startsWith('/home')],
 ];
 const MOSTRA = /^\/(|futebol|inicio|home|jogos|cacheta|promocoes|loja|ranking|resgate|historico|jogo-responsavel|torneios)(\/|$)/;

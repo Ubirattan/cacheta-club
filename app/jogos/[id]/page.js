@@ -24,7 +24,7 @@ export default function Jogo() {
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
         mid={<div className="jg-tit">{J.em || '🔵'} {J.nome.toUpperCase()}</div>}
-        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/inicio')}>↩</button></>} />
+        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push(id === 'truco' ? '/cacheta' : id === 'cassino' ? '/' : '/inicio')}>↩</button></>} />
       <div className="jg-ops" style={{ '--n': opcoes.length }}>
         {opcoes.map(o => (
           <button key={o.href} className="jg-op" style={{ '--g': o.g }} onClick={() => router.push(o.href)}>
