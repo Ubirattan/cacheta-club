@@ -34,7 +34,7 @@ const AVISOS = [
   { id: 'pipa', em: '🪁', t: 'Pipa', sub: 'Corta, apara e manda a busca · online valendo fichas', btn: 'Jogar agora', href: '/jogos/pipa', g: 'linear-gradient(135deg,#fbbf24,#ea7a0a 55%,#9a3412)' },
   { id: 'gude', em: null, t: 'Bolinha de gude', sub: 'Triângulo, buraco e mata-mata · online valendo fichas', btn: 'Jogar agora', href: '/jogos/gude', g: 'linear-gradient(135deg,#a78bfa,#6d28d9 55%,#3b0f80)' },
   { id: 'domino', em: '🁫', t: 'Dominó', sub: 'Dominó de bar em duplas · você e o parceiro contra o computador', btn: 'Jogar agora', href: '/jogos/domino', g: 'linear-gradient(135deg,#78716c,#292524 55%,#0c0a09)' },
-  { id: 'bicho', em: '🐾', t: 'Jogo do Bicho', sub: 'Sorteios às 11h, 14h, 16h, 18h e 21h · grupo, dezena, centena e milhar', btn: 'Jogar agora', href: '/bicho', g: 'linear-gradient(135deg,#facc15,#16a34a 55%,#052e16)' },
+  { id: 'bicho', em: '🐾', t: 'Jogo do Bicho', sub: 'Sorteio de hora em hora, ao vivo · grupo, dezena, centena e milhar', btn: 'Jogar agora', href: '/bicho', g: 'linear-gradient(135deg,#facc15,#16a34a 55%,#052e16)' },
 ];
 const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'], pendente: ['Confirmando…', '#f87171'], recusada: ['Recusada', '#94a3b8'] };
 const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];

@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal, voltar } from '../../components/ui.js';
 import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { BICHOS, TIPOS, POS, HORARIOS, MAX_POR_SORTEIO, PREMIO_MAXIMO, AO_VIVO, revelaEm, bicho, grupoDe, dezenasDo, conferir, premioPossivel, descreve, horaTxt, diaTxt } from '../../lib/bicho.js';
+import { BICHOS, TIPOS, POS, MULTI, MAX_POR_SORTEIO, PREMIO_MAXIMO, AO_VIVO, revelaEm, bicho, grupoDe, dezenasDo, conferir, premioPossivel, descreve, horaTxt, diaTxt } from '../../lib/bicho.js';
 import { criarTeste } from '../../lib/bicho-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -61,7 +61,7 @@ export default function JogoDoBicho() {
   const chamaRef = useRef(chama); chamaRef.current = chama;
   const off = useRef(0);
   const [st, setSt] = useState(null), [agora, setAgora] = useState(Date.now());
-  const [tipo, setTipo] = useState('grupo'), [pos, setPos] = useState('cabeca'), [palpite, setPalpite] = useState(''), [valor, setValor] = useState(5);
+  const [tipo, setTipo] = useState('grupo'), [pos, setPos] = useState('cabeca'), [palpite, setPalpite] = useState(''), [valor, setValor] = useState(5), [nSort, setNSort] = useState(1);
   const [aviso, setAviso] = useState(null), [enviando, setEnviando] = useState(false), [regras, setRegras] = useState(false), [aba, setAba] = useState('apostar');
 
   async function puxa() {
@@ -91,8 +91,8 @@ export default function JogoDoBicho() {
     const c = conferir(ap); if (c.erro) return avisar(c.erro);
     setEnviando(true);
     try {
-      const r = await chamaRef.current({ op: 'apostar', aposta: c });
-      sfx('coin'); avisar(`Aposta feita: ${descreve(c)} · ${valor} ${valor === 1 ? 'ficha' : 'fichas'}`, true);
+      const r = await chamaRef.current({ op: 'apostar', aposta: c, sorteios: nSort });
+      sfx('coin'); avisar(`Aposta feita: ${descreve(c)} · ${valor} ${valor === 1 ? 'ficha' : 'fichas'}${nSort > 1 ? ` em ${nSort} sorteios (${valor * nSort} fichas)` : ''}`, true);
       setPalpite(''); setSt(s => s ? { ...s, coins: r.coins } : s); reloadProfile && reloadProfile(); puxa();
     } catch (e) { avisar(e.message || 'Não deu pra apostar'); }
     setEnviando(false);
@@ -152,9 +152,13 @@ export default function JogoDoBicho() {
             <span>Valor</span>
             {VALORES.map(v => <button key={v} className={valor === v ? 'on' : ''} onClick={() => setValor(v)}>{v}</button>)}
           </div>
-          <div className="bx-premio">Prêmio possível: <b>{ok ? fx(premioPossivel(conferir(ap))) : '–'} fichas</b>{pos === 'todos' && <small> por prêmio que acertar</small>}</div>
+          <div className="bx-valor bx-multi">
+            <span>Sorteios</span>
+            {MULTI.map(v => <button key={v} className={nSort === v ? 'on' : ''} onClick={() => setNSort(v)}>{v === 1 ? 'Só o próximo' : v}</button>)}
+          </div>
+          <div className="bx-premio">Prêmio possível: <b>{ok ? fx(premioPossivel(conferir(ap))) : '–'} fichas</b>{pos === 'todos' && <small> por prêmio que acertar</small>}{nSort > 1 && <small> em cada um dos {nSort} sorteios</small>}</div>
           <button className="bx-apostar" disabled={!ok || enviando || falta <= 0} onClick={apostar}>
-            {enviando ? 'Enviando…' : ok ? `APOSTAR ${valor} ${valor === 1 ? 'FICHA' : 'FICHAS'} · ${descreve(conferir(ap))}` : tipo === 'grupo' ? 'ESCOLHA UM BICHO' : `DIGITE ${TIPOS[tipo].dig} NÚMEROS`}
+            {enviando ? 'Enviando…' : ok ? (nSort > 1 ? `APOSTAR ${valor} × ${nSort} SORTEIOS = ${valor * nSort} FICHAS` : `APOSTAR ${valor} ${valor === 1 ? 'FICHA' : 'FICHAS'} · ${descreve(conferir(ap))}`) : tipo === 'grupo' ? 'ESCOLHA UM BICHO' : `DIGITE ${TIPOS[tipo].dig} NÚMEROS`}
           </button>
           <button className="bx-regras" onClick={() => setRegras(true)}>📖 Como jogar</button>
         </>}
@@ -183,9 +187,10 @@ export default function JogoDoBicho() {
       {aviso && <div className={'bx-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
       {regras && <Modal onClose={() => setRegras(false)}><h2>Como jogar</h2>
         <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
-          <p>• Sorteios todo dia às <b>{HORARIOS.map(h => h + 'h').join(', ')}</b> (horário de Brasília). As apostas fecham 1 minuto antes. Cada sorteio tem <b>5 prêmios</b> (milhares de 0000 a 9999).</p>
+          <p>• Sorteio <b>de hora em hora, o dia todo</b> (horário de Brasília), ao vivo na tela. As apostas fecham 1 minuto antes. Cada sorteio tem <b>5 prêmios</b> (milhares de 0000 a 9999).</p>
           <p>• <b>Grupo:</b> acerta o bicho (as 2 últimas dezenas da milhar) e ganha <b>18x</b>. <b>Dezena</b> paga <b>60x</b>, <b>centena 600x</b> e <b>milhar 4.000x</b>.</p>
           <p>• <b>Na cabeça</b> vale só o 1º prêmio. <b>Do 1º ao 5º</b> vale qualquer um dos 5 prêmios, pagando 1/5 do valor por prêmio que acertar.</p>
+          <p>• Dá pra repetir o mesmo palpite em <b>vários sorteios seguidos</b> (até 24): paga o valor uma vez por sorteio.</p>
           <p>• Até <b>{MAX_POR_SORTEIO} fichas</b> por sorteio e prêmio máximo de <b>{fx(PREMIO_MAXIMO)} fichas</b> por aposta.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>{local ? '🧪 MODO TESTE · sorteio a cada 2 minutos · fichas de mentira · ' : ''}Sorteio próprio da Casa de Jogos. Proibido para menores de 18 anos.</p>
         </div>
@@ -234,6 +239,7 @@ export default function JogoDoBicho() {
 .bx-valor span{font:500 13px Rubik;color:#d6cbb3;margin-right:2px}
 .bx-valor button{flex:1;min-width:34px;border:1px solid #ffffff22;background:#1f1a12;color:#fff;border-radius:10px;padding:7px 0;font:700 15px Oswald}
 .bx-valor button.on{background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;border-color:#fde68a}
+.bx-multi button{font-size:13px!important}
 .bx-premio{margin:8px 0 6px;text-align:center;font:500 14px Rubik;color:#e7e5e4}
 .bx-premio b{color:#4ade80}.bx-premio small{color:#a8a29e}
 .bx-apostar{width:100%;border:none;border-radius:14px;background:linear-gradient(180deg,#22c55e,#15803d);color:#fff;font:700 16px Oswald;padding:13px 8px;box-shadow:0 4px 0 #0007;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
