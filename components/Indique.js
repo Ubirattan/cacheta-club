@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Modal } from './ui.js';
 import { sb } from '../lib/supabase-browser.js';
-import { PREMIO_INDICACAO, DEPOSITO_MIN, META_INDICACAO, BONUS_META } from '../lib/indicacao.js';
+import { PREMIO_INDICACAO, DEPOSITO_MIN, META_INDICACAO, BONUS_META } from '../lib/indicacao-regras.js';
 
 export default function Indique({ profile, onClose }) {
   const [lista, setLista] = useState(null), [copiou, setCopiou] = useState(false);
