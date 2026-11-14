@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
-import { Modal, voltar } from '../../components/ui.js';
+import { Modal } from '../../components/ui.js';
 import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
 import { BICHOS, TIPOS, POS, HORARIOS, MAX_POR_SORTEIO, PREMIO_MAXIMO, bicho, grupoDe, dezenasDo, conferir, premioPossivel, descreve, horaTxt, diaTxt } from '../../lib/bicho.js';
@@ -63,7 +63,7 @@ export default function JogoDoBicho() {
         <div className="bx-logo">🐾 JOGO DO <b>BICHO</b></div>
         {coins != null && <button className="bx-saldo" onClick={() => router.push('/loja#comprar')}>💰 <b>{fx(coins)}</b><i>+</i></button>}
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
-        <button className="rbtn" title="Voltar" onClick={() => voltar(router, '/jogos/cassino')}>↩</button>
+        <button className="rbtn" title="Voltar" onClick={() => (window.history.length > 1 ? router.back() : router.push('/jogos/cassino'))}>↩</button>
       </div>
 
       <div className="bx-prox">
