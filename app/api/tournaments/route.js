@@ -5,4 +5,4 @@ export const dynamic = 'force-dynamic';
 export const POST = route(({ user, body, repo }) =>
   body.op === 'join' ? joinTournament(repo, user, body.id)
   : body.op === 'leave' ? leaveTournament(repo, user, body.id)
-  : tournamentsTick(repo));
+  : tournamentsTick(repo), { jrEntrada: ['join'] });

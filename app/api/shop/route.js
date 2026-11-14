@@ -9,4 +9,4 @@ export const POST = route(({ user, body, repo }) => {
   if (body.op === 'resgatar') return resgatarLivre(repo, user, body.valor);
   if (body.op === 'bonus') return dailyBonus(repo, user);
   throw new GameError('Operação desconhecida');
-});
+}, { jrLivre: ['resgatar'] });
