@@ -8,7 +8,7 @@ import { useAuth, useOnline } from '../../../../components/useAuth.js';
 import { Header, Modal, toast } from '../../../../components/ui.js';
 import Chat from '../../../../components/Chat.js';
 import { sendInvite } from '../../../../components/Convites.js';
-import { Pedra, montar, RegrasDomino as Rules, DOMINO_CSS } from '../../../../components/Domino.js';
+import { Pedra, montar, uDaMao, RegrasDomino as Rules, DOMINO_CSS } from '../../../../components/Domino.js';
 import { modeName, isDominoMode, fmt } from '../../../../lib/modes.js';
 import { premioPorVencedor } from '../../../../lib/taxa.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../../../lib/sfx.js';
@@ -213,7 +213,7 @@ export default function DominoSala() {
   const minhaVez = nd.kind === 'jogar' && nd.pi === me;
   const clock = G.deadline && G.fase === 'jogo' ? Math.max(0, Math.ceil((G.deadline - now) / 1000)) : null;
   const { u, itens } = montar(G.linha || [], mesa.w, mesa.h);
-  const uMao = Math.max(16, Math.min(26, Math.floor((typeof window !== 'undefined' ? window.innerWidth : 800) / 34)));
+  const uMao = uDaMao();
   function tocar(p) {
     if (!minhaVez || busy) return;
     const ls = lados(G, p);
@@ -241,7 +241,7 @@ export default function DominoSala() {
           <div key={pi} className={`dm-lugar ${LUG[d]} ${G.fase === 'jogo' && G.vez === pi ? 'vez' : ''}`}>
             <div className="dm-av">{p.avatar}</div>
             <div className="dm-np"><b>{p.name}{p.left ? ' (saiu)' : ''}</b><small>{dupla(pi) === meuTime ? 'parceiro' : 'adversário'} · {p.count}{G.fase === 'jogo' && G.vez === pi && clock != null && clock <= G.cfg.turn ? ` · ⏱ ${clock}s` : ''}</small></div>
-            {p.mao ? <div className="dm-aberta">{p.mao.map(x => <Pedra key={x.id} a={x.a} b={x.b} u={9} />)}</div>
+            {p.mao ? <div className="dm-aberta">{p.mao.map(x => <Pedra key={x.id} a={x.a} b={x.b} u={11} />)}</div>
               : <div className="dm-costas">{Array.from({ length: p.count }, (_, k) => <i key={k} />)}</div>}
             {shout && shout.pi === pi && <div className="dm-grito">{shout.text}</div>}
           </div>); })}
