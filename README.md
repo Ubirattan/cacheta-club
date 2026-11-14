@@ -9,6 +9,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 
 ## O que já funciona
 
+- **🐾 Jogo do Bicho (cassino):** sorteio próprio às 11h, 14h, 16h, 18h e 21h (Brasília), 5 prêmios por sorteio. Grupo 18x, dezena 60x, centena 600x, milhar 4.000x, na cabeça ou do 1º ao 5º (1/5 por prêmio). Até 1.000 fichas por sorteio, prêmio máximo de 4 mil. Apostas fecham 1 min antes. ⚠️ Rode uma vez o `supabase/bicho.sql`.
 - **🔴 Roleta ao vivo:** a mesma roleta europeia, mas todo mundo joga a mesma rodada (20 s pra apostar, 10 s girando), vendo quantos jogadores e quanto foi apostado. Dá pra apostar várias vezes na rodada (até 500). A roleta normal continua. ⚠️ Rode uma vez o `supabase/roleta-vivo.sql`.
 - **🛡 Jogo responsável:** o cliente define limite de depósito (por dia, 7 dias e 30 dias), limite de tempo de jogo por dia e autoexclusão (24 h a 6 meses). Diminuir vale na hora; aumentar/tirar só depois de 24 h; autoexclusão não pode ser cancelada. Tela em `/jogo-responsavel` (🛡 na tela inicial, na loja e no perfil). ⚠️ Rode uma vez o `supabase/jogo-responsavel.sql`.
 - **📊 Relatório de jogos (painel admin → aba Jogos):** partidas, jogadores, fichas apostadas, pagas e o que ficou pra casa em cada jogo (hoje, 7 e 30 dias). ⚠️ Rode uma vez o `supabase/relatorio-jogos.sql`.
