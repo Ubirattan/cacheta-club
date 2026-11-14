@@ -7,7 +7,7 @@ import { useAuth } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, COM_LINHA, linhaPrincipal, oddDe, todasLinhas, redundante, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
+import { LIGAS, MIN_APOSTA, MAX_APOSTA, MAX_SELECOES, MAX_PREMIO, MERCADOS, rotulo, curto, opcoes, oddCombo, COMBO_MAX, FORA_DO_COMBO, COM_LINHA, linhaPrincipal, oddDe, todasLinhas, redundante, oddTotal, premioDe, fichas } from '../../lib/futebol.js';
 import { criarTeste } from '../../lib/futebol-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -176,7 +176,13 @@ export default function Futebol() {
     return jogos.filter(j => new Date(j.inicio).getTime() <= lim);
   }, [jogos, tempo]);
   // campeonatos (com quantos jogos cada um tem no filtro de horário), em ordem alfabética
-  const ligas = useMemo(() => { const m = new Map(); porTempo.forEach(j => m.set(j.ligaNome, (m.get(j.ligaNome) || 0) + 1)); return [...m].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')); }, [porTempo]);
+  // todos os campeonatos do site aparecem: primeiro os que têm jogo (com a quantidade), depois os sem jogo (apagados, com 0)
+  const ligas = useMemo(() => {
+    const m = new Map(); porTempo.forEach(j => m.set(j.ligaNome, (m.get(j.ligaNome) || 0) + 1));
+    const ab = (a, b) => a[0].localeCompare(b[0], 'pt-BR');
+    const com = [...m].sort(ab), sem = [...new Set(LIGAS.map(l => l.nome))].filter(n => !m.has(n)).map(n => [n, 0]).sort(ab);
+    return [...com, ...sem];
+  }, [porTempo]);
   const lista = liga ? porTempo.filter(j => j.ligaNome === liga) : porTempo;
   // DESTAQUES: faixa que passa sozinha em cima da lista, com os principais jogos
   // (primeiro os ao vivo, depois os próximos dos campeonatos principais)
@@ -501,9 +507,7 @@ export default function Futebol() {
               <div className="fb-campfundo" onClick={() => setMenuLiga(false)} />
               <div className="fb-campmenu">
                 <button className={!liga ? 'on' : ''} onClick={() => { setLiga(0); setMenuLiga(false); }}><span>Todos os campeonatos</span><i>{porTempo.length}</i></button>
-                {liga && !ligas.some(([n]) => n === liga) && <button className="on" onClick={() => setMenuLiga(false)}><span>{liga}</span><i>0</i></button>}
-                {ligas.map(([n, q]) => <button key={n} className={liga === n ? 'on' : ''} onClick={() => { setLiga(n); setMenuLiga(false); }}><span>{n}</span><i>{q}</i></button>)}
-                {!ligas.length && <div className="fb-campvazio">Nenhum jogo nesse horário</div>}
+                {ligas.map(([n, q]) => <button key={n} className={(liga === n ? 'on' : '') + (q ? '' : ' zero')} disabled={!q && liga !== n} onClick={() => { setLiga(n); setMenuLiga(false); }}><span>{n}</span><i>{q}</i></button>)}
               </div>
             </>}
           </div>
@@ -667,7 +671,7 @@ export default function Futebol() {
 .fb-campmenu button.on{background:#fbbf24;color:#1a1300}
 .fb-campmenu i{font-style:normal;font:600 12px Rubik;background:#ffffff1a;border-radius:9px;padding:1px 7px;flex:none}
 .fb-campmenu button.on i{background:#0002}
-.fb-campvazio{font:400 13px Rubik;color:#86b39a;padding:8px 10px}
+.fb-campmenu button.zero{opacity:.38}
 .fb-ligas{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
 .fb-ligas::-webkit-scrollbar{display:none}
 .fb-ligas button{flex:none;border:1px solid #ffffff22;background:#0007;color:#d1fae5;font:500 13px Rubik;border-radius:16px;padding:5px 12px}
