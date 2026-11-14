@@ -104,6 +104,7 @@ function Body({ profile, reloadProfile, user }) {
       <div className="lj-top">
         <div className="lj-tit"><h3>💰 Comprar fichas com Pix</h3>
           <small>O valor do Pix vira a mesma quantidade de fichas.</small></div>
+        <a className="pillbtn dark lj-hist" href="/jogo-responsavel" style={{ textDecoration: 'none' }}>🛡 Limites</a>
         {buys.length > 0 && <button className="pillbtn dark lj-hist" onClick={() => setHist(true)}>📜 Minhas compras</button>}
       </div>
       <div className="lj-grade">

@@ -2,6 +2,7 @@
 // O conteúdo do aviso não é confiado: o servidor consulta o pagamento na API do Mercado Pago.
 import { NextResponse } from 'next/server';
 import { repo } from '../../../../lib/repo-supabase.js';
+import { avisarErro } from '../../../../lib/alerta.js';
 import { processPayment } from '../../../../lib/payments.js';
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,7 @@ export async function POST(req) {
     const type = body.type || body.topic || url.searchParams.get('type') || url.searchParams.get('topic');
     const id = (body.data && body.data.id) || url.searchParams.get('data.id') || url.searchParams.get('id');
     if (type === 'payment' && id) await processPayment(repo, id);
-  } catch (e) { console.error('webhook', e); }
+  } catch (e) { console.error('webhook', e); await avisarErro(repo, 'Pix Mercado Pago (aviso)', e); }
   return NextResponse.json({ ok: true }); // sempre 200, senão o Mercado Pago fica reenviando
 }
 export const GET = POST;

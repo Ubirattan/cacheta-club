@@ -46,6 +46,7 @@ export default function Home() {
       <div className="footbar">
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
         <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
+        <button onClick={() => profile ? router.push('/jogo-responsavel') : pedirConta()} title="Jogo responsável">🛡</button>
         {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
         <div className="ver">Casa de Jogos · v4.0</div>
         <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>

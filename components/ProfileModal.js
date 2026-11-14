@@ -51,6 +51,7 @@ export default function ProfileModal({ profile, onClose, onSaved }) {
         <button className={!four ? 'on' : ''} onClick={() => setFour(false)}>2 cores</button>
         <button className={four ? 'on' : ''} onClick={() => setFour(true)}>4 cores (♦ azul, ♣ verde)</button></div></div>
       <button className="go" onClick={save}>Salvar</button>
+      <a className="sec" style={{ display: 'block', textDecoration: 'none', color: 'inherit', textAlign: 'center' }} href="/jogo-responsavel">🛡 Jogo responsável: limites e pausa</a>
       <button className="sec" onClick={async () => { await sb().auth.signOut(); location.href = '/login'; }}>Sair da conta</button>
     </Modal>
   );
