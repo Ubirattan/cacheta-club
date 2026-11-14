@@ -9,8 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header } from '../../components/ui.js';
 import { JOGOS as J } from '../../lib/jogos.js';
-// Na aba Jogos ficam só sinuca, pipa e bolinha de gude (cacheta, futebol e cassino têm aba própria na barra de baixo).
-const JOGOS = ['sinuca', 'pipa', 'gude'].map(id => ({ id, ...J[id] }));
+// Na aba Jogos ficam sinuca, pipa, bolinha de gude e jogo do bicho (cacheta, futebol e cassino têm aba própria na barra de baixo).
+const JOGOS = ['sinuca', 'pipa', 'gude', 'bicho'].map(id => ({ id, ...J[id] }));
 import ProfileModal from '../../components/ProfileModal.js';
 
 
