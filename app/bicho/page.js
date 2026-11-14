@@ -63,7 +63,7 @@ export default function JogoDoBicho() {
         <div className="bx-logo">🐾 JOGO DO <b>BICHO</b></div>
         {coins != null && <button className="bx-saldo" onClick={() => router.push('/loja#comprar')}>💰 <b>{fx(coins)}</b><i>+</i></button>}
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
-        <button className="rbtn" title="Voltar" onClick={() => (window.history.length > 1 ? router.back() : router.push('/jogos/cassino'))}>↩</button>
+        <button className="rbtn" title="Voltar" onClick={() => (window.history.length > 1 ? router.back() : router.push('/inicio'))}>↩</button>
       </div>
 
       <div className="bx-prox">
