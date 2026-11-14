@@ -12,10 +12,16 @@ import { MODES, GUDE_ROOMS, SINUCA_ROOMS, TRUCO_ROOMS, PIPA_ROOMS, isGudeMode, i
 const salaUrl = (id, m) => (isGudeMode(m) ? '/gude/sala/' : isSinucaMode(m) ? '/sinuca/sala/' : isTrucoMode(m) ? '/truco/sala/' : isPipaMode(m) ? '/pipa/sala/' : '/sala/') + id;
 const JOGO_ABA = { gude: ['gude-triangulo', isGudeMode], sinuca: ['sinuca-bola8', isSinucaMode], truco: ['truco-1x1', isTrucoMode], pipa: ['pipa-1x1', isPipaMode] };
 
+const JOGOS_SALA = [['cacheta', '🃏 Cacheta'], ['truco', '🂡 Truco'], ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca'], ['pipa', '🪁 Pipa']];
+
 function CreateRoom({ profile, onClose, gude, jogo }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: '', mode: JOGO_ABA[jogo] ? JOGO_ABA[jogo][0] : 'cacheta', maxPlayers: 4, points: 5, entry: JOGO_ABA[jogo] ? 2 : 1, turnSeconds: 30, isPrivate: false, password: '' });
+  const [f, setF] = useState({ name: '', mode: JOGO_ABA[jogo] ? JOGO_ABA[jogo][0] : MODES[jogo] ? jogo : 'cacheta', maxPlayers: 4, points: 5, entry: JOGO_ABA[jogo] ? 2 : 1, turnSeconds: 30, isPrivate: false, password: '' });
   const [err, setErr] = useState(''), [busy, setBusy] = useState(false);
+  // só mostra as modalidades do jogo de onde a pessoa veio (gude, sinuca…); na aba Todas, escolhe o jogo primeiro
+  const fixo = !!MODES[jogo] || !!JOGO_ABA[jogo];
+  const [jg, setJg] = useState(JOGO_ABA[jogo] ? jogo : 'cacheta');
+  const escolheJogo = v => { setJg(v); setF(o => ({ ...o, mode: JOGO_ABA[v] ? JOGO_ABA[v][0] : 'cacheta', entry: JOGO_ABA[v] ? Math.max(2, o.entry) : o.entry })); };
   // gude: entrada mínima de 2 fichas
   const set = (k, v) => setF(o => { const n = { ...o, [k]: v }; if (isMiniMode(n.mode) && n.entry < 2) n.entry = 2; return n; });
   async function create() {
@@ -27,11 +33,12 @@ function CreateRoom({ profile, onClose, gude, jogo }) {
     <Modal onClose={onClose}>
       <h2>Criar sala</h2>
       <input className="field" placeholder={`Nome da sala (ex.: Mesa de ${profile?.nickname || 'amigos'})`} maxLength={30} value={f.name} onChange={e => set('name', e.target.value)} />
-      <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />
-      <Seg label="Bolinha de gude (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(GUDE_ROOMS).map(([k, m]) => [k, m.name.replace('Gude · ', '')])} />
-      <Seg label="Truco paulista" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(TRUCO_ROOMS).map(([k, m]) => [k, m.name.replace('Truco · ', '')])} />
-      <Seg label="Pipa (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(PIPA_ROOMS).map(([k, m]) => [k, m.name.replace('Pipa · ', '')])} />
-      <Seg label="Sinuca (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(SINUCA_ROOMS).map(([k, m]) => [k, m.name.replace('Sinuca · ', '')])} />
+      {!fixo && <Seg label="Jogo" value={jg} onChange={escolheJogo} options={JOGOS_SALA.map(([k, n]) => [k, n])} />}
+      {jg === 'cacheta' && <Seg label="Modalidade" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(MODES).map(([k, m]) => [k, m.name])} />}
+      {jg === 'gude' && <Seg label="Bolinha de gude (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(GUDE_ROOMS).map(([k, m]) => [k, m.name.replace('Gude · ', '')])} />}
+      {jg === 'truco' && <Seg label="Truco paulista" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(TRUCO_ROOMS).map(([k, m]) => [k, m.name.replace('Truco · ', '')])} />}
+      {jg === 'pipa' && <Seg label="Pipa (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(PIPA_ROOMS).map(([k, m]) => [k, m.name.replace('Pipa · ', '')])} />}
+      {jg === 'sinuca' && <Seg label="Sinuca (1 contra 1)" value={f.mode} onChange={v => set('mode', v)} options={Object.entries(SINUCA_ROOMS).map(([k, m]) => [k, m.name.replace('Sinuca · ', '')])} />}
       {!isMiniMode(f.mode) && <Seg label="Jogadores na mesa" value={f.maxPlayers} onChange={v => set('maxPlayers', v)} options={[2, 3, 4, 5, 6, 7, 8, 9].map(n => [n, String(n)])} hint="A partida começa sozinha quando todos que sentaram estiverem prontos (mínimo 2)." />}
       <Seg label="Entrada (fichas virtuais)" value={f.entry} onChange={v => set('entry', v)} options={ENTRIES.slice(0, 7).filter(e => !isMiniMode(f.mode) || e >= 2).map(e => [e, fmt(e)])} />
       {isMiniMode(f.mode) ? <div className="hint" style={{ textAlign: 'center' }}>{isTrucoMode(f.mode) ? (f.mode === 'truco-duplas' ? 'Truco em duplas: 4 jogadores, a mesa começa cheia. Cada um da dupla vencedora leva o mesmo prêmio.' : 'Truco 1 contra 1') : isSinucaMode(f.mode) ? 'Sinuca é sempre 1 contra 1' : isPipaMode(f.mode) ? 'Pipa online é 1 contra 1' : 'Gude é sempre 1 contra 1'}, entrada mínima de 2 fichas. Quem ganha leva {fmt(premioOnline(+f.entry || 0))}{taxaPct(+f.entry || 0) ? ` (a casa fica com ${taxaPct(+f.entry || 0)}% do pote)` : ' (a entrada dele + metade da do outro; o resto fica pra casa)'}. Até 10 fichas: metade da entrada do outro fica pra casa · acima de 10: 10% do pote · acima de 100: 20%.</div>
