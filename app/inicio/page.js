@@ -27,15 +27,18 @@ export default function Home() {
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')} semVisitante
-        mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>} />
-      <div className="cj-hero"><b>CASA DE <i>JOGOS</i></b><small>Escolha o seu jogo</small></div>
+        mid={<div className="cj-logo">🎮 <b>JOGOS</b></div>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
-      <div className="cj-grade">
+      <div className="cx-top" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
+        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
+        <button className="buybtn" style={{ marginLeft: 10 }} onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas</button>
+        <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#c084fc,#7e22ce)' }} onClick={() => router.push('/loja')}>✨ Loja</button>
+      </div>
+      <div className="modes jg-modes">
         {JOGOS.map(j => (
-          <button key={j.id} className="cj-jogo" style={{ '--g': j.g }} onClick={() => router.push(j.href)}>
-            <span className="cj-brilho" />
-            <span className="cj-em">{j.em || <i className="gude cj-gude" />}</span>
-            <b>{j.nome}</b><small>{j.sub}</small>
+          <button key={j.id} className="mode" style={{ '--g': j.g }} onClick={() => router.push(j.href)}>
+            <div className="art"><span className="burst" /><span className="jg-em">{j.em || <i className="cj-gude" />}</span></div>
+            <h3>{j.nome}</h3>
             {j.novo && <em>NOVO</em>}
           </button>
         ))}
@@ -53,6 +56,9 @@ export default function Home() {
 .cj-jogo b{position:relative;font:700 clamp(15px,3vmin,22px) Oswald;font-style:italic;text-shadow:0 2px 0 #0008;text-align:center;line-height:1.05}
 .cj-jogo small{position:relative;font:500 clamp(9px,1.7vmin,12px) Rubik;opacity:.92;text-align:center;line-height:1.2}
 .cj-jogo em{position:absolute;top:10px;right:-30px;transform:rotate(35deg);background:#facc15;color:#3a2300;font:700 11px Oswald;font-style:normal;padding:2px 34px;box-shadow:0 2px 4px #0006}
+.jg-modes{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,220px));justify-content:center;gap:clamp(10px,2vw,22px);align-content:center;padding:10px clamp(12px,4vw,48px)}
+.jg-em{position:relative;z-index:2;font-size:clamp(44px,10vmin,80px);line-height:1;filter:drop-shadow(0 6px 6px #0008)}
+.jg-em .cj-gude{display:inline-block}
 .cj-acoes{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:0 10px 8px}
 .cj-hero{display:none}
 @media (orientation:portrait){
@@ -68,6 +74,13 @@ export default function Home() {
 .cj-jogo b{font-size:clamp(13px,4vw,17px)}
 .cj-jogo small{display:none}
 .cj-jogo em{font-size:9px;top:6px;right:-34px}
+.jg-modes{grid-template-columns:repeat(3,1fr);gap:12px 10px;flex:none;align-content:start;padding:12px 12px 10px}
+.jg-modes .mode{aspect-ratio:.86;border-radius:16px;box-shadow:0 0 0 3px var(--gold2),0 0 0 4px #000,0 6px 14px rgba(0,0,0,.55)}
+.jg-modes .mode .art{top:4%;height:62%}
+.jg-em{font-size:44px}
+.jg-modes .mode h3{font-size:clamp(12px,3.6vw,15px);margin:0 0 9%;padding:0 3px;line-height:1.05}
+.cx-top{flex-wrap:nowrap!important;gap:6px;padding:0 10px}
+.cx-top .buybtn{margin:0!important;flex:1;min-width:0;padding:8px 4px!important;font-size:15px!important;justify-content:center;white-space:nowrap}
 .cj-acoes{flex-direction:column;align-items:stretch;padding:4px 14px 12px;gap:8px}
 .cj-acoes .buybtn{margin:0!important;width:100%;justify-content:center}
 }
