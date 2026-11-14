@@ -25,6 +25,9 @@ function nomeDia(t) {
   return s[0].toUpperCase() + s.slice(1);
 }
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
+// Minhas apostas: em aberto (esperando o jogo) e encerradas (ganhou, perdeu, cash out ou devolvida), que somem depois de 24 horas
+const ABERTAS = ['aberta', 'pendente'];
+const ENCERRADAS_MS = 24 * 3600e3;
 const AVISOS = [
   { id: 'promo', em: '🎁', t: 'Promoções', sub: 'Ranking da cacheta e indique amigos: ganhe fichas!', btn: 'Ver promoções', href: '/promocoes', g: 'linear-gradient(135deg,#f472b6,#db2777 50%,#7e22ce)' },
   { id: 'sinuca', em: '🎱', t: 'Sinuca', sub: 'Bola 8, bola lisa e bolinho · online valendo fichas', btn: 'Jogar agora', href: '/jogos/sinuca', g: 'linear-gradient(135deg,#4ade80,#15803d 55%,#0b4d25)' },
@@ -63,6 +66,7 @@ export default function Futebol() {
   const [st, setSt] = useState(null);
   const [falha, setFalha] = useState('');
   const [minhas, setMinhas] = useState(null);
+  const [filtroAp, setFiltroAp] = useState('abertas');   // Minhas apostas: em aberto ou encerradas
   const [liga, setLiga] = useState(0);
   const [tempo, setTempo] = useState('todos');          // filtro: todos | hoje | 12 | 6 | 3 (horas)
   const [menuLiga, setMenuLiga] = useState(false);      // lista de campeonatos aberta
@@ -558,9 +562,18 @@ export default function Futebol() {
         {bilhete}
         {bil.length > 0 && !bilAberto && <button className="fb-flut" onClick={() => setBilAberto(true)}>🎟️ {bil.length} {bil.length === 1 ? 'palpite' : 'palpites'} · odd {f2(odd)} <span style={{ float: 'right' }}>⌃</span></button>}
       </div> : <div className="fb-minhas">
+        {(() => {
+          const ab = (minhas || []).filter(a => ABERTAS.includes(a.status));
+          const enc = (minhas || []).filter(a => !ABERTAS.includes(a.status) && Date.now() - (a.fim || a.em) < ENCERRADAS_MS);
+          return <div className="fb-apfil">
+            <button className={filtroAp === 'abertas' ? 'on' : ''} onClick={() => setFiltroAp('abertas')}>Em aberto{ab.length ? <i>{ab.length}</i> : null}</button>
+            <button className={filtroAp === 'encerradas' ? 'on' : ''} onClick={() => setFiltroAp('encerradas')}>Encerradas{enc.length ? <i>{enc.length}</i> : null}</button>
+          </div>;
+        })()}
         {!minhas && <div className="fb-vazio">Carregando…</div>}
-        {minhas && !minhas.length && <div className="fb-vazio">Você ainda não fez nenhuma aposta no futebol.</div>}
-        {(minhas || []).map(a => (
+        {minhas && !(minhas || []).filter(a => filtroAp === 'abertas' ? ABERTAS.includes(a.status) : !ABERTAS.includes(a.status) && Date.now() - (a.fim || a.em) < ENCERRADAS_MS).length &&
+          <div className="fb-vazio">{filtroAp === 'abertas' ? 'Nenhuma aposta em aberto.' : 'Nenhuma aposta encerrada nas últimas 24 horas.'}</div>}
+        {(minhas || []).filter(a => filtroAp === 'abertas' ? ABERTAS.includes(a.status) : !ABERTAS.includes(a.status) && Date.now() - (a.fim || a.em) < ENCERRADAS_MS).map(a => (
           <div className="fb-ap" key={a.id} style={{ '--c': ST[a.status][1] }}>
             <div className="fb-ap-t">
               <b>{a.vivo && <span className="fb-tagv">🔴 Ao vivo</span>}{a.selecoes.length === 1 ? 'Simples' : `Múltipla de ${a.selecoes.length}`}</b>
@@ -806,6 +819,10 @@ export default function Futebol() {
 .fb-vazio{font:400 13px Rubik;color:#86b39a;text-align:center;padding:16px 10px;line-height:1.4}
 .fb-flut{display:none}
 .fb-tenta{margin-top:10px;border:none;border-radius:16px;background:#16a34a;color:#fff;font:600 14px Rubik;padding:8px 18px}
+.fb-apfil{grid-column:1/-1;display:flex;gap:8px;padding:2px 0 4px;position:sticky;top:0;z-index:3;background:linear-gradient(180deg,#0b3d24 70%,transparent)}
+.fb-apfil button{flex:1;border:1.5px solid #ffffff2a;background:#0008;color:#d1fae5;border-radius:14px;padding:10px 6px;font:700 16px Oswald;position:relative}
+.fb-apfil button.on{background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;border-color:#fde68a}
+.fb-apfil i{font-style:normal;margin-left:6px;background:#ef4444;color:#fff;border-radius:10px;font:700 12px Rubik;padding:1px 7px}
 .fb-minhas{flex:1;min-height:0;overflow-y:auto;padding:0 10px 10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;align-content:start}
 .fb-ap{background:#0b2416e6;border:1px solid #ffffff14;border-left:4px solid var(--c);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:5px}
 .fb-ap-t{display:flex;align-items:center;gap:8px;font:400 12px Rubik;color:#86b39a}
