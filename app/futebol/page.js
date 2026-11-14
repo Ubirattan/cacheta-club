@@ -299,9 +299,9 @@ export default function Futebol() {
 
   function abrirJogo(j) { setJogoAberto(j.id); setAbaM('principais'); setTodos({}); }
   function fecharJogo() { setJogoAberto(null); setCriar(c => c?.partes?.length ? c : null); }   // Criar aposta começado fica guardado
-  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dnb', 'dc', 'gols', 'ambos']], ['gols', 'Gols', ['gols', 'ambos', 'primeiro', 'placar']],
+  const GRUPOS = [['principais', 'Principais', ['1x2', 'ht', 'dnb', 'dc', 'gols', 'ambos', 'ambosMais']], ['gols', 'Gols', ['gols', 'ambos', 'ambosMais', 'primeiro', 'placar']],
     ['handicap', 'Handicap', ['handicap']], ['tempos', 'Tempos', ['ht', 'htft']], ['escanteios', 'Escanteios', ['escanteios']], ['cartoes', 'Cartões', ['cartoes']],
-    ['todos', 'Todos', ['1x2', 'dnb', 'dc', 'gols', 'ambos', 'ht', 'htft', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
+    ['todos', 'Todos', ['1x2', 'dnb', 'dc', 'gols', 'ambos', 'ambosMais', 'ht', 'htft', 'primeiro', 'handicap', 'placar', 'escanteios', 'cartoes']]];
   const nl = l => String(l).replace('.', ',');
   const sn = l => (l > 0 ? '+' : '') + nl(l);
   const curtoNome = n => n.length > 12 ? n.slice(0, 11) + '.' : n;
@@ -310,7 +310,7 @@ export default function Futebol() {
     if (m === 'dc') return ({ '1X': '1 ou empate', '12': '1 ou 2', X2: '2 ou empate' })[e];
     if (m === 'dnb') return curtoNome(e === 'casa' ? j.casa : j.fora);
     if (m === 'htft') return e.replace('/', ' / ');
-    if (m === 'ambos') return e === 'sim' ? 'Sim' : 'Não';
+    if (m === 'ambos' || m === 'ambosMais') return e === 'sim' ? 'Sim' : 'Não';
     if (m === 'primeiro') return e === 'casa' ? curtoNome(j.casa) : e === 'fora' ? curtoNome(j.fora) : 'Sem gol';
     if (m === 'placar') return e.replace(':', ' x ');
     if (m === 'handicap') return e === 'casa' ? `${curtoNome(j.casa)} ${sn(l)}` : `${curtoNome(j.fora)} ${sn(-l)}`;

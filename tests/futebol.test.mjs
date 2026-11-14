@@ -490,3 +490,19 @@ console.log('OK — futebol: Intervalo/Final e Empate anula aposta');
   assert.equal(F.fechar({ valor: 1000, premio: 12000, selecoes: [sel(12)] }, jg).ganho, 12000, 'antiga: mantém');
   console.log('OK — futebol: prêmio máximo de 4 mil');
 }
+
+// "Ambos marcam ou mais de 2,5 gols": odd do modelo e conferência
+{
+  const F = await import('../lib/futebol.js');
+  const odds = { '1x2': { 1: 2.1, X: 3.3, 2: 3.4 }, gols: { mais: 1.9, menos: 1.9 } };
+  const am = F.oddsAmbosMais(odds);
+  assert.ok(am && am.sim > 1.01 && am.nao > 1.01, 'tem odd de sim e não');
+  assert.ok(1 / am.sim + 1 / am.nao > 1.05, 'com margem da casa');
+  assert.equal(F.oddsAmbosMais({ '1x2': odds['1x2'] }), null, 'sem total de gols: não aparece');
+  for (const [h, a, sim] of [[1, 1, true], [3, 0, true], [2, 0, false], [0, 0, false], [1, 0, false], [0, 4, true]]) {
+    assert.equal(F.acertou('ambosMais', 'sim', h, a), sim, `${h}x${a} sim`);
+    assert.equal(F.acertou('ambosMais', 'nao', h, a), !sim, `${h}x${a} não`);
+  }
+  assert.equal(F.situacao({ mercado: 'ambosMais', escolha: 'sim' }, { status: 'FT', gols_casa: 2, gols_fora: 1 }), 'ganhou');
+  console.log('OK — futebol: ambos marcam ou mais de 2,5 gols');
+}
