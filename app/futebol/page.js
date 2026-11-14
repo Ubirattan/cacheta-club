@@ -203,9 +203,7 @@ export default function Futebol() {
   }, [vivoSt, jogos]);
   // na faixa também passam os cartões de Promoções e dos jogos (sinuca, pipa, gude e bicho)
   const faixa = useMemo(() => {
-    const out = [], av = AVISOS.map(a => ({ aviso: a }));
-    for (let i = 0; i < Math.max(destaques.length, av.length); i++) { if (destaques[i]) out.push(destaques[i]); if (av[i]) out.push(av[i]); }
-    return out;
+    return AVISOS.map(a => ({ aviso: a }));   // só Promoções e os jogos (sem jogos de futebol na faixa)
   }, [destaques]);
   const [dIdx, setDIdx] = useState(0);
   const dRef = useRef(null), dPausa = useRef(0);
