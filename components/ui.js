@@ -39,11 +39,11 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
   );
 }
 
-export function Header({ profile, right, mid, onProfile }) {
+export function Header({ profile, right, mid, onProfile, semVisitante }) {
   const visitante = useVisitante() && !profile;
   return (
     <div className="hdr">
-      {visitante ? (
+      {visitante ? (semVisitante ? <div /> :
         <div className="plate vis">
           <a className="badge" href={contaUrl('entrar')} title="Entrar">👤</a>
           <div className="who"><b>Visitante</b><small>Crie sua conta pra jogar</small></div>

@@ -46,6 +46,8 @@ export default function Cacheta() {
           <Art cards={[[12, 2], [11, 1]]} em="🏆" big /><h3>Torneio Cacheta</h3></button>
         <a className="mode" style={{ '--g': 'linear-gradient(180deg,#ffb347,#ef6c0a 55%,#a3380a)' }} href="/offline/index.html">
           <Art cards={[[6, 1], [10, 0], [5, 2]]} em="🤖" /><h3>Contra o computador</h3></a>
+        <button className="mode" style={{ '--g': 'linear-gradient(180deg,#f87171,#c81e3a 55%,#7f0d22)' }} onClick={() => router.push('/jogos/truco')}>
+          <Art cards={[[3, 1], [0, 0], [6, 3]]} em="♣️" /><h3>Truco</h3></button>
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#ff6fd8,#d6247e 55%,#8e0f4e)' }} onClick={() => setModal('codigo')}>
           <Art cards={[[2, 3], [3, 3], [4, 3]]} em="🔑" /><h3>Entrar com código</h3></button>
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#c084fc,#7e22ce 60%,#4c0d8a)' }} onClick={() => router.push('/loja?jogo=cacheta')}>

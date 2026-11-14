@@ -24,6 +24,15 @@ function nomeDia(t) {
   return s[0].toUpperCase() + s.slice(1);
 }
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
+const AVISOS = [
+  { id: 'promo', em: '🎁', t: 'Promoções', sub: 'Ranking da cacheta e indique amigos: ganhe fichas!', btn: 'Ver promoções', href: '/promocoes', g: 'linear-gradient(135deg,#f472b6,#db2777 50%,#7e22ce)' },
+  { id: 'criar', em: '🧩', t: 'Criar aposta', sub: 'Junte vários palpites do mesmo jogo num bilhete só', btn: 'Como funciona', g: 'linear-gradient(135deg,#a855f7,#6d28d9 55%,#3b0764)' },
+  { id: 'antecipa', em: '💰', t: 'Pagamento antecipado', sub: 'Seu time abriu 2 gols de vantagem? Você já ganhou!', btn: 'Como funciona', g: 'linear-gradient(135deg,#f59e0b,#c2410c 55%,#7c2d12)' },
+  { id: 'cashout', em: '💸', t: 'Cash out', sub: 'Encerre a aposta antes do fim e receba na hora', btn: 'Como funciona', g: 'linear-gradient(135deg,#0ea5e9,#1d4ed8 55%,#172554)' },
+  { id: 'sinuca', em: '🎱', t: 'Sinuca', sub: 'Bola 8, bola lisa e bolinho · online valendo fichas', btn: 'Jogar agora', href: '/jogos/sinuca', g: 'linear-gradient(135deg,#4ade80,#15803d 55%,#0b4d25)' },
+  { id: 'pipa', em: '🪁', t: 'Pipa', sub: 'Corta, apara e manda a busca · online valendo fichas', btn: 'Jogar agora', href: '/jogos/pipa', g: 'linear-gradient(135deg,#fbbf24,#ea7a0a 55%,#9a3412)' },
+  { id: 'gude', em: null, t: 'Bolinha de gude', sub: 'Triângulo, buraco e mata-mata · online valendo fichas', btn: 'Jogar agora', href: '/jogos/gude', g: 'linear-gradient(135deg,#a78bfa,#6d28d9 55%,#3b0f80)' },
+];
 const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'], pendente: ['Confirmando…', '#f87171'], recusada: ['Recusada', '#94a3b8'] };
 const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
 function quando(s) {
@@ -194,17 +203,23 @@ export default function Futebol() {
     const mais = prox.length + vs.length < 4 ? jogos.filter(j => !j.antecipa).slice(0, 4 - prox.length - vs.length) : [];
     return [...vs, ...prox, ...mais].slice(0, 8);
   }, [vivoSt, jogos]);
+  // na faixa também passam os avisos: Promoções, Criar aposta, Pagamento antecipado e Cash out
+  const faixa = useMemo(() => {
+    const out = [], av = AVISOS.map(a => ({ aviso: a }));
+    for (let i = 0; i < Math.max(destaques.length, av.length); i++) { if (destaques[i]) out.push(destaques[i]); if (av[i]) out.push(av[i]); }
+    return out;
+  }, [destaques]);
   const [dIdx, setDIdx] = useState(0);
   const dRef = useRef(null), dPausa = useRef(0);
   useEffect(() => {
-    const n = destaques.length; if (n < 2) return;
+    const n = faixa.length; if (n < 2) return;
     const t = setInterval(() => {
       const el = dRef.current; if (!el || Date.now() < dPausa.current) return;
       const prox = (Math.round(el.scrollLeft / (el.firstChild?.offsetWidth + 8 || 1)) + 1) % n;
       const alvo = el.children[prox]; if (alvo) el.scrollTo({ left: alvo.offsetLeft - el.offsetLeft - 8, behavior: 'smooth' });
     }, 4000);
     return () => clearInterval(t);
-  }, [destaques.length]);
+  }, [faixa.length]);
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
   const igualL = (a, b) => (a == null && b == null) || Number(a) === Number(b);
@@ -383,11 +398,16 @@ export default function Futebol() {
     </div>;
   }
   function destaque() {
-    if (!destaques.length) return null;
+    if (!faixa.length) return null;
     return <div className="fb-dest">
       <div className="fb-dest-faixa" ref={dRef} onPointerDown={() => { dPausa.current = Date.now() + 9000; }}
-        onScroll={e => { const el = e.currentTarget, w = (el.firstChild?.offsetWidth || 1) + 8; setDIdx(Math.min(destaques.length - 1, Math.round(el.scrollLeft / w))); }}>
-        {destaques.map(j => {
+        onScroll={e => { const el = e.currentTarget, w = (el.firstChild?.offsetWidth || 1) + 8; setDIdx(Math.min(faixa.length - 1, Math.round(el.scrollLeft / w))); }}>
+        {faixa.map(j => {
+          if (j.aviso) { const a = j.aviso; return <div key={'a' + a.id} className="fb-dcard fb-daviso" style={{ '--g': a.g }}
+            onClick={() => a.href ? router.push(a.href) : setRegras(true)}>
+            <span className="fb-daem">{a.em || <i className="fb-gude" />}</span>
+            <div className="fb-datx"><b>{a.t}</b><small>{a.sub}</small><u>{a.btn} ›</u></div>
+          </div>; }
           const o = j.aoVivo ? j.odds?.['1x2'] : j.odds?.['1x2'];
           return <div key={(j.aoVivo ? 'v' : 'p') + j.id} className={'fb-dcard' + (j.aoVivo ? ' vivo' : '')}>
             <div className="fb-dtopo" onClick={() => j.aoVivo ? setAba('vivo') : abrirJogo(j)}>
@@ -408,7 +428,7 @@ export default function Futebol() {
           </div>;
         })}
       </div>
-      {destaques.length > 1 && <div className="fb-dpontos">{destaques.map((_, i) => <i key={i} className={i === dIdx ? 'on' : ''} />)}</div>}
+      {faixa.length > 1 && <div className="fb-dpontos">{faixa.map((_, i) => <i key={i} className={i === dIdx ? 'on' : ''} />)}</div>}
     </div>;
   }
   function listaVivo() {
@@ -477,12 +497,14 @@ export default function Futebol() {
           <button className={'fb-tvivo' + (aba === 'vivo' ? ' on' : '')} onClick={() => setAba('vivo')}><span className="fb-ponto" />Ao vivo{st?.aoVivo ? <i>{st.aoVivo}</i> : null}</button>
           <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
         </div>
-        {visitante && !local ? <span className="fb-vis"><a className="vis-btn cad" href={contaUrl('criar')}>Cadastrar</a><a className="vis-btn ent" href={contaUrl('entrar')}>Entrar</a></span>
-          : <><span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
-          <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button></>}
         <button className={'fb-sair' + (naInicial ? ' ini' : '')} title={naInicial ? 'Outros jogos' : 'Voltar'} aria-label="Outros jogos da Casa de Jogos" onClick={() => router.push('/inicio')}>
           {naInicial ? <span style={{ fontSize: 20 }}>🎮</span> : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>}
         </button>
+      </div>
+      <div className="fb-conta">
+        {visitante && <><a className="vis-btn cad" href={contaUrl('criar')}>📝 Cadastrar</a>
+          <a className="vis-btn ent" href={contaUrl('entrar')}>🔑 Entrar</a></>}
+        {(!visitante || local) && <button className="fb-saldo" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰 <b>{coins == null ? '–' : fichas(coins)}</b><i>+</i></button>}
       </div>
       {st?.admin && (st.admin.erro || !st.admin.chave) && <div className="fb-adm">🛠 {!st.admin.chave ? 'Falta cadastrar APIFOOTBALL_KEY no Netlify.' : `Erro da API (${st.admin.erro.passo}): ${st.admin.erro.msg}`} · chamadas hoje: {st.admin.chamadasHoje}/{st.admin.limite}</div>}
       {aviso && <div className={'fb-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
@@ -495,11 +517,6 @@ export default function Futebol() {
               <span>🧩 <b>Criar aposta em andamento</b><small>{cj.casa} x {cj.fora} · {criar.partes.length} {criar.partes.length === 1 ? 'palpite' : 'palpites'}{c && !c.erro ? ` · odd ${f2(c.odd)}` : ''}</small></span>
               <em>Continuar ›</em>
             </button>); })()}
-          <div className="fb-novs">
-            <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Abra o jogo e ligue a chave</small></button>
-            <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
-            <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
-          </div>
           <div className="fb-filtros">
             <button className={'fb-campbtn' + (liga ? ' on' : '')} onClick={() => setMenuLiga(v => !v)}>
               🏆 <span>{liga || 'Todos os campeonatos'}</span> <i>{menuLiga ? '▴' : '▾'}</i></button>
@@ -659,7 +676,17 @@ export default function Futebol() {
 .fb-top .rbtn{width:36px;height:36px;font-size:15px}
 .fb-sair{flex:none;margin-left:auto;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;box-shadow:0 3px 8px #0008;cursor:pointer}
 .fb-sair:active{transform:scale(.94)}
-.fb-vis{display:flex;gap:6px;margin-left:auto}.fb-vis .vis-btn{padding:6px 12px;font-size:14px}
+.fb-conta{display:flex;gap:8px;padding:2px 10px 6px;align-items:center}
+.fb-conta .vis-btn{flex:1;text-align:center;font-size:17px;padding:9px 12px}
+.fb-conta .fb-saldo{margin-left:auto;display:flex;align-items:center;gap:6px;font:700 18px Oswald;padding:6px 6px 6px 14px;cursor:pointer}
+.fb-conta .fb-saldo i{font-style:normal;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#22c55e;color:#fff;font:700 18px Rubik}
+.fb-daviso{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-color:#ffffffaa!important;background:repeating-linear-gradient(120deg,#ffffff12 0 14px,transparent 14px 34px),var(--g)!important}
+.fb-daem{font-size:54px;line-height:1;filter:drop-shadow(0 4px 4px #0008);flex:none}
+.fb-gude{display:block;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#fff 0 14%,#93c5fd 22%,#2563eb 58%,#0b2a6b);box-shadow:2px 4px 8px rgba(0,0,0,.5)}
+.fb-datx{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fb-datx b{font:700 clamp(20px,5.4vw,24px) Oswald;font-style:italic;text-transform:uppercase;text-shadow:0 2px 0 #0006;line-height:1}
+.fb-datx small{font:500 13px Rubik;opacity:.95;line-height:1.25}
+.fb-datx u{text-decoration:none;align-self:flex-start;background:#fff;color:#111;font:700 13px Rubik;border-radius:10px;padding:4px 10px;margin-top:2px}
 .fb-adm{margin:0 10px 4px;padding:5px 10px;border-radius:10px;background:#7f1d1d;color:#fecaca;font:500 12px Rubik}
 .fb-aviso{position:fixed;left:50%;top:54px;transform:translateX(-50%);z-index:30;background:#000d;border:1px solid #f87171;border-radius:14px;padding:7px 14px;font:500 14px Rubik;color:#fff;max-width:90vw;text-align:center}
 .fb-aviso.bom{border-color:#4ade80}
