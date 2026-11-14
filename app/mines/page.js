@@ -104,6 +104,14 @@ export default function Mines() {
             <button disabled={trava} onClick={() => setBombas(b => Math.min(MAX_BOMBAS, b + 1))}>+</button>
           </div>
           <div className="mn-q">{BOMBAS_RAPIDAS.map(v => <button key={v} disabled={trava} className={bombas === v ? 'on' : ''} onClick={() => setBombas(v)}>{v}</button>)}</div>
+          <div className="mn-esc">{(() => {
+            const n = CASAS - (jogando ? p.bombas : bombas), b0 = jogando ? p.bombas : bombas;
+            const ini = Math.max(1, Math.min(k, n - 5));      // mostra 6 casas a partir da que está jogando
+            return Array.from({ length: Math.min(6, n) }, (_, i) => ini + i).map(c => {
+              const m = multDe(b0, c), cls = jogando && c <= k ? 'ok' : jogando && c === k + 1 ? 'prox' : '';
+              return <div key={c} className={cls}><small>{c}ª</small><b>{m >= 1000 ? Math.round(m).toLocaleString('pt-BR') : fx(m)}</b></div>;
+            });
+          })()}</div>
           <div className="mn-info">
             {jogando ? <><span>💎 {k} de {CASAS - p.bombas}</span><span>Agora <b>{fx(p.mult)}</b></span>{proximo && <span>Próxima <b>{fx(proximo)}</b></span>}</>
               : <span>1ª casa paga <b>{fx(proximo)}</b></span>}
@@ -146,6 +154,11 @@ export default function Mines() {
 .mn-q button{height:28px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;font:600 13px Rubik}
 .mn-q button.on{background:#0ea5e9;color:#fff;border-color:#7dd3fc}
 .mn-row button:disabled,.mn-q button:disabled{opacity:.45}
+.mn-esc{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+.mn-esc div{display:flex;flex-direction:column;align-items:center;background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:2px 0;line-height:1.05;min-width:0}
+.mn-esc small{font:500 10px Rubik;color:#94a3b8}.mn-esc b{font:700 12px Oswald;color:#e2e8f0;white-space:nowrap;overflow:hidden;max-width:100%}
+.mn-esc .ok{background:#083344;border-color:#0e7490}.mn-esc .ok b{color:#67e8f9}
+.mn-esc .prox{background:#422006;border-color:#facc15}.mn-esc .prox b{color:#facc15}
 .mn-info{display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:center;font:500 13px Rubik;color:#cbd5e1;padding:4px 0}
 .mn-info b{color:#facc15;font:700 15px Oswald}
 .mn-btn{margin-top:auto;border:none;border-radius:14px;padding:8px 6px;font:700 22px Oswald;color:#fff;display:flex;flex-direction:column;align-items:center;line-height:1.05;box-shadow:0 4px 0 #0008}
