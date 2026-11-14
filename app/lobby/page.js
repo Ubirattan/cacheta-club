@@ -4,7 +4,7 @@ import { premioOnline, taxaPct } from '../../lib/taxa.js';
 import { useRouter } from 'next/navigation';
 import { sb, api } from '../../lib/supabase-browser.js';
 import { useAuth, useOnline } from '../../components/useAuth.js';
-import { Header, Modal, Seg, toast } from '../../components/ui.js';
+import { voltar, Header, Modal, Seg, toast } from '../../components/ui.js';
 import ProfileModal from '../../components/ProfileModal.js';
 import JoinCode from '../../components/JoinCode.js';
 import { MODES, GUDE_ROOMS, SINUCA_ROOMS, TRUCO_ROOMS, PIPA_ROOMS, isGudeMode, isSinucaMode, isTrucoMode, isPipaMode, isMiniMode, is1x1Mode, modeName, ENTRIES, POINTS, TURN_SECONDS, fmt } from '../../lib/modes.js';
@@ -106,7 +106,7 @@ export default function Lobby() {
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
-        right={<><button className="online" onClick={() => setModal('online')}><i />{online.length} online</button><button className="rbtn" onClick={() => router.push('/inicio')}>↩</button></>} />
+        right={<><button className="online" onClick={() => setModal('online')}><i />{online.length} online</button><button className="rbtn" onClick={() => voltar(router, '/')}>↩</button></>} />
       <div className="tabs">
         {[['todas', 'Todas'], ...Object.entries(MODES).map(([k, m]) => [k, m.name]), ['truco', '♣️ Truco'], ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca'], ['pipa', '🪁 Pipa']].map(([k, t]) =>
           <button key={k} className={mode === k ? 'on' : ''} onClick={() => setMode(k)}>{t}</button>)}

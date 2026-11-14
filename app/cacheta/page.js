@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { sb } from '../../lib/supabase-browser.js';
 import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../../components/useAuth.js';
-import { Header, Card } from '../../components/ui.js';
+import { voltar, Header, Card } from '../../components/ui.js';
 import ProfileModal from '../../components/ProfileModal.js';
 import JoinCode from '../../components/JoinCode.js';
 
@@ -32,7 +32,7 @@ export default function Cacheta() {
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')} semVisitante
         mid={<div className="cx-tit">🃏 CACHETA</div>}
-        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/inicio')}>↩</button></>} />
+        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => voltar(router, '/')}>↩</button></>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div className="cx-top" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>

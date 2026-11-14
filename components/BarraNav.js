@@ -25,6 +25,8 @@ if (typeof window !== 'undefined' && !window.__cjInstalar) {
 export default function BarraNav() {
   const path = usePathname() || '/';
   const on = MOSTRA.test(path);
+  // conta as telas abertas nesta aba (o botão ↩ usa pra saber se dá pra voltar pra tela anterior)
+  useEffect(() => { try { sessionStorage.setItem('cj_nav', String(Number(sessionStorage.getItem('cj_nav') || 0) + 1)); } catch {} }, [path]);
   useEffect(() => { document.body.classList.toggle('tem-barra', on); }, [on]);
   if (!on) return null;
   return (

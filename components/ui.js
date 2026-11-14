@@ -39,6 +39,14 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
   );
 }
 
+// Voltar: volta pra tela de onde o cliente veio (ex.: faixa do futebol → sinuca → volta pro futebol).
+// Se abriu direto pelo link, volta pra tela inicial, que é sempre o futebol.
+export function voltar(router, padrao = '/') {
+  let n = 0; try { n = Number(sessionStorage.getItem('cj_nav') || 0); } catch {}
+  if (n > 1) return router.back();   // já navegou dentro do site: volta pra tela anterior
+  router.push(padrao);
+}
+
 export function Header({ profile, right, mid, onProfile, semVisitante }) {
   const visitante = useVisitante() && !profile;
   return (

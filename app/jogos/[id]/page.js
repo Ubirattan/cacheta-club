@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../../../components/useAuth.js';
-import { Header } from '../../../components/ui.js';
+import { voltar, Header } from '../../../components/ui.js';
 import ProfileModal from '../../../components/ProfileModal.js';
 import { JOGOS } from '../../../lib/jogos.js';
 import { ARTES } from '../../../components/CassinoArte.js';
@@ -24,7 +24,7 @@ export default function Jogo() {
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')} semVisitante={id === 'cassino'}
         mid={<div className="jg-tit">{J.em || '🔵'} {J.nome.toUpperCase()}</div>}
-        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push(id === 'truco' ? '/cacheta' : id === 'cassino' ? '/' : '/inicio')}>↩</button></>} />
+        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => voltar(router, id === 'truco' ? '/cacheta' : '/')}>↩</button></>} />
       <div className="jg-ops" style={{ '--n': opcoes.length }}>
         {opcoes.map(o => (
           <button key={o.href} className="jg-op" style={{ '--g': o.g }} onClick={() => router.push(o.href)}>
