@@ -9,6 +9,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 
 ## O que já funciona
 
+- **🎟️ Bingo online:** sala `bingo` de 2 a 10 jogadores, cartela de 5 a 200 fichas. Cada um escolhe de 1 a 3 cartelas entre 6 opções (pode trocar). 75 bolas, cartela 5x5 com centro livre; uma bola a cada 4,5 s; ganha quem completar a cartela inteira (o servidor confere sozinho; empate divide por cartela). Pote = cartelas compradas; casa 10% até 100 fichas, 20% acima.
 - **🁫 Dominó online (duplas):** sala `domino-duplas` com 4 lugares, começa com a mesa cheia e todos prontos. Pedras escondidas (tabela hands); quem não tem pedra passa sozinho; tempo esgotado, o servidor joga por ele. Entrada mínima 2; cada um da dupla vencedora leva o prêmio (`premioPorVencedor`). Quem sai no meio, a dupla perde.
 - **🁫 Dominó (contra o computador):** dominó de bar em duplas, 7 pedras, sem monte. 1ª mão sai a carroça de 6; quem bate começa a próxima. Batida simples 1, carroça 2, lá-e-lô 3, cruzada 4; trancou, a dupla com menos pontos marca 1. Até 6 pontos. 1 ficha por partida (`/api/treino`).
 - **🐾 Jogo do Bicho (cassino):** sorteio próprio às 11h, 14h, 16h, 18h e 21h (Brasília), 5 prêmios por sorteio. Grupo 18x, dezena 60x, centena 600x, milhar 4.000x, na cabeça ou do 1º ao 5º (1/5 por prêmio). Até 1.000 fichas por sorteio, prêmio máximo de 4 mil. Apostas fecham 1 min antes. ⚠️ Rode uma vez o `supabase/bicho.sql`.
