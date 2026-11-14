@@ -170,9 +170,10 @@ export default function Futebol() {
   const porTempo = useMemo(() => {
     if (tempo === 'todos') return jogos;
     const agora = Date.now();
+    // inicio vem como número (ms) do servidor e como texto no modo teste: new Date aceita os dois
     if (tempo === 'hoje') { const hoje = new Date().toDateString(); return jogos.filter(j => new Date(j.inicio).toDateString() === hoje); }
     const lim = agora + Number(tempo) * 3600000;
-    return jogos.filter(j => Date.parse(j.inicio) <= lim);
+    return jogos.filter(j => new Date(j.inicio).getTime() <= lim);
   }, [jogos, tempo]);
   // campeonatos (com quantos jogos cada um tem no filtro de horário), em ordem alfabética
   const ligas = useMemo(() => { const m = new Map(); porTempo.forEach(j => m.set(j.ligaNome, (m.get(j.ligaNome) || 0) + 1)); return [...m].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')); }, [porTempo]);
