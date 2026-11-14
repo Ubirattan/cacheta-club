@@ -492,3 +492,13 @@ a.coins{text-decoration:none;color:inherit;cursor:pointer}
 .trgold i{font-style:normal;font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px #0006)}
 .trgold b{font:700 14px/1.1 Oswald;color:#2a1a02;white-space:nowrap}
 .trgold.big{min-width:88px;padding:10px 10px 6px}.trgold.big i{font-size:42px}.trgold.big b{font-size:17px}
+
+/* visitante (sem conta): botões Cadastrar / Entrar no cabeçalho */
+a.badge{text-decoration:none;color:inherit}
+.plate.vis{gap:8px}
+.plate.vis .who b{max-width:30vw}
+.vis-btn{flex:none;text-decoration:none;color:#fff;font:600 clamp(14px,2.8vmin,18px) Oswald;padding:8px clamp(10px,2vw,16px);border-radius:24px;border:2px solid #000;box-shadow:0 3px 0 #0008;white-space:nowrap;text-shadow:0 1px 2px #0008}
+.vis-btn.cad{background:linear-gradient(180deg,#4ade80,#15803d)}
+.vis-btn.ent{background:linear-gradient(180deg,#38b6ff,#1565d8)}
+.vis-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0008}
+@media (max-width:560px){.plate.vis .who{display:none}}

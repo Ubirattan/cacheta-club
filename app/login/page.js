@@ -41,6 +41,7 @@ export default function Login() {
     try {
       const ind = new URLSearchParams(location.search).get('ind');
       if (ind) { localStorage.setItem('cj_ind', ind); setTab('criar'); }
+      if (new URLSearchParams(location.search).get('modo') === 'criar') setTab('criar');
     } catch {}
   }, []);
   useEffect(() => { sb().auth.getSession().then(({ data }) => { if (data.session) go(next()); }); }, [router]); // eslint-disable-line
@@ -138,6 +139,7 @@ export default function Login() {
       <button className="go" disabled={busy}>{busy ? 'Aguarde…' : tab === 'entrar' ? 'Entrar' : tab === 'esqueci' ? 'Enviar link de nova senha' : 'Criar conta e jogar'}</button>
       {tab === 'entrar' && <button type="button" className="forgot" onClick={() => setTab('esqueci')}>Esqueci a senha</button>}
       {tab === 'esqueci' && <button type="button" className="forgot" onClick={() => setTab('entrar')}>← Voltar para entrar</button>}
+      {tab !== 'esqueci' && <button type="button" className="forgot" onClick={() => { if (history.length > 1) history.back(); else go('/'); }}>← Voltar sem entrar (só olhar o site)</button>}
       {!kb && <><div className="or">ou</div>
         <button type="button" className="gbtn" onClick={google}><span style={{ fontWeight: 800, color: '#4285F4' }}>G</span> Entrar com Google</button>
         <p className="hint" style={{ textAlign: 'center', marginTop: 14 }}>Só para maiores de 18 anos: ao criar a conta ou entrar com o Google, você declara ter 18 anos ou mais. As fichas da Casa de Jogos são virtuais: não valem dinheiro e não podem ser sacadas.</p></>}

@@ -145,4 +145,4 @@ function Body({ profile, reloadProfile, user }) {
         })}</div></div>))}
   </>;
 }
-export default function Loja() { return <Shell title="🛒 Loja">{auth => <Body {...auth} />}</Shell>; }
+export default function Loja() { return <Shell required title="🛒 Loja">{auth => <Body {...auth} />}</Shell>; }

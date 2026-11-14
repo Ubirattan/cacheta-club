@@ -16,7 +16,7 @@ const sorteioTeste = async apostas => { const c = conferir(apostas); if (c.erro)
 
 export default function Roleta() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const boxRef = useRef(null), uiRef = useRef(null), profRef = useRef(null);
   profRef.current = profile;
   const [som, setSom] = useState(true);

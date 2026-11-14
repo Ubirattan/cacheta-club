@@ -2,6 +2,21 @@
 import { Engine } from '../lib/engine.js';
 import { fmt } from '../lib/modes.js';
 import { suitSvg } from '../lib/suits.js';
+import { useEffect, useState } from 'react';
+import { sb } from '../lib/supabase-browser.js';
+import { contaUrl } from './useAuth.js';
+
+// true quando a pessoa está navegando sem conta (visitante)
+export function useVisitante() {
+  const [v, setV] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    sb().auth.getSession().then(({ data }) => { if (vivo) setV(!data.session); });
+    const { data: sub } = sb().auth.onAuthStateChange((_e, s) => setV(!s));
+    return () => { vivo = false; sub.subscription.unsubscribe(); };
+  }, []);
+  return v;
+}
 
 export function toast(t) {
   const el = typeof document !== 'undefined' && document.getElementById('toast');
@@ -25,13 +40,21 @@ export function Card({ c, cor = -1, cls = '', onClick, style }) {
 }
 
 export function Header({ profile, right, mid, onProfile }) {
+  const visitante = useVisitante() && !profile;
   return (
     <div className="hdr">
-      <div className="plate">
+      {visitante ? (
+        <div className="plate vis">
+          <a className="badge" href={contaUrl('entrar')} title="Entrar">👤</a>
+          <div className="who"><b>Visitante</b><small>Crie sua conta pra jogar</small></div>
+          <a className="vis-btn cad" href={contaUrl('criar')}>📝 Cadastrar</a>
+          <a className="vis-btn ent" href={contaUrl('entrar')}>🔑 Entrar</a>
+        </div>
+      ) : <div className="plate">
         <button className="badge" onClick={onProfile}>{profile?.avatar || '😎'}</button>
         <div className="who"><b>{profile?.nickname || '...'}{profile?.vip_until && new Date(profile.vip_until) > new Date() ? ' 👑' : ''}</b><small>ID: {profile ? profile.id.slice(0, 8).toUpperCase() : ''}</small></div>
         <a className="coins" href="/loja#comprar" title="Comprar fichas"><i>💰</i><span>{fmt(profile?.coins)}</span><b className="plus">+</b></a>
-      </div>
+      </div>}
       {mid && <div className="games">{mid}</div>}
       <div className="right">{right}</div>
     </div>

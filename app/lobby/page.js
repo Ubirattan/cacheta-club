@@ -49,7 +49,7 @@ function CreateRoom({ profile, onClose, gude, jogo }) {
 
 export default function Lobby() {
   const router = useRouter();
-  const { user, profile, reloadProfile } = useAuth();
+  const { user, profile, reloadProfile } = useAuth({ required: false });
   const online = useOnline(user, profile, 'lobby');
   const [rooms, setRooms] = useState(null);
   const [mode, setMode] = useState('todas');
@@ -63,17 +63,19 @@ export default function Lobby() {
     if (!error) setRooms(data.map(r => ({ ...r, n: r.room_players?.[0]?.count || 0 })));
   }, []);
   useEffect(() => {
-    if (!user) return;
-    load();
+    load();   // visitante também vê as mesas
     const later = () => { clearTimeout(tRef.current); tRef.current = setTimeout(load, 400); };
     const ch = sb().channel('lobby')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms' }, later)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'room_players' }, later)
       .subscribe();
-    const tk = setInterval(() => api('/api/tournaments', { op: 'tick' }).catch(() => {}), 30000);
-    // fecha mesas abandonadas (10 min sem ninguém e sem jogada)
-    const limpa = () => api('/api/rooms/cleanup', {}).then(r => { if (r && r.closed) load(); }).catch(() => {});
-    limpa(); const lp = setInterval(limpa, 120000);
+    let tk = null, lp = null;
+    if (user) {   // só quem tem conta dispara as tarefas do servidor
+      tk = setInterval(() => api('/api/tournaments', { op: 'tick' }).catch(() => {}), 30000);
+      // fecha mesas abandonadas (10 min sem ninguém e sem jogada)
+      const limpa = () => api('/api/rooms/cleanup', {}).then(r => { if (r && r.closed) load(); }).catch(() => {});
+      limpa(); lp = setInterval(limpa, 120000);
+    }
     return () => { sb().removeChannel(ch); clearTimeout(tRef.current); clearInterval(tk); clearInterval(lp); };
   }, [user, load]);
 

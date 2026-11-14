@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
 import { Card, Modal, Seg, toast } from '../../components/ui.js';
 import { fmt } from '../../lib/modes.js';
-import { api } from '../../lib/supabase-browser.js';
+import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
 import { SEATS, PLAYED, nextCall, Rules, TRUCO_CSS as CSS } from '../../components/Truco.js';
 import { newMatch, act, needs, botMove, canCall, isManilha, teamOf, manilhaRank, RANKS, CALL_NAME, MAN_NAME, VALUES } from '../../lib/truco.js';
@@ -15,7 +15,7 @@ const verb = (G, t, um, varios) => G.n === 4 && t === 1 ? varios : um;
 
 export default function Truco() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth();
+  const { profile, reloadProfile } = useAuth({ required: false });
   const [cfg, setCfg] = useState({ n: 2, level: 'medio' });
   const [M, setM] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -72,7 +72,8 @@ export default function Truco() {
   }, [M, ver, play, cfg.level]);
 
   async function start() {
-    if (!profile || busy) return;
+    if (busy) return;
+    if (!profile) return pedirConta();   // visitante: pede a conta
     if ((profile.coins || 0) < 1) return setM('semfichas');
     setBusy(true);
     try { await api('/api/treino', { jogo: 'truco' }); reloadProfile && reloadProfile(); }
@@ -95,7 +96,7 @@ export default function Truco() {
         <h2>🤖 Contra o computador</h2>
         <Seg label="Mesa" value={cfg.n} onChange={v => setCfg(c => ({ ...c, n: v }))} options={[[2, '1 contra 1'], [4, 'Duplas (2x2)']]} />
         <Seg label="Computador" value={cfg.level} onChange={v => setCfg(c => ({ ...c, level: v }))} options={[['facil', 'Fácil'], ['medio', 'Esperto']]} />
-        <button className="go" disabled={!profile || busy} onClick={start}>{busy ? 'Começando…' : '▶ Jogar · 1 ficha'}</button>
+        <button className="go" disabled={busy} onClick={start}>{busy ? 'Começando…' : '▶ Jogar · 1 ficha'}</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Regras do truco paulista</button>
         <p className="hint" style={{ textAlign: 'center' }}>Contra o computador cada partida custa 1 ficha. Pra jogar com amigos valendo fichas, use o Truco online.</p>
       </div>

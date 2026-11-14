@@ -21,7 +21,7 @@ const PONTO = c => [16.67 + (c % 3) * 33.33, 16.67 + Math.floor(c / 3) * 33.33];
 
 export default function Onca() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const local = TESTE && !profile;
   const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
   const [som, setSom] = useState(true);

@@ -6,9 +6,9 @@ import { useAuth } from './useAuth.js';
 import { Header } from './ui.js';
 import ProfileModal from './ProfileModal.js';
 
-export default function Shell({ title, back = '/', right, children }) {
+export default function Shell({ title, back = '/', right, children, required = false }) {
   const router = useRouter();
-  const auth = useAuth();
+  const auth = useAuth({ required });
   const [prof, setProf] = useState(false);
   return (
     <div className="page lounge">

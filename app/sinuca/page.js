@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
 import { Modal, Seg, toast } from '../../components/ui.js';
-import { api } from '../../lib/supabase-browser.js';
+import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio, audioCtx } from '../../lib/sfx.js';
 import { RAIL, corBola, NOME_MODO, toc, bola, mesa, Regras, SINUCA_CSS as CSS , tacoGrad, setTaco } from '../../components/Sinuca.js';
@@ -19,7 +19,7 @@ const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(wind
 const BOTS = [['Tião', '🤠'], ['Juca', '🐯'], ['Nena', '🦊'], ['Bento', '🐺'], ['Zeca', '🦅'], ['Dete', '🐱']];
 export default function Sinuca() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   useEffect(() => { setTaco(itemById(profile?.equipped?.taco)?.colors); }, [profile?.equipped?.taco]); // eslint-disable-line
   const [level, setLevel] = useState('medio');
   const [modo, setModo] = useState('bola8');
@@ -46,7 +46,8 @@ export default function Sinuca() {
   useEffect(() => { try { localStorage.setItem('sn_level', level); localStorage.setItem('sn_modo', modo); } catch {} }, [level, modo]);
 
   async function start() {
-    if ((!profile && !TESTE) || busy) return;
+    if (busy) return;
+    if (!profile && !TESTE) return pedirConta();   // visitante: pede a conta
     if (!TESTE && (profile.coins || 0) < 2) return setSemFichas(true);
     unlockAudio(); setBusy(true);
     try {
@@ -252,7 +253,7 @@ export default function Sinuca() {
         <Seg label="Modalidade" value={modo} onChange={setModo} options={MODOS} />
         <p className="hint" style={{ textAlign: 'center', margin: 0 }}>{modo === 'bola8' ? 'Lisas x listradas. A 8 é a última.' : modo === 'lisa' ? 'Sem a branca: 5 vermelhas x 5 amarelas. Arrume as suas no seu lado e taque com elas pra matar as do outro. Quem ficar sem bolas perde.' : '3 bolas por jogo, 5 jogos. Quem matar a última ganha o jogo. Cegou ou caiu a branca: perde. Joga sempre os 5: quem ganhar mais jogos leva.'}</p>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
-        <button className="go" disabled={(!profile && !TESTE) || busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '2 fichas'}`}</button>
+        <button className="go" disabled={busy} onClick={start}>{busy ? 'Começando…' : `🎱 Jogar · ${TESTE ? 'teste grátis' : '2 fichas'}`}</button>
         <button className="sec" onClick={() => router.push('/lobby?jogo=sinuca')}>🌐 Jogar online (1 contra 1, valendo fichas)</button>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar</button>
         <p className="hint" style={{ textAlign: 'center' }}>Contra o computador: cada partida custa 2 fichas.</p>

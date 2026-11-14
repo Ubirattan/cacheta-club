@@ -18,7 +18,7 @@ const ease = p => 1 - Math.pow(1 - p, 4);
 
 export default function Double() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/double', b);
   const [st, setSt] = useState(null);
@@ -39,7 +39,7 @@ export default function Double() {
 
   // consulta o servidor a cada ~1 s
   useEffect(() => {
-    if (!profile && !TESTE) return;
+    // visitante também vê as rodadas
     let vivo = true, timer = null, faseAnt = null;
     async function puxa() {
       const t0 = Date.now();

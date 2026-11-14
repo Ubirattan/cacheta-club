@@ -18,7 +18,7 @@ const f2 = n => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, ma
 
 export default function Mines() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/mines', b);
   const [p, setP] = useState(null);           // partida (aberta ou a última que acabou)

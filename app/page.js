@@ -2,7 +2,7 @@
 // CASA DE JOGOS — tela inicial: um cartão grande pra cada jogo.
 // A cacheta (online, torneio, contra o computador, código) agora fica em /cacheta.
 import { useState, useEffect } from 'react';
-import { sb } from '../lib/supabase-browser.js';
+import { sb, pedirConta } from '../lib/supabase-browser.js';
 import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../components/useAuth.js';
 import { Header } from '../components/ui.js';
@@ -17,7 +17,7 @@ const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(wind
 
 export default function Home() {
   const router = useRouter();
-  const { user, profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { user, profile, reloadProfile } = useAuth({ required: false });
   const online = useOnline(user, profile, 'inicio');
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');
@@ -41,7 +41,7 @@ export default function Home() {
       <div className="cj-acoes">
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
         <button className="buybtn" style={{ background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#4ade80,#15803d)' }} onClick={() => profile ? setModal('indique') : router.push('/login')}>🤝 Indique e ganhe <small>10 fichas por amigo</small></button>
+        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#4ade80,#15803d)' }} onClick={() => profile ? setModal('indique') : pedirConta()}>🤝 Indique e ganhe <small>10 fichas por amigo</small></button>
       </div>
       <div className="footbar">
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
