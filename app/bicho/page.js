@@ -187,7 +187,7 @@ export default function JogoDoBicho() {
           <p>• <b>Grupo:</b> acerta o bicho (as 2 últimas dezenas da milhar) e ganha <b>18x</b>. <b>Dezena</b> paga <b>60x</b>, <b>centena 600x</b> e <b>milhar 4.000x</b>.</p>
           <p>• <b>Na cabeça</b> vale só o 1º prêmio. <b>Do 1º ao 5º</b> vale qualquer um dos 5 prêmios, pagando 1/5 do valor por prêmio que acertar.</p>
           <p>• Até <b>{MAX_POR_SORTEIO} fichas</b> por sorteio e prêmio máximo de <b>{fx(PREMIO_MAXIMO)} fichas</b> por aposta.</p>
-          <p style={{ fontSize: 12, color: 'var(--mut)' }}>{local ? '🧪 MODO TESTE · sorteio a cada 2 minutos · fichas de mentira · ' : ''}Sorteio próprio da Casa de Jogos. Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
+          <p style={{ fontSize: 12, color: 'var(--mut)' }}>{local ? '🧪 MODO TESTE · sorteio a cada 2 minutos · fichas de mentira · ' : ''}Sorteio próprio da Casa de Jogos. Proibido para menores de 18 anos.</p>
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
       <style>{`
