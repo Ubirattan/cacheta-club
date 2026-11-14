@@ -4,10 +4,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
-import { Modal } from '../../components/ui.js';
+import { Modal, voltar } from '../../components/ui.js';
 import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
-import { BICHOS, TIPOS, POS, HORARIOS, MAX_POR_SORTEIO, PREMIO_MAXIMO, bicho, grupoDe, dezenasDo, conferir, premioPossivel, descreve, horaTxt, diaTxt } from '../../lib/bicho.js';
+import { BICHOS, TIPOS, POS, HORARIOS, MAX_POR_SORTEIO, PREMIO_MAXIMO, AO_VIVO, revelaEm, bicho, grupoDe, dezenasDo, conferir, premioPossivel, descreve, horaTxt, diaTxt } from '../../lib/bicho.js';
 import { criarTeste } from '../../lib/bicho-teste.js';
 
 const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(window.location.hostname);
@@ -15,6 +15,43 @@ let teste = null;
 const fx = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 const VALORES = [1, 2, 5, 10, 20, 50, 100];
 const relogio = s => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + 'h ' : '') + String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0'); };
+
+// SORTEIO AO VIVO: 5 prêmios, cada número gira e para um de cada vez; no fim mostra o bicho e se você ganhou
+function AoVivo({ hora, agora, premios, minhas, local, onClose }) {
+  const t = agora - hora, fim = t >= AO_VIVO.dur;
+  const ganhos = fim ? minhas.reduce((x, m) => x + (m.ganho || 0), 0) : 0;
+  const tocou = useRef({});
+  useEffect(() => {   // um "tic" a cada número que para, e festa no fim se ganhou
+    if (!premios || t < 0) return;
+    for (let k = 0; k < 5; k++) for (let d = 0; d < 4; d++) { const key = k * 4 + d; if (t >= revelaEm(k, d) && !tocou.current[key]) { tocou.current[key] = 1; sfx(d === 3 ? 'coin' : 'card'); } }
+    if (fim && !tocou.current.fim) { tocou.current.fim = 1; if (ganhos > 0) sfx('win'); }
+  }, [t, premios, fim, ganhos]);
+  const hTxt = local ? new Date(hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : horaTxt(hora);
+  return (
+    <div className="bx-vivo">
+      <div className="bx-vivoc">
+        <div className="bx-vivot"><span className="bx-live"><i />AO VIVO</span><b>Sorteio das {hTxt}</b><button onClick={onClose}>✕</button></div>
+        {t < 0 ? <div className="bx-vivoesp"><small>Começa em</small><b>{relogio(-t / 1000)}</b><span>As apostas desse sorteio já fecharam</span></div>
+          : t < AO_VIVO.intro || !premios ? <div className="bx-vivoesp"><b className="bx-girando">🎰</b><span>{premios ? 'Preparando o sorteio…' : 'Sorteando os números…'}</span></div> : null}
+        {t >= 0 && <div className="bx-vivol">
+          {[0, 1, 2, 3, 4].map(k => {
+            const m = premios ? String(premios[k]).padStart(4, '0') : null;
+            const pronto = m && t >= revelaEm(k, 3), b = pronto ? bicho(grupoDe(m)) : null;
+            const ativo = m && t >= AO_VIVO.intro + k * AO_VIVO.premio;
+            return <div key={k} className={'bx-vl' + (pronto ? ' ok' : ativo ? ' on' : '')}>
+              <span className="bx-vk">{k + 1}º</span>
+              <div className="bx-dg">{[0, 1, 2, 3].map(d => { const v = m && t >= revelaEm(k, d); return v ? <i key={d} className="v">{m[d]}</i> : <i key={d} className={ativo ? 'gira' : ''}><s>{'01234567890'.split('').map((c, j) => <u key={j}>{c}</u>)}</s></i>; })}</div>
+              <div className="bx-vb">{b ? <><em>{b.em}</em><b>{b.nome}</b></> : <small>{ativo ? 'sorteando…' : ''}</small>}</div>
+            </div>;
+          })}
+        </div>}
+        {fim && <div className={'bx-vivofim' + (ganhos > 0 ? ' ganhou' : '')}>
+          {!minhas.length ? 'Você não apostou nesse sorteio' : ganhos > 0 ? `🎉 Você ganhou ${fx(ganhos)} fichas!` : 'Não foi dessa vez'}
+          <button onClick={onClose}>Fechar</button></div>}
+      </div>
+    </div>
+  );
+}
 
 export default function JogoDoBicho() {
   const router = useRouter();
@@ -32,7 +69,16 @@ export default function JogoDoBicho() {
     try { const s = await chamaRef.current({ op: 'estado' }); off.current = s.agora - (t0 + Date.now()) / 2; setSt(s); } catch {}
   }
   useEffect(() => { puxa(); const t = setInterval(puxa, 10000); return () => clearInterval(t); }, [local]); // eslint-disable-line
-  useEffect(() => { const t = setInterval(() => setAgora(Date.now() + off.current), 1000); return () => clearInterval(t); }, []);
+  const vivoH = st?.aoVivo ?? null;
+  useEffect(() => { const t = setInterval(() => setAgora(Date.now() + off.current), vivoH ? 250 : 1000); return () => clearInterval(t); }, [vivoH]);
+  // ao vivo: busca o resultado de 2 em 2 s até ele chegar
+  const resVivo = vivoH != null ? (st?.resultados || []).find(r => r.hora === vivoH && r.premios.length) : null;
+  useEffect(() => { if (vivoH == null || resVivo) return; const t = setInterval(puxa, 2000); return () => clearInterval(t); }, [vivoH, !!resVivo]); // eslint-disable-line
+  const [assistindo, setAssistindo] = useState(null);   // hora do sorteio aberto na tela
+  const fechouVivo = useRef(null);
+  useEffect(() => { if (vivoH != null && agora >= vivoH - 3000 && fechouVivo.current !== vivoH) setAssistindo(vivoH); }, [vivoH, agora >= (vivoH ?? Infinity) - 3000]); // eslint-disable-line
+  // enquanto a revelação não acaba, não estraga a surpresa: o sorteio fica "aguardando" em Minhas e fora dos Resultados
+  const revelando = h => vivoH != null && h === vivoH && agora < vivoH + AO_VIVO.dur;
   useEffect(() => { if (st && agora >= st.proximo.fecha + 1500) puxa(); }, [agora >= (st?.proximo.fecha || Infinity)]); // eslint-disable-line
 
   const avisar = (t, bom) => { setAviso({ t, bom }); setTimeout(() => setAviso(null), 3500); };
@@ -55,21 +101,23 @@ export default function JogoDoBicho() {
   function trocaTipo(t) { setTipo(t); setPalpite(''); }
 
   const px = st?.proximo, falta = px ? (px.fecha - agora) / 1000 : 0;
-  const abertas = (st?.minhas || []).filter(m => m.status === 'aberta');
+  const minhasV = (st?.minhas || []).map(m => revelando(m.hora) ? { ...m, status: 'aberta', ganho: 0 } : m);
+  const abertas = minhasV.filter(m => m.status === 'aberta');
 
   return (
     <div className="page lounge bx">
       <div className="bx-top">
-        <div className="bx-logo">🐾 JOGO DO <b>BICHO</b></div>
+        <div className="bx-logo">🐾 <b>BICHO</b></div>
         {coins != null && <button className="bx-saldo" onClick={() => router.push('/loja#comprar')}>💰 <b>{fx(coins)}</b><i>+</i></button>}
-        <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
-        <button className="rbtn" title="Voltar" onClick={() => (window.history.length > 1 ? router.back() : router.push('/inicio'))}>↩</button>
+        <button className="rbtn bx-volta" title="Voltar" onClick={() => voltar(router, '/inicio')}>‹ Voltar</button>
       </div>
 
       <div className="bx-prox">
         <div><small>Próximo sorteio</small><b>{px ? `${diaTxt(px.hora, agora)} · ${local ? new Date(px.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : horaTxt(px.hora)}` : '…'}</b></div>
         <div className="bx-conta"><small>Fecha em</small><b>{px ? relogio(falta) : '--:--'}</b></div>
       </div>
+      {vivoH != null && assistindo == null && <button className="bx-vivobar" onClick={() => setAssistindo(vivoH)}>
+        <i />{agora < vivoH ? `Sorteio das ${local ? new Date(vivoH).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : horaTxt(vivoH)} ao vivo em ${relogio((vivoH - agora) / 1000)}` : `Sorteio das ${local ? new Date(vivoH).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : horaTxt(vivoH)} acontecendo agora`} · <b>Assistir ▶</b></button>}
 
       <div className="bx-abas">
         <button className={aba === 'apostar' ? 'on' : ''} onClick={() => setAba('apostar')}>Apostar</button>
@@ -108,12 +156,13 @@ export default function JogoDoBicho() {
           <button className="bx-apostar" disabled={!ok || enviando || falta <= 0} onClick={apostar}>
             {enviando ? 'Enviando…' : ok ? `APOSTAR ${valor} ${valor === 1 ? 'FICHA' : 'FICHAS'} · ${descreve(conferir(ap))}` : tipo === 'grupo' ? 'ESCOLHA UM BICHO' : `DIGITE ${TIPOS[tipo].dig} NÚMEROS`}
           </button>
+          <button className="bx-regras" onClick={() => setRegras(true)}>📖 Como jogar</button>
         </>}
 
         {aba === 'minhas' && <div className="bx-lista">
           {!profile && !local && <div className="bx-vazio">Entre na sua conta pra ver suas apostas.<br /><button className="bx-apostar" onClick={pedirConta}>Entrar</button></div>}
           {(profile || local) && !st?.minhas?.length && <div className="bx-vazio">Você ainda não apostou.</div>}
-          {(st?.minhas || []).map(m => <div key={m.id} className={'bx-ap ' + m.status}>
+          {minhasV.map(m => <div key={m.id} className={'bx-ap ' + m.status}>
             <div><b>{descreve(m)}</b><small>{POS[m.pos]} · sorteio {diaTxt(m.hora, agora).toLowerCase()} {local ? '' : horaTxt(m.hora)}</small></div>
             <span>{m.status === 'aberta' ? <>💰 {fx(m.valor)}<small>aguardando</small></> : m.status === 'ganhou' ? <>✅ +{fx(m.ganho)}<small>apostou {fx(m.valor)}</small></> : <>❌ {fx(m.valor)}<small>não deu</small></>}</span>
           </div>)}
@@ -121,13 +170,16 @@ export default function JogoDoBicho() {
 
         {aba === 'resultados' && <div className="bx-lista">
           {!st?.resultados?.length && <div className="bx-vazio">Ainda não teve sorteio.</div>}
-          {(st?.resultados || []).filter(r => r.premios.length).map(r => <div key={r.id} className="bx-res">
+          {(st?.resultados || []).filter(r => r.premios.length && !revelando(r.hora)).map(r => <div key={r.id} className="bx-res">
             <div className="bx-rtit">{diaTxt(r.hora, agora)} · {local ? new Date(r.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : horaTxt(r.hora)}</div>
             {r.premios.map((m, i) => { const b = bicho(grupoDe(m)); return <div key={i} className="bx-rl"><span>{i + 1}º</span><b>{String(m).padStart(4, '0')}</b><i>{b.em}</i><em>{b.nome}</em><small>{String(b.g).padStart(2, '0')}</small></div>; })}
           </div>)}
         </div>}
       </div>
 
+      {assistindo != null && <AoVivo hora={assistindo} agora={agora} premios={(st?.resultados || []).find(r => r.hora === assistindo)?.premios || null}
+        minhas={(st?.minhas || []).filter(m => m.hora === assistindo)} local={local}
+        onClose={() => { fechouVivo.current = assistindo; setAssistindo(null); }} />}
       {aviso && <div className={'bx-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
       {regras && <Modal onClose={() => setRegras(false)}><h2>Como jogar</h2>
         <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
@@ -140,11 +192,12 @@ export default function JogoDoBicho() {
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
       <style>{`
 .bx{overflow:hidden;display:flex;flex-direction:column}
-.bx-top{display:flex;align-items:center;gap:8px;padding:8px 12px 4px}
-.bx-logo{font:700 clamp(20px,5.6vw,28px) Oswald;color:#fff;font-style:italic;letter-spacing:.5px;margin-right:auto;white-space:nowrap}
+.bx-top{display:flex;align-items:center;gap:6px;padding:8px 10px 4px;min-width:0}
+.bx-logo{font:700 clamp(17px,5vw,28px) Oswald;color:#fff;font-style:italic;letter-spacing:.3px;margin-right:auto;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .bx-logo b{color:var(--gold)}
-.bx-top .rbtn{width:38px;height:38px;font-size:16px}
-.bx-saldo{display:flex;align-items:center;gap:5px;border:1px solid #4ade8088;background:#0008;color:#fff;border-radius:20px;padding:4px 4px 4px 10px;font:600 16px Oswald;cursor:pointer}
+.bx-top .rbtn{width:40px;height:40px;font-size:18px;flex:none}
+.bx-top .bx-volta{width:auto;padding:0 12px;border-radius:20px;font:700 15px Oswald;gap:4px;display:flex;align-items:center;background:linear-gradient(180deg,#3a3326,#1d1810)}
+.bx-saldo{flex:none;display:flex;align-items:center;gap:5px;border:1px solid #4ade8088;background:#0008;color:#fff;border-radius:20px;padding:4px 4px 4px 10px;font:600 16px Oswald;cursor:pointer}
 .bx-saldo i{font-style:normal;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#22c55e;font:700 15px Rubik}
 .bx-prox{margin:4px 12px 6px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:16px;color:#fff;border:2px solid #fde68a99;
   background:repeating-linear-gradient(120deg,#ffffff10 0 14px,transparent 14px 34px),linear-gradient(135deg,#16a34a,#065f2c 60%,#033d1c);box-shadow:0 6px 16px #0008}
@@ -185,6 +238,7 @@ export default function JogoDoBicho() {
 .bx-premio b{color:#4ade80}.bx-premio small{color:#a8a29e}
 .bx-apostar{width:100%;border:none;border-radius:14px;background:linear-gradient(180deg,#22c55e,#15803d);color:#fff;font:700 16px Oswald;padding:13px 8px;box-shadow:0 4px 0 #0007;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bx-apostar:disabled{opacity:.55}
+.bx-regras{display:block;margin:10px auto 0;border:none;background:none;color:#fde047;font:600 14px Rubik;text-decoration:underline}
 .bx-lista{display:flex;flex-direction:column;gap:8px}
 .bx-vazio{text-align:center;color:#a8a29e;font:500 14px Rubik;padding:30px 10px;display:flex;flex-direction:column;gap:12px;align-items:center}
 .bx-ap{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 12px;border-radius:14px;background:#1f1a12;border:1px solid #ffffff1f;color:#fff}
@@ -200,6 +254,42 @@ export default function JogoDoBicho() {
 .bx-rl i{font-style:normal;font-size:22px}
 .bx-rl em{flex:1;font:500 14px Rubik;font-style:normal}
 .bx-rl small{font:600 12px Oswald;color:#fde047}
+.bx-vivobar{margin:0 12px 6px;display:flex;align-items:center;gap:8px;justify-content:center;border:1.5px solid #f87171;border-radius:14px;background:#450a0acc;color:#fff;font:500 14px Rubik;padding:9px 10px}
+.bx-vivobar i,.bx-live i{width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 #ef4444aa;animation:bxpulse 1.2s infinite;flex:none;display:inline-block}
+.bx-vivobar b{color:#fde047}
+@keyframes bxpulse{0%{box-shadow:0 0 0 0 #ef4444aa}70%{box-shadow:0 0 0 9px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
+.bx-vivo{position:fixed;inset:0;z-index:50;background:#000c;display:flex;align-items:center;justify-content:center;padding:12px}
+.bx-vivoc{width:min(460px,100%);background:radial-gradient(ellipse at 50% 0%,#14532d,#052e16 60%,#020f08);border:2px solid #fde68a99;border-radius:20px;padding:12px;box-shadow:0 10px 40px #000;color:#fff}
+.bx-vivot{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bx-vivot b{flex:1;font:700 20px Oswald;font-style:italic}
+.bx-vivot button{border:none;background:#0006;color:#fff;border-radius:50%;width:32px;height:32px;font-size:16px}
+.bx-live{display:flex;align-items:center;gap:6px;background:#dc2626;border-radius:8px;padding:3px 8px;font:700 13px Oswald;letter-spacing:.5px}
+.bx-live i{background:#fff}
+.bx-vivoesp{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 0}
+.bx-vivoesp small{font:500 13px Rubik;opacity:.8}.bx-vivoesp b{font:700 44px Oswald;color:#fde047}
+.bx-vivoesp span{font:500 14px Rubik;opacity:.85}
+.bx-girando{display:inline-block;animation:bxgira 1s linear infinite}
+@keyframes bxgira{to{transform:rotate(360deg)}}
+.bx-vivol{display:flex;flex-direction:column;gap:7px}
+.bx-vl{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:14px;background:#0006;border:1.5px solid #ffffff1a;transition:.3s}
+.bx-vl.on{border-color:#fde047;background:#422006aa;box-shadow:0 0 16px #fde04744}
+.bx-vl.ok{border-color:#4ade8088}
+.bx-vk{width:30px;font:700 18px Oswald;color:#fde047}
+.bx-dg{display:flex;gap:5px}
+.bx-dg i{width:38px;height:48px;border-radius:9px;background:linear-gradient(180deg,#fffdf6,#e7dfc8);color:#111;display:grid;place-items:center;font:700 32px Oswald;font-style:normal;overflow:hidden;position:relative;box-shadow:inset 0 -3px 0 #0002}
+.bx-dg i s{text-decoration:none;position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;opacity:.2}
+.bx-dg i s u{text-decoration:none;height:48px;line-height:48px;text-align:center;flex:none}
+.bx-dg i.gira s{opacity:1;filter:blur(.6px);animation:bxroda .5s linear infinite}
+@keyframes bxroda{from{transform:translateY(0)}to{transform:translateY(-480px)}}
+.bx-dg i.v{animation:bxpara .35s ease-out}
+@keyframes bxpara{0%{transform:scale(1.35);background:#fde047}100%{transform:scale(1)}}
+.bx-vb{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
+.bx-vb em{font-style:normal;font-size:28px;animation:bxpara .4s ease-out}
+.bx-vb b{font:600 15px Rubik;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bx-vb small{font:500 12px Rubik;color:#fde047;opacity:.8}
+.bx-vivofim{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:14px;background:#0008;font:700 17px Oswald}
+.bx-vivofim.ganhou{background:linear-gradient(90deg,#15803d,#166534);border:1.5px solid #4ade80}
+.bx-vivofim button{border:none;border-radius:12px;background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;font:700 15px Oswald;padding:8px 16px}
 .bx-aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:30;background:#000e;border:1px solid #f87171;border-radius:14px;padding:9px 14px;font:500 14px Rubik;color:#fff;max-width:92vw;text-align:center}
 .bx-aviso.bom{border-color:#4ade80}
 `}</style>
