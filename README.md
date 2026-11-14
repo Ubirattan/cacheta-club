@@ -10,6 +10,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 ## O que já funciona
 
 - **🛡 Jogo responsável:** o cliente define limite de depósito (por dia, 7 dias e 30 dias), limite de tempo de jogo por dia e autoexclusão (24 h a 6 meses). Diminuir vale na hora; aumentar/tirar só depois de 24 h; autoexclusão não pode ser cancelada. Tela em `/jogo-responsavel` (🛡 na tela inicial, na loja e no perfil). ⚠️ Rode uma vez o `supabase/jogo-responsavel.sql`.
+- **📊 Relatório de jogos (painel admin → aba Jogos):** partidas, jogadores, fichas apostadas, pagas e o que ficou pra casa em cada jogo (hoje, 7 e 30 dias). ⚠️ Rode uma vez o `supabase/relatorio-jogos.sql`.
 - **⚠️ Aviso de erro:** quando o servidor dá erro (API, futebol, aviso do Pix), o celular do admin recebe uma notificação (a mesma das vendas). O mesmo erro só avisa de novo depois de 30 min.
 - **Mines e Double (cassino):** Mines com grade 5x5, de 3 a 24 bombas, a casa fica com 10% e prêmio máximo de 4 mil fichas. Double ao vivo com 15 casas (7 vermelhas 2x, 7 pretas 2x, 1 branca 14x), girando 10 s. ⚠️ Rode uma vez o `supabase/mines-double.sql` no SQL Editor do Supabase.
 - **Cadastro e login** com apelido, e-mail e senha, ou **com o Google**.

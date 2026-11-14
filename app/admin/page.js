@@ -79,6 +79,43 @@ function Overview() {
   </>;
 }
 
+// 📊 quais jogos o pessoal mais joga (hoje / 7 dias / 30 dias)
+function Relatorio() {
+  const [dias, setDias] = useState(7), [r, setR] = useState(null);
+  useEffect(() => { setR(null); adm('relatorio', { dias }).then(setR).catch(e => toast(e.message)); }, [dias]);
+  const f2 = n => Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  const max = r?.jogos?.length ? Math.max(...r.jogos.map(j => j.partidas)) : 1;
+  return <div className="panel">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <h3 style={{ fontSize: 18, flex: 1 }}>📊 Jogos mais jogados</h3>
+      <div className="seg" style={{ margin: 0 }}>{[[1, 'Hoje'], [7, '7 dias'], [30, '30 dias']].map(([d, t]) => <button key={d} className={dias === d ? 'on' : ''} onClick={() => setDias(d)}>{t}</button>)}</div>
+    </div>
+    {!r ? <div className="empty">Carregando…</div> : r.erro ? <p className="hint" style={{ color: '#fca5a5' }}>⚠️ {r.erro}</p> : !r.jogos.length ? <p className="hint">Nenhuma partida nesse período.</p> : <>
+      <div className="statg" style={{ marginTop: 8 }}>
+        <div><b>{f2(r.total.partidas)}</b><small>partidas/apostas</small></div>
+        <div><b>{f2(r.total.apostado)}</b><small>fichas apostadas</small></div>
+        <div><b>{f2(r.total.pago)}</b><small>fichas pagas</small></div>
+        <div><b style={{ color: r.total.casa >= 0 ? '#4ade80' : '#f87171' }}>{f2(r.total.casa)}</b><small>ficou pra casa</small></div>
+      </div>
+      <div className="rel-tab">
+        <div className="rel-l rel-h"><span>Jogo</span><span>Partidas</span><span>Jogadores</span><span>Apostado</span><span>Pago</span><span>Casa</span></div>
+        {r.jogos.map(j => <div key={j.id} className="rel-l">
+          <span><b>{j.nome}</b><i style={{ width: Math.max(4, j.partidas / max * 100) + '%' }} /></span>
+          <span>{f2(j.partidas)}</span><span>{f2(j.jogadores)}</span><span>{f2(j.apostado)}</span><span>{f2(j.pago)}</span>
+          <span style={{ color: j.casa >= 0 ? '#4ade80' : '#f87171' }}>{f2(j.casa)}</span>
+        </div>)}
+      </div>
+      <p className="hint">Partidas: no futebol, Foguetinho e Double conta cada aposta; nas mesas online, cada partida. Futebol em aberto ainda aparece sem prêmio pago. Roleta, Onça e jogos contra o computador começam a contar a partir de agora.</p>
+    </>}
+    <style>{`.rel-tab{margin-top:10px;display:flex;flex-direction:column;gap:3px;overflow-x:auto}
+.rel-l{display:grid;grid-template-columns:minmax(150px,2.2fr) repeat(5,minmax(62px,1fr));gap:6px;align-items:center;padding:6px 8px;border-radius:8px;background:#ffffff08;font:400 13px Rubik;min-width:520px}
+.rel-l span{text-align:right}.rel-l span:first-child{text-align:left;position:relative}
+.rel-l span:first-child b{position:relative;z-index:1;font-weight:500}
+.rel-l span:first-child i{position:absolute;left:-4px;top:-3px;bottom:-3px;background:#f2c94c22;border-radius:6px}
+.rel-h{background:none;font:600 12px Oswald;color:var(--gold);text-transform:uppercase}`}</style>
+  </div>;
+}
+
 function Players({ me }) {
   const [q, setQ] = useState(''), [list, setList] = useState(null), [delta, setDelta] = useState({});
   const load = useCallback(() => adm('players', { q }).then(r => setList(r.players)).catch(e => toast(e.message)), [q]);
@@ -319,7 +356,7 @@ function Resgates({ onChange }) {
     </div>))}</div>;
 }
 
-const TABS = [['geral', 'Visão geral'], ['resgates', 'Resgates'], ['vendas', 'Vendas'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
+const TABS = [['geral', 'Visão geral'], ['rel', '📊 Jogos'], ['resgates', 'Resgates'], ['vendas', 'Vendas'], ['jog', 'Jogadores'], ['part', 'Partidas'], ['salas', 'Salas'], ['tor', 'Torneios'], ['cfg', 'Regras e configurações']];
 function Body({ profile, user }) {
   const [tab, setTab] = useState('geral');
   const [logged, setLogged] = useState(() => !!getTok());
@@ -341,7 +378,7 @@ function Body({ profile, user }) {
   return <>
     <div className="admtabs">{TABS.map(([k, t]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{t}{k === 'vendas' && unread > 0 && tab !== 'vendas' && <span className="badge-n" style={{ position: 'static', marginLeft: 6 }}>{unread}</span>}{k === 'resgates' && pend > 0 && <span className="badge-n" style={{ position: 'static', marginLeft: 6 }}>{pend}</span>}</button>)}
       <button onClick={() => { setTok(''); setLogged(false); }}>🚪 Sair do painel</button></div>
-    {tab === 'geral' && <Overview />}{tab === 'vendas' && <Sales onSeen={clearUnread} />}{tab === 'resgates' && <Resgates onChange={setPend} />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
+    {tab === 'geral' && <Overview />}{tab === 'rel' && <Relatorio />}{tab === 'vendas' && <Sales onSeen={clearUnread} />}{tab === 'resgates' && <Resgates onChange={setPend} />}{tab === 'jog' && <Players me={user.id} />}{tab === 'part' && <Matches />}
     {tab === 'salas' && <Rooms />}{tab === 'tor' && <Tournaments />}{tab === 'cfg' && <><Settings /><ChangePass /></>}
   </>;
 }
