@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { api, sb } from '../lib/supabase-browser.js';
 import { toast } from './ui.js';
 
-const JOGOS = /^\/(sala|truco|gude|sinuca|pipa|roleta|roleta-vivo|foguete|onca|mines|double|futebol|lobby|torneios)(\/|$)/;
+const JOGOS = /^\/(|sala|truco|gude|sinuca|pipa|roleta|roleta-vivo|foguete|onca|mines|double|futebol|lobby|torneios)(\/|$)/;
 
 export default function TempoJogo() {
   const path = usePathname() || '';
@@ -35,7 +35,7 @@ export default function TempoJogo() {
         <div style={{ fontSize: 44, lineHeight: 1 }}>{fim.excluido ? '⛔' : '⏱'}</div>
         <h2>{fim.excluido ? 'Autoexclusão' : 'Tempo de hoje acabou'}</h2>
         <p>{fim.excluido ? 'Você está em autoexclusão. Até ela acabar, não dá pra jogar nem apostar.' : `Você chegou no seu limite de ${fim.limite} min de jogo hoje. Os jogos voltam amanhã.`}</p>
-        <a className="go" style={{ display: 'block', textDecoration: 'none' }} href="/">Voltar pro início</a>
+        <a className="go" style={{ display: 'block', textDecoration: 'none' }} href="/inicio">Voltar pro início</a>
         <a className="sec" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }} href="/jogo-responsavel">Ver meus limites</a>
       </div>
     </div>
