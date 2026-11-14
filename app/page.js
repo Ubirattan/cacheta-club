@@ -18,15 +18,14 @@ const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(wind
 export default function Home() {
   const router = useRouter();
   const { user, profile, reloadProfile } = useAuth({ required: false });
-  const online = useOnline(user, profile, 'inicio');
+  useOnline(user, profile, 'inicio');   // continua contando quem está no site (o número aparece só dentro da cacheta)
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');
   useEffect(() => { if (user) sb().from('app_settings').select('value').eq('key', 'motd').maybeSingle().then(({ data }) => setMotd(data ? data.value : '')); }, [user]);
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
-        mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>}
-        right={<span className="online"><i />{online.length} online</span>} />
+        mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div className="cj-grade">
         {JOGOS.map(j => (
@@ -41,7 +40,7 @@ export default function Home() {
       <div className="cj-acoes">
         <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
         <button className="buybtn" style={{ background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#4ade80,#15803d)' }} onClick={() => profile ? setModal('indique') : pedirConta()}>🤝 Indique e ganhe <small>10 fichas por amigo</small></button>
+        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#4ade80,#15803d)' }} onClick={() => profile ? setModal('indique') : pedirConta()}>🤝 Indique e ganhe <small>10 por amigo · 50 amigos = +300</small></button>
       </div>
       <div className="footbar">
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
