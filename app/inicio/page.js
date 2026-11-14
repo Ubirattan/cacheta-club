@@ -9,8 +9,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header } from '../../components/ui.js';
 import { JOGOS as J } from '../../lib/jogos.js';
-// Na aba Jogos ficam sinuca, pipa, bolinha de gude e jogo do bicho (cacheta, futebol e cassino têm aba própria na barra de baixo).
-const JOGOS = ['sinuca', 'pipa', 'gude', 'bicho'].map(id => ({ id, ...J[id] }));
+// Na aba Jogos ficam sinuca, pipa, bolinha de gude, dominó e jogo do bicho (cacheta, futebol e cassino têm aba própria na barra de baixo).
+const JOGOS = ['sinuca', 'pipa', 'gude', 'domino', 'bicho'].map(id => ({ id, ...J[id] }));
+import IconeDomino from '../../components/IconeDomino.js';
 import ProfileModal from '../../components/ProfileModal.js';
 
 
@@ -37,7 +38,7 @@ export default function Home() {
       <div className="modes jg-modes">
         {JOGOS.map(j => (
           <button key={j.id} className="mode" style={{ '--g': j.g }} onClick={() => router.push(j.href)}>
-            <div className="art"><span className="burst" /><span className="jg-em">{j.em || <i className="cj-gude" />}</span></div>
+            <div className="art"><span className="burst" /><span className="jg-em">{j.id === 'domino' ? <IconeDomino size={70} /> : j.em || <i className="cj-gude" />}</span></div>
             <h3>{j.nome}</h3>
             {j.novo && <em>NOVO</em>}
           </button>
