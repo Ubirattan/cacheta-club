@@ -25,9 +25,9 @@ function nomeDia(t) {
   return s[0].toUpperCase() + s.slice(1);
 }
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
-// Minhas apostas: em aberto (esperando o jogo) e encerradas (ganhou, perdeu, cash out ou devolvida), que somem depois de 7 dias
+// Minhas apostas: em aberto (esperando o jogo) e encerradas (ganhou, perdeu, cash out ou devolvida), que somem depois de 24 horas
 const ABERTAS = ['aberta', 'pendente'];
-const ENCERRADAS_MS = 7 * 24 * 3600e3;
+const ENCERRADAS_MS = 24 * 3600e3;
 const AVISOS = [
   { id: 'promo', em: '🎁', t: 'Promoções', sub: 'Ranking da cacheta e indique amigos: ganhe fichas!', btn: 'Ver promoções', href: '/promocoes', g: 'linear-gradient(135deg,#f472b6,#db2777 50%,#7e22ce)' },
   { id: 'sinuca', em: '🎱', t: 'Sinuca', sub: 'Bola 8, bola lisa e bolinho · online valendo fichas', btn: 'Jogar agora', href: '/jogos/sinuca', g: 'linear-gradient(135deg,#4ade80,#15803d 55%,#0b4d25)' },
@@ -572,7 +572,7 @@ export default function Futebol() {
         })()}
         {!minhas && <div className="fb-vazio">Carregando…</div>}
         {minhas && !(minhas || []).filter(a => filtroAp === 'abertas' ? ABERTAS.includes(a.status) : !ABERTAS.includes(a.status) && Date.now() - (a.fim || a.em) < ENCERRADAS_MS).length &&
-          <div className="fb-vazio">{filtroAp === 'abertas' ? 'Nenhuma aposta em aberto.' : 'Nenhuma aposta encerrada nos últimos 7 dias.'}</div>}
+          <div className="fb-vazio">{filtroAp === 'abertas' ? 'Nenhuma aposta em aberto.' : 'Nenhuma aposta encerrada nas últimas 24 horas.'}</div>}
         {(minhas || []).filter(a => filtroAp === 'abertas' ? ABERTAS.includes(a.status) : !ABERTAS.includes(a.status) && Date.now() - (a.fim || a.em) < ENCERRADAS_MS).map(a => (
           <div className="fb-ap" key={a.id} style={{ '--c': ST[a.status][1] }}>
             <div className="fb-ap-t">
