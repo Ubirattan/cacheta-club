@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { api, sb } from '../lib/supabase-browser.js';
 import { toast } from './ui.js';
 
-const JOGOS = /^\/(sala|truco|gude|sinuca|pipa|roleta|foguete|onca|mines|double|futebol|lobby|torneios)(\/|$)/;
+const JOGOS = /^\/(sala|truco|gude|sinuca|pipa|roleta|roleta-vivo|foguete|onca|mines|double|futebol|lobby|torneios)(\/|$)/;
 
 export default function TempoJogo() {
   const path = usePathname() || '';

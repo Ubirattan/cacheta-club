@@ -9,6 +9,7 @@ As fichas são virtuais: não valem dinheiro, não têm saque e não dá pra tro
 
 ## O que já funciona
 
+- **🔴 Roleta ao vivo:** a mesma roleta europeia, mas todo mundo joga a mesma rodada (20 s pra apostar, 10 s girando), vendo quantos jogadores e quanto foi apostado. Dá pra apostar várias vezes na rodada (até 500). A roleta normal continua. ⚠️ Rode uma vez o `supabase/roleta-vivo.sql`.
 - **🛡 Jogo responsável:** o cliente define limite de depósito (por dia, 7 dias e 30 dias), limite de tempo de jogo por dia e autoexclusão (24 h a 6 meses). Diminuir vale na hora; aumentar/tirar só depois de 24 h; autoexclusão não pode ser cancelada. Tela em `/jogo-responsavel` (🛡 na tela inicial, na loja e no perfil). ⚠️ Rode uma vez o `supabase/jogo-responsavel.sql`.
 - **📊 Relatório de jogos (painel admin → aba Jogos):** partidas, jogadores, fichas apostadas, pagas e o que ficou pra casa em cada jogo (hoje, 7 e 30 dias). ⚠️ Rode uma vez o `supabase/relatorio-jogos.sql`.
 - **⚠️ Aviso de erro:** quando o servidor dá erro (API, futebol, aviso do Pix), o celular do admin recebe uma notificação (a mesma das vendas). O mesmo erro só avisa de novo depois de 30 min.
