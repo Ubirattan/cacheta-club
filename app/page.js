@@ -18,15 +18,14 @@ const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(wind
 export default function Home() {
   const router = useRouter();
   const { user, profile, reloadProfile } = useAuth({ required: false });
-  const online = useOnline(user, profile, 'inicio');
+  useOnline(user, profile, 'inicio');   // continua contando quem está no site (o número aparece só dentro da cacheta)
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');
   useEffect(() => { if (user) sb().from('app_settings').select('value').eq('key', 'motd').maybeSingle().then(({ data }) => setMotd(data ? data.value : '')); }, [user]);
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
-        mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>}
-        right={<span className="online"><i />{online.length} online</span>} />
+        mid={<div className="cj-logo">CASA DE <b>JOGOS</b></div>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div className="cj-grade">
         {JOGOS.map(j => (
