@@ -14,6 +14,14 @@ const ITENS = [
 ];
 const MOSTRA = /^\/(|futebol|inicio|home|jogos|cacheta|promocoes|loja|ranking|resgate|historico|jogo-responsavel|torneios)(\/|$)/;
 
+// guarda o pedido de instalação do Chrome (beforeinstallprompt) pro botão "Baixar o app" da Home usar
+if (typeof window !== 'undefined' && !window.__cjInstalar) {
+  window.__cjInstalar = { ev: null };
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__cjInstalar.ev = e; window.dispatchEvent(new Event('cj-instalar')); });
+  window.addEventListener('appinstalled', () => { window.__cjInstalar.ev = null; window.__cjInstalar.ok = true; window.dispatchEvent(new Event('cj-instalar')); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+}
+
 export default function BarraNav() {
   const path = usePathname() || '/';
   const on = MOSTRA.test(path);
