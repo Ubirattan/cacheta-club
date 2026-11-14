@@ -32,7 +32,7 @@ export default function Cacheta() {
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
         mid={<div className="cx-tit">🃏 CACHETA</div>}
-        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/')}>↩</button></>} />
+        right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/inicio')}>↩</button></>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
       <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>

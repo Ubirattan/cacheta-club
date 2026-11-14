@@ -502,3 +502,19 @@ a.badge{text-decoration:none;color:inherit}
 .vis-btn.ent{background:linear-gradient(180deg,#38b6ff,#1565d8)}
 .vis-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #0008}
 @media (max-width:560px){.plate.vis .who{display:none}}
+
+/* barra de baixo (Futebol · Cassino · Cacheta · Jogos · Promoções): só com o celular em pé */
+.barra-nav{display:none}
+@media (orientation:portrait){
+.barra-nav{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:30;display:flex;justify-content:space-around;align-items:stretch;height:58px;border-radius:20px;background:linear-gradient(180deg,#26211a,#141109);border:1.5px solid #ffffff1f;box-shadow:0 8px 24px #000c}
+.barra-nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:#b8ad96;font:500 11px Rubik;border-radius:16px;margin:4px 2px}
+.barra-nav a i{font-style:normal;font-size:22px;line-height:1;filter:grayscale(.5);transition:transform .15s}
+.barra-nav a.on{color:#ffd76a;background:#ffd76a1a}
+.barra-nav a.on i{filter:none;transform:scale(1.12)}
+body.tem-barra .page{bottom:calc(72px + env(safe-area-inset-bottom))}
+body.tem-barra .fb-flut{bottom:80px}
+body.tem-barra .fb-cbar{bottom:80px}
+body.tem-barra .fb-cbar.sobe{bottom:138px}
+body.tem-barra .fb-bil.aberto{z-index:40}
+body.tem-barra .fbp{height:auto!important}
+}

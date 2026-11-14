@@ -106,7 +106,7 @@ export default function Lobby() {
   return (
     <div className="page lounge">
       <Header profile={profile} onProfile={() => setModal('perfil')}
-        right={<><button className="online" onClick={() => setModal('online')}><i />{online.length} online</button><button className="rbtn" onClick={() => router.push('/')}>↩</button></>} />
+        right={<><button className="online" onClick={() => setModal('online')}><i />{online.length} online</button><button className="rbtn" onClick={() => router.push('/inicio')}>↩</button></>} />
       <div className="tabs">
         {[['todas', 'Todas'], ...Object.entries(MODES).map(([k, m]) => [k, m.name]), ['truco', '♣️ Truco'], ['gude', '🔵 Gude'], ['sinuca', '🎱 Sinuca'], ['pipa', '🪁 Pipa']].map(([k, t]) =>
           <button key={k} className={mode === k ? 'on' : ''} onClick={() => setMode(k)}>{t}</button>)}

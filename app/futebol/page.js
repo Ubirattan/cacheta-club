@@ -3,7 +3,7 @@
 // com as odds da API-Football. Bilhete simples ou múltiplo. O servidor confere tudo (/api/futebol).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../components/useAuth.js';
+import { useAuth, contaUrl } from '../../components/useAuth.js';
 import { Modal } from '../../components/ui.js';
 import { api } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
@@ -44,7 +44,9 @@ function Escudo({ src, nome }) {
 
 export default function Futebol() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: false });
+  const { profile, reloadProfile, visitante } = useAuth({ required: false });
+  const [naInicial, setNaInicial] = useState(false);   // o site abre aqui (sem botão de voltar)
+  useEffect(() => { setNaInicial(location.pathname === '/'); }, []);
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/futebol', b);
   const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
@@ -475,10 +477,11 @@ export default function Futebol() {
           <button className={'fb-tvivo' + (aba === 'vivo' ? ' on' : '')} onClick={() => setAba('vivo')}><span className="fb-ponto" />Ao vivo{st?.aoVivo ? <i>{st.aoVivo}</i> : null}</button>
           <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
         </div>
-        <span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
-        <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button>
-        <button className="fb-sair" title="Voltar" aria-label="Voltar para a Casa de Jogos" onClick={() => router.push('/')}>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+        {visitante && !local ? <span className="fb-vis"><a className="vis-btn cad" href={contaUrl('criar')}>Cadastrar</a><a className="vis-btn ent" href={contaUrl('entrar')}>Entrar</a></span>
+          : <><span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
+          <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button></>}
+        <button className={'fb-sair' + (naInicial ? ' ini' : '')} title={naInicial ? 'Outros jogos' : 'Voltar'} aria-label="Outros jogos da Casa de Jogos" onClick={() => router.push('/inicio')}>
+          {naInicial ? <span style={{ fontSize: 20 }}>🎮</span> : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>}
         </button>
       </div>
       {st?.admin && (st.admin.erro || !st.admin.chave) && <div className="fb-adm">🛠 {!st.admin.chave ? 'Falta cadastrar APIFOOTBALL_KEY no Netlify.' : `Erro da API (${st.admin.erro.passo}): ${st.admin.erro.msg}`} · chamadas hoje: {st.admin.chamadasHoje}/{st.admin.limite}</div>}
@@ -656,6 +659,7 @@ export default function Futebol() {
 .fb-top .rbtn{width:36px;height:36px;font-size:15px}
 .fb-sair{flex:none;margin-left:auto;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;box-shadow:0 3px 8px #0008;cursor:pointer}
 .fb-sair:active{transform:scale(.94)}
+.fb-vis{display:flex;gap:6px;margin-left:auto}.fb-vis .vis-btn{padding:6px 12px;font-size:14px}
 .fb-adm{margin:0 10px 4px;padding:5px 10px;border-radius:10px;background:#7f1d1d;color:#fecaca;font:500 12px Rubik}
 .fb-aviso{position:fixed;left:50%;top:54px;transform:translateX(-50%);z-index:30;background:#000d;border:1px solid #f87171;border-radius:14px;padding:7px 14px;font:500 14px Rubik;color:#fff;max-width:90vw;text-align:center}
 .fb-aviso.bom{border-color:#4ade80}
@@ -808,6 +812,7 @@ export default function Futebol() {
 .fb-top{gap:6px;padding:6px 8px 4px}
 .fb-abas{margin-left:0;min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}
 .fb-sair{width:38px;height:38px}
+.fb-sair.ini{display:none}
 .fb-abas button{padding:5px 10px;font-size:13px}
 .fb-saldo{font-size:14px;padding:3px 8px}
 .fb-top .rbtn{width:32px;height:32px;font-size:14px}

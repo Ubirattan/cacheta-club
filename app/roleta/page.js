@@ -31,6 +31,7 @@ export default function Roleta() {
   useEffect(() => {
     if (!maior || !boxRef.current) return;
     const ui = criarRoleta(boxRef.current, {
+      tema: 'azul',
       coins: profile ? profile.coins || 0 : null,
       som: t => sfx(t === 'bola' ? 'card' : t),
       girar: apostas => (TESTE && !profRef.current ? sorteioTeste(apostas) : api('/api/roleta', { apostas })),
@@ -54,7 +55,7 @@ export default function Roleta() {
   return (
     <div className="page lounge rlp">
       <div className="rlp-top">
-        <div className="rlp-logo">ROLETA</div>
+        <div className="rlp-logo">ROLETA <b>CLÁSSICA</b></div>
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
         <button className="rbtn" title="Som" onClick={() => { setSound(!som); setSom(!som); }}>{som ? '🔊' : '🔇'}</button>
         <button className="rbtn" title="Loja" onClick={() => router.push('/loja#comprar')}>💰</button>
@@ -71,7 +72,8 @@ export default function Roleta() {
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
       <style>{`
-.rlp{overflow:hidden}
+.rlp{overflow:hidden;background:radial-gradient(ellipse at 30% 0%,#1e3a8a,#0b1220 60%,#05080f)!important}
+.rlp-logo b{color:#7dd3fc;font-size:.7em;margin-left:4px}
 .rlp-top{display:flex;align-items:center;gap:8px;padding:6px 12px 2px}
 .rlp-logo{font:700 clamp(20px,5vmin,30px) Oswald;color:var(--gold);font-style:italic;letter-spacing:1px;margin-right:auto}
 .rlp-top .rbtn{width:40px;height:40px;font-size:17px}
