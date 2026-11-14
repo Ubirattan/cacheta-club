@@ -24,6 +24,12 @@ function nomeDia(t) {
   return s[0].toUpperCase() + s.slice(1);
 }
 const f2 = n => Number(n).toFixed(2).replace('.', ',');
+const AVISOS = [
+  { id: 'promo', em: '🎁', t: 'Promoções', sub: 'Ranking da cacheta e indique amigos: ganhe fichas!', btn: 'Ver promoções', href: '/promocoes', g: 'linear-gradient(135deg,#f472b6,#db2777 50%,#7e22ce)' },
+  { id: 'criar', em: '🧩', t: 'Criar aposta', sub: 'Junte vários palpites do mesmo jogo num bilhete só', btn: 'Como funciona', g: 'linear-gradient(135deg,#a855f7,#6d28d9 55%,#3b0764)' },
+  { id: 'antecipa', em: '💰', t: 'Pagamento antecipado', sub: 'Seu time abriu 2 gols de vantagem? Você já ganhou!', btn: 'Como funciona', g: 'linear-gradient(135deg,#f59e0b,#c2410c 55%,#7c2d12)' },
+  { id: 'cashout', em: '💸', t: 'Cash out', sub: 'Encerre a aposta antes do fim e receba na hora', btn: 'Como funciona', g: 'linear-gradient(135deg,#0ea5e9,#1d4ed8 55%,#172554)' },
+];
 const ST = { aberta: ['Em aberto', '#fbbf24'], ganhou: ['Ganhou', '#4ade80'], perdeu: ['Perdeu', '#f87171'], devolvida: ['Devolvida', '#93c5fd'], cashout: ['Cash out', '#c084fc'], pendente: ['Confirmando…', '#f87171'], recusada: ['Recusada', '#94a3b8'] };
 const FIMS = ['FT', 'AET', 'PEN'], VIVO = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT', 'SUSP'];
 function quando(s) {
@@ -194,17 +200,23 @@ export default function Futebol() {
     const mais = prox.length + vs.length < 4 ? jogos.filter(j => !j.antecipa).slice(0, 4 - prox.length - vs.length) : [];
     return [...vs, ...prox, ...mais].slice(0, 8);
   }, [vivoSt, jogos]);
+  // na faixa também passam os avisos: Promoções, Criar aposta, Pagamento antecipado e Cash out
+  const faixa = useMemo(() => {
+    const out = [], av = AVISOS.map(a => ({ aviso: a }));
+    for (let i = 0; i < Math.max(destaques.length, av.length); i++) { if (destaques[i]) out.push(destaques[i]); if (av[i]) out.push(av[i]); }
+    return out;
+  }, [destaques]);
   const [dIdx, setDIdx] = useState(0);
   const dRef = useRef(null), dPausa = useRef(0);
   useEffect(() => {
-    const n = destaques.length; if (n < 2) return;
+    const n = faixa.length; if (n < 2) return;
     const t = setInterval(() => {
       const el = dRef.current; if (!el || Date.now() < dPausa.current) return;
       const prox = (Math.round(el.scrollLeft / (el.firstChild?.offsetWidth + 8 || 1)) + 1) % n;
       const alvo = el.children[prox]; if (alvo) el.scrollTo({ left: alvo.offsetLeft - el.offsetLeft - 8, behavior: 'smooth' });
     }, 4000);
     return () => clearInterval(t);
-  }, [destaques.length]);
+  }, [faixa.length]);
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
   const igualL = (a, b) => (a == null && b == null) || Number(a) === Number(b);
@@ -383,11 +395,16 @@ export default function Futebol() {
     </div>;
   }
   function destaque() {
-    if (!destaques.length) return null;
+    if (!faixa.length) return null;
     return <div className="fb-dest">
       <div className="fb-dest-faixa" ref={dRef} onPointerDown={() => { dPausa.current = Date.now() + 9000; }}
-        onScroll={e => { const el = e.currentTarget, w = (el.firstChild?.offsetWidth || 1) + 8; setDIdx(Math.min(destaques.length - 1, Math.round(el.scrollLeft / w))); }}>
-        {destaques.map(j => {
+        onScroll={e => { const el = e.currentTarget, w = (el.firstChild?.offsetWidth || 1) + 8; setDIdx(Math.min(faixa.length - 1, Math.round(el.scrollLeft / w))); }}>
+        {faixa.map(j => {
+          if (j.aviso) { const a = j.aviso; return <div key={'a' + a.id} className="fb-dcard fb-daviso" style={{ '--g': a.g }}
+            onClick={() => a.href ? router.push(a.href) : setRegras(true)}>
+            <span className="fb-daem">{a.em}</span>
+            <div className="fb-datx"><b>{a.t}</b><small>{a.sub}</small><u>{a.btn} ›</u></div>
+          </div>; }
           const o = j.aoVivo ? j.odds?.['1x2'] : j.odds?.['1x2'];
           return <div key={(j.aoVivo ? 'v' : 'p') + j.id} className={'fb-dcard' + (j.aoVivo ? ' vivo' : '')}>
             <div className="fb-dtopo" onClick={() => j.aoVivo ? setAba('vivo') : abrirJogo(j)}>
@@ -408,7 +425,7 @@ export default function Futebol() {
           </div>;
         })}
       </div>
-      {destaques.length > 1 && <div className="fb-dpontos">{destaques.map((_, i) => <i key={i} className={i === dIdx ? 'on' : ''} />)}</div>}
+      {faixa.length > 1 && <div className="fb-dpontos">{faixa.map((_, i) => <i key={i} className={i === dIdx ? 'on' : ''} />)}</div>}
     </div>;
   }
   function listaVivo() {
@@ -470,7 +487,6 @@ export default function Futebol() {
 
   return (
     <div className="page lounge fbp">
-      <a className="fb-promo" href="/promocoes" aria-label="Promoções"><i>🎁</i><span>Promoções</span></a>
       <div className="fb-top">
         <div className="fb-logo">⚽ FUTEBOL</div>
         <div className="fb-abas">
@@ -478,17 +494,15 @@ export default function Futebol() {
           <button className={'fb-tvivo' + (aba === 'vivo' ? ' on' : '')} onClick={() => setAba('vivo')}><span className="fb-ponto" />Ao vivo{st?.aoVivo ? <i>{st.aoVivo}</i> : null}</button>
           <button className={aba === 'minhas' ? 'on' : ''} onClick={() => setAba('minhas')}>Minhas{st?.abertas ? <i>{st.abertas}</i> : null}</button>
         </div>
-        {visitante && !local ? null
-          : <><span className="fb-saldo">💰 <b>{coins == null ? '–' : fichas(coins)}</b></span>
-          <button className="rbtn" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰</button></>}
         <button className={'fb-sair' + (naInicial ? ' ini' : '')} title={naInicial ? 'Outros jogos' : 'Voltar'} aria-label="Outros jogos da Casa de Jogos" onClick={() => router.push('/inicio')}>
           {naInicial ? <span style={{ fontSize: 20 }}>🎮</span> : <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>}
         </button>
       </div>
-      {visitante && <div className="fb-visrow">
-        <a className="vis-btn cad" href={contaUrl('criar')}>📝 Cadastrar</a>
-        <a className="vis-btn ent" href={contaUrl('entrar')}>🔑 Entrar</a>
-      </div>}
+      <div className="fb-conta">
+        {visitante && <><a className="vis-btn cad" href={contaUrl('criar')}>📝 Cadastrar</a>
+          <a className="vis-btn ent" href={contaUrl('entrar')}>🔑 Entrar</a></>}
+        {(!visitante || local) && <button className="fb-saldo" title="Comprar fichas" onClick={() => router.push('/loja#comprar')}>💰 <b>{coins == null ? '–' : fichas(coins)}</b><i>+</i></button>}
+      </div>
       {st?.admin && (st.admin.erro || !st.admin.chave) && <div className="fb-adm">🛠 {!st.admin.chave ? 'Falta cadastrar APIFOOTBALL_KEY no Netlify.' : `Erro da API (${st.admin.erro.passo}): ${st.admin.erro.msg}`} · chamadas hoje: {st.admin.chamadasHoje}/{st.admin.limite}</div>}
       {aviso && <div className={'fb-aviso' + (aviso.bom ? ' bom' : '')}>{aviso.t}</div>}
       {confirmando && <div className="fb-conf"><div className="fb-conf-c"><span className="fb-ponto" /> Confirmando sua aposta ao vivo… <b>{Math.max(0, Math.ceil((confirmando.fim - Date.now()) / 1000))}</b><small>Se sair gol ou a odd cair nesse tempo, a aposta é recusada e as fichas voltam.</small></div></div>}
@@ -500,11 +514,6 @@ export default function Futebol() {
               <span>🧩 <b>Criar aposta em andamento</b><small>{cj.casa} x {cj.fora} · {criar.partes.length} {criar.partes.length === 1 ? 'palpite' : 'palpites'}{c && !c.erro ? ` · odd ${f2(c.odd)}` : ''}</small></span>
               <em>Continuar ›</em>
             </button>); })()}
-          <div className="fb-novs">
-            <button onClick={() => setRegras(true)}><b>🧩 Criar aposta</b><small>Abra o jogo e ligue a chave</small></button>
-            <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
-            <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
-          </div>
           <div className="fb-filtros">
             <button className={'fb-campbtn' + (liga ? ' on' : '')} onClick={() => setMenuLiga(v => !v)}>
               🏆 <span>{liga || 'Todos os campeonatos'}</span> <i>{menuLiga ? '▴' : '▾'}</i></button>
@@ -646,13 +655,6 @@ export default function Futebol() {
 .fb-cbar button{flex:none;border:none;border-radius:12px;background:#fbbf24;color:#1a1300;font:700 14px Rubik;padding:9px 12px}
 .fb-cbar button:disabled{opacity:.5}
 .fb-cbar-esp{display:none}
-.fb-promo{position:fixed;right:10px;bottom:calc(200px + env(safe-area-inset-bottom));z-index:14;width:68px;height:74px;border-radius:18px;border:2.5px solid #ffffffd9;background:linear-gradient(160deg,#f472b6,#db2777 50%,#7e22ce);box-shadow:0 5px 0 #0007,0 8px 18px #000a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:#fff;overflow:hidden;animation:fbpromo 2.4s ease-in-out infinite}
-.fb-promo::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,#ffffff55,transparent 60%);pointer-events:none}
-.fb-promo i{position:relative;font-style:normal;font-size:32px;line-height:1;filter:drop-shadow(0 3px 3px #0008)}
-.fb-promo span{position:relative;font:700 11px Oswald;font-style:italic;letter-spacing:.3px;text-shadow:0 1px 0 #0009}
-.fb-promo:active{transform:translateY(3px)}
-@keyframes fbpromo{0%,100%{transform:translateY(0) rotate(0)}10%{transform:translateY(-4px) rotate(-6deg)}20%{transform:translateY(0) rotate(5deg)}30%{transform:rotate(0)}}
-@media (orientation:landscape){.fb-promo{bottom:16px}}
 .fb-tvivo{display:inline-flex;align-items:center;gap:5px}
 .fb-ponto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 #ef4444;animation:fbvivo 1.2s infinite;vertical-align:middle}
 @keyframes fbvivo{0%{box-shadow:0 0 0 0 #ef4444cc}70%{box-shadow:0 0 0 6px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
@@ -671,7 +673,16 @@ export default function Futebol() {
 .fb-top .rbtn{width:36px;height:36px;font-size:15px}
 .fb-sair{flex:none;margin-left:auto;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;border:2px solid #fff;background:linear-gradient(180deg,#facc15,#d97706);color:#1a1206;box-shadow:0 3px 8px #0008;cursor:pointer}
 .fb-sair:active{transform:scale(.94)}
-.fb-visrow{display:flex;gap:10px;padding:8px 10px 2px}.fb-visrow .vis-btn{flex:1;text-align:center;font-size:18px;padding:10px 12px}
+.fb-conta{display:flex;gap:8px;padding:2px 10px 6px;align-items:center}
+.fb-conta .vis-btn{flex:1;text-align:center;font-size:17px;padding:9px 12px}
+.fb-conta .fb-saldo{margin-left:auto;display:flex;align-items:center;gap:6px;font:700 18px Oswald;padding:6px 6px 6px 14px;cursor:pointer}
+.fb-conta .fb-saldo i{font-style:normal;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#22c55e;color:#fff;font:700 18px Rubik}
+.fb-daviso{display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;border-color:#ffffffaa!important;background:repeating-linear-gradient(120deg,#ffffff12 0 14px,transparent 14px 34px),var(--g)!important}
+.fb-daem{font-size:54px;line-height:1;filter:drop-shadow(0 4px 4px #0008);flex:none}
+.fb-datx{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fb-datx b{font:700 clamp(20px,5.4vw,24px) Oswald;font-style:italic;text-transform:uppercase;text-shadow:0 2px 0 #0006;line-height:1}
+.fb-datx small{font:500 13px Rubik;opacity:.95;line-height:1.25}
+.fb-datx u{text-decoration:none;align-self:flex-start;background:#fff;color:#111;font:700 13px Rubik;border-radius:10px;padding:4px 10px;margin-top:2px}
 .fb-adm{margin:0 10px 4px;padding:5px 10px;border-radius:10px;background:#7f1d1d;color:#fecaca;font:500 12px Rubik}
 .fb-aviso{position:fixed;left:50%;top:54px;transform:translateX(-50%);z-index:30;background:#000d;border:1px solid #f87171;border-radius:14px;padding:7px 14px;font:500 14px Rubik;color:#fff;max-width:90vw;text-align:center}
 .fb-aviso.bom{border-color:#4ade80}
