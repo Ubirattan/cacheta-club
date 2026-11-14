@@ -10,7 +10,7 @@ import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header } from '../../components/ui.js';
 import { JOGOS as J } from '../../lib/jogos.js';
 // Na aba Jogos ficam sinuca, pipa, bolinha de gude, dominó e jogo do bicho (cacheta, futebol e cassino têm aba própria na barra de baixo).
-const JOGOS = ['sinuca', 'pipa', 'gude', 'domino', 'bicho', 'bingo'].map(id => ({ id, ...J[id] }));
+const JOGOS = ['sinuca', 'pipa', 'gude', 'domino', 'bingo', 'bicho'].map(id => ({ id, ...J[id] }));
 import IconeDomino from '../../components/IconeDomino.js';
 import ProfileModal from '../../components/ProfileModal.js';
 
