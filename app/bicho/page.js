@@ -62,7 +62,6 @@ export default function JogoDoBicho() {
       <div className="bx-top">
         <div className="bx-logo">🐾 <b>BICHO</b></div>
         {coins != null && <button className="bx-saldo" onClick={() => router.push('/loja#comprar')}>💰 <b>{fx(coins)}</b><i>+</i></button>}
-        <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
         <button className="rbtn bx-volta" title="Voltar" onClick={() => voltar(router, '/inicio')}>‹ Voltar</button>
       </div>
 
@@ -108,6 +107,7 @@ export default function JogoDoBicho() {
           <button className="bx-apostar" disabled={!ok || enviando || falta <= 0} onClick={apostar}>
             {enviando ? 'Enviando…' : ok ? `APOSTAR ${valor} ${valor === 1 ? 'FICHA' : 'FICHAS'} · ${descreve(conferir(ap))}` : tipo === 'grupo' ? 'ESCOLHA UM BICHO' : `DIGITE ${TIPOS[tipo].dig} NÚMEROS`}
           </button>
+          <button className="bx-regras" onClick={() => setRegras(true)}>📖 Como jogar</button>
         </>}
 
         {aba === 'minhas' && <div className="bx-lista">
@@ -186,6 +186,7 @@ export default function JogoDoBicho() {
 .bx-premio b{color:#4ade80}.bx-premio small{color:#a8a29e}
 .bx-apostar{width:100%;border:none;border-radius:14px;background:linear-gradient(180deg,#22c55e,#15803d);color:#fff;font:700 16px Oswald;padding:13px 8px;box-shadow:0 4px 0 #0007;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bx-apostar:disabled{opacity:.55}
+.bx-regras{display:block;margin:10px auto 0;border:none;background:none;color:#fde047;font:600 14px Rubik;text-decoration:underline}
 .bx-lista{display:flex;flex-direction:column;gap:8px}
 .bx-vazio{text-align:center;color:#a8a29e;font:500 14px Rubik;padding:30px 10px;display:flex;flex-direction:column;gap:12px;align-items:center}
 .bx-ap{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:10px 12px;border-radius:14px;background:#1f1a12;border:1px solid #ffffff1f;color:#fff}
