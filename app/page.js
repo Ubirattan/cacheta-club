@@ -10,6 +10,7 @@ import { JOGOS as J, ORDEM } from '../lib/jogos.js';
 const JOGOS = ORDEM.map(id => ({ id, ...J[id] }));
 import ProfileModal from '../components/ProfileModal.js';
 import Indique from '../components/Indique.js';
+import BaixarApp from '../components/BaixarApp.js';
 
 
 // link de teste do Netlify (deploy-preview-N--...): abre sem login
@@ -47,6 +48,7 @@ export default function Home() {
         <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
         <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
         {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
+        <BaixarApp />
         <div className="ver">Casa de Jogos · v4.0</div>
         <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>
       </div>
