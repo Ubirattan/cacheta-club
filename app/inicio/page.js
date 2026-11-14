@@ -1,16 +1,17 @@
 'use client';
 // CASA DE JOGOS — todos os jogos (aba Jogos da barra de baixo): um cartão pra cada jogo.
 // O site agora abre no futebol (app/page.js).
+// Comprar/resgatar fichas, indique e os ícones (perfil, histórico, jogo responsável, admin, loja) foram pra aba Home (/home).
 // A cacheta (online, torneio, contra o computador, código) agora fica em /cacheta.
 import { useState, useEffect } from 'react';
-import { sb, pedirConta } from '../../lib/supabase-browser.js';
+import { sb } from '../../lib/supabase-browser.js';
 import { useRouter } from 'next/navigation';
 import { useAuth, useOnline } from '../../components/useAuth.js';
 import { Header } from '../../components/ui.js';
 import { JOGOS as J, ORDEM } from '../../lib/jogos.js';
-const JOGOS = ORDEM.map(id => ({ id, ...J[id] }));
+// Na aba Jogos não entram os jogos de cassino (eles têm a aba Cassino própria).
+const JOGOS = ORDEM.filter(id => id !== 'cassino').map(id => ({ id, ...J[id] }));
 import ProfileModal from '../../components/ProfileModal.js';
-import Indique from '../../components/Indique.js';
 
 
 // link de teste do Netlify (deploy-preview-N--...): abre sem login
@@ -39,20 +40,6 @@ export default function Home() {
           </button>
         ))}
       </div>
-      <div className="cj-acoes">
-        <button className="buybtn" onClick={() => router.push('/loja#comprar')}>💰 Comprar fichas <small>Pix · QR Code na hora</small></button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
-        <button className="buybtn" style={{ background: 'linear-gradient(180deg,#4ade80,#15803d)' }} onClick={() => profile ? setModal('indique') : pedirConta()}>🤝 Indique e ganhe <small>50 amigos = 300 fichas</small></button>
-      </div>
-      <div className="footbar">
-        <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
-        <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
-        <button onClick={() => profile ? router.push('/jogo-responsavel') : pedirConta()} title="Jogo responsável">🛡</button>
-        {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
-        <div className="ver">Casa de Jogos · v4.0</div>
-        <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>
-      </div>
-      {modal === 'indique' && profile && <Indique profile={profile} onClose={() => setModal(null)} />}
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       <style>{`
 .cj-logo{font:700 clamp(20px,4.6vmin,34px) Oswald;color:#fff;font-style:italic;letter-spacing:1px;text-shadow:0 2px 0 #000a;white-space:nowrap}

@@ -470,6 +470,7 @@ export default function Futebol() {
 
   return (
     <div className="page lounge fbp">
+      <a className="fb-promo" href="/promocoes" aria-label="Promoções"><i>🎁</i><span>Promoções</span></a>
       <div className="fb-top">
         <div className="fb-logo">⚽ FUTEBOL</div>
         <div className="fb-abas">
@@ -641,6 +642,13 @@ export default function Futebol() {
 .fb-cbar button{flex:none;border:none;border-radius:12px;background:#fbbf24;color:#1a1300;font:700 14px Rubik;padding:9px 12px}
 .fb-cbar button:disabled{opacity:.5}
 .fb-cbar-esp{display:none}
+.fb-promo{position:fixed;right:10px;bottom:calc(200px + env(safe-area-inset-bottom));z-index:14;width:68px;height:74px;border-radius:18px;border:2.5px solid #ffffffd9;background:linear-gradient(160deg,#f472b6,#db2777 50%,#7e22ce);box-shadow:0 5px 0 #0007,0 8px 18px #000a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-decoration:none;color:#fff;overflow:hidden;animation:fbpromo 2.4s ease-in-out infinite}
+.fb-promo::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,#ffffff55,transparent 60%);pointer-events:none}
+.fb-promo i{position:relative;font-style:normal;font-size:32px;line-height:1;filter:drop-shadow(0 3px 3px #0008)}
+.fb-promo span{position:relative;font:700 11px Oswald;font-style:italic;letter-spacing:.3px;text-shadow:0 1px 0 #0009}
+.fb-promo:active{transform:translateY(3px)}
+@keyframes fbpromo{0%,100%{transform:translateY(0) rotate(0)}10%{transform:translateY(-4px) rotate(-6deg)}20%{transform:translateY(0) rotate(5deg)}30%{transform:rotate(0)}}
+@media (orientation:landscape){.fb-promo{bottom:16px}}
 .fb-tvivo{display:inline-flex;align-items:center;gap:5px}
 .fb-ponto{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 #ef4444;animation:fbvivo 1.2s infinite;vertical-align:middle}
 @keyframes fbvivo{0%{box-shadow:0 0 0 0 #ef4444cc}70%{box-shadow:0 0 0 6px #ef444400}100%{box-shadow:0 0 0 0 #ef444400}}
