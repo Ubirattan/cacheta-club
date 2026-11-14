@@ -34,7 +34,7 @@ export default function Cacheta() {
         mid={<div className="cx-tit">🃏 CACHETA</div>}
         right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/inicio')}>↩</button></>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}
-      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
+      <div className="cx-top" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', rowGap: 8, marginTop: 10 }}>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={() => router.push('/resgate')}>🎁 Resgatar fichas</button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#ffd76a,#c8901c)', color: '#3a2300' }} onClick={() => router.push('/ranking?jogo=cacheta')}>🏆 Ranking <small>da semana</small></button>
         <button className="buybtn" style={{ marginLeft: 10, background: 'linear-gradient(180deg,#c084fc,#7e22ce)' }} onClick={() => router.push('/loja?jogo=cacheta')}>✨ Loja <small>baralhos e mesas</small></button>
@@ -55,7 +55,7 @@ export default function Cacheta() {
       </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       {modal === 'codigo' && <JoinCode onClose={() => setModal(null)} />}
-      <style>{`.cx-tit{font:700 clamp(20px,4.4vmin,30px) Oswald;color:var(--gold);font-style:italic;letter-spacing:1px}.page .modes{grid-template-columns:repeat(5,1fr)}@media (orientation:portrait){.page .modes{grid-template-columns:1fr 1fr}}`}</style>
+      <style>{`.cx-tit{font:700 clamp(20px,4.4vmin,30px) Oswald;color:var(--gold);font-style:italic;letter-spacing:1px}.page .modes{grid-template-columns:repeat(5,1fr)}@media (orientation:portrait){.page .modes{grid-template-columns:repeat(3,1fr);gap:12px 10px!important;flex:none!important;align-content:start!important;padding:12px 12px 10px!important}.page .mode{aspect-ratio:.86;border-radius:16px;box-shadow:0 0 0 3px var(--gold2),0 0 0 4px #000,0 6px 14px rgba(0,0,0,.55)}.page .mode .art{top:4%;height:60%}.page .mode .art .card{--cw:24px}.page .mode .art .em{font-size:22px}.page .mode h3{font-size:clamp(12px,3.6vw,15px);margin:0 0 9%;padding:0 3px;line-height:1.05}.cx-top{flex-wrap:nowrap!important;gap:6px;padding:0 10px}.cx-top .buybtn{margin:0!important;flex:1;min-width:0;padding:8px 4px!important;font-size:15px!important;justify-content:center;white-space:nowrap}.cx-top .buybtn small{display:none}}`}</style>
     </div>
   );
 }
