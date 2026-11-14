@@ -4,6 +4,15 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { sb } from '../lib/supabase-browser.js';
 
+// Endereço do login/cadastro voltando pra página atual depois. modo: 'entrar' | 'criar'
+export function contaUrl(modo = 'entrar') {
+  let next = '/';
+  try { next = location.pathname + location.search; } catch {}
+  return '/login?modo=' + modo + (next && next !== '/' ? '&next=' + encodeURIComponent(next) : '');
+}
+
+// required: true → sem conta vai pro login (salas, histórico, admin…).
+// required: false → visitante pode olhar a página; jogar/apostar/comprar pede a conta.
 export function useAuth({ required = true } = {}) {
   const router = useRouter();
   const routerRef = useRef(router); routerRef.current = router;
@@ -20,7 +29,7 @@ export function useAuth({ required = true } = {}) {
     let ch = null, alive = true;
     sb().auth.getSession().then(({ data }) => {
       if (!alive) return;
-      const s = data.session; setSession(s); setLoading(false);
+      const s = data.session; setSession(s); setLoading(false); if (!s) setProfile(null);
       if (!s) { if (required) routerRef.current.replace('/login?next=' + encodeURIComponent(location.pathname)); return; }
       loadProfile(s.user.id);
       ch = sb().channel('me-' + s.user.id)
@@ -31,7 +40,7 @@ export function useAuth({ required = true } = {}) {
     return () => { alive = false; sub.subscription.unsubscribe(); if (ch) sb().removeChannel(ch); };
   }, [required, loadProfile]);
 
-  return { session, user: session?.user || null, profile, loading, reloadProfile: () => session && loadProfile(session.user.id) };
+  return { session, user: session?.user || null, profile, loading, visitante: !loading && !session, reloadProfile: () => session && loadProfile(session.user.id) };
 }
 
 // quem está online (Supabase Presence)

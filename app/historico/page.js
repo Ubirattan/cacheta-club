@@ -35,5 +35,5 @@ function List({ user }) {
   </>;
 }
 export default function Historico() {
-  return <Shell title="📜 Histórico de partidas">{({ user }) => <List user={user} />}</Shell>;
+  return <Shell required title="📜 Histórico de partidas">{({ user }) => <List user={user} />}</Shell>;
 }

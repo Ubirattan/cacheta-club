@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
 import { Modal, Seg, toast } from '../../components/ui.js';
-import { api } from '../../lib/supabase-browser.js';
+import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../lib/sfx.js';
 import { createSom } from '../../lib/pipa-som.js';
@@ -150,7 +150,7 @@ function desenhaPipa(c, k, id) {
 
 export default function Pipa() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const [level, setLevel] = useState('medio');
   const [quantas, setQuantas] = useState(2);
   const [cen, setCen] = useState(CENARIO_PADRAO);
@@ -204,7 +204,8 @@ export default function Pipa() {
   useEffect(() => { try { localStorage.setItem('pp_level', level); localStorage.setItem('pp_n', String(quantas)); localStorage.setItem('pp_cen', cen); localStorage.setItem('pp_linha', lin); localStorage.setItem('pp_pele', String(pele)); localStorage.setItem('pp_cam', cam); } catch {} }, [level, quantas, cen, lin, pele, cam]);
 
   async function start() {
-    if ((!profile && !TESTE) || busy) return;
+    if (busy) return;
+    if (!profile && !TESTE) return pedirConta();   // visitante: pede a conta
     if (!TESTE && (profile.coins || 0) < 1) return setSemFichas(true);
     unlockAudio();   // liga o som no toque do botão
     setBusy(true);
@@ -457,7 +458,7 @@ export default function Pipa() {
             <button className="sec" onClick={() => { const v = !modo3d; setModo3d(v); try { localStorage.setItem('pp_2d', v ? '0' : '1'); } catch {} }}>{modo3d ? '🎥 Visão 3D' : '🖼 Visão 2D'}</button>
           </div>
         </div>
-        <button className="pp-play" disabled={(!profile && !TESTE) || busy} onClick={start}>
+        <button className="pp-play" disabled={busy} onClick={start}>
           <PipaIcon id={minha} size={54} />
           <b>{busy ? '...' : 'JOGAR'}</b><small>{TESTE ? 'teste grátis' : '1 ficha'}</small>
         </button>

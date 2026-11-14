@@ -44,7 +44,7 @@ function Escudo({ src, nome }) {
 
 export default function Futebol() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/futebol', b);
   const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
@@ -133,11 +133,11 @@ export default function Futebol() {
   // pede pro servidor buscar novidades na API sem travar a tela; se mudou algo, recarrega
   const abaRef = useRef(aba); abaRef.current = aba;
   async function atualizar() {
-    if (local) return;
+    if (local || !profile) return;
     try { const r = await chama({ op: 'atualizar' }); if (r.mudou) { carregar(); if (abaRef.current === 'minhas') carregarMinhas(); } } catch {}
   }
   useEffect(() => {
-    if (!maior || (!profile && !TESTE)) return;
+    if (!maior) return;   // visitante também vê os jogos e as odds
     carregar(); atualizar();
     const t = setInterval(() => { carregar(); atualizar(); if (abaRef.current === 'minhas') carregarMinhas(); }, 60000);
     return () => clearInterval(t);

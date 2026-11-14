@@ -32,7 +32,7 @@ function estouro() {
 
 export default function Foguete() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { profile, reloadProfile } = useAuth({ required: false });
   const local = TESTE && !profile;
   const chama = b => local ? (teste = teste || criarTeste()).chamar(b) : api('/api/foguete', b);
   const [maior, setMaior] = useState(true);   // +18 confirmado no cadastro
@@ -55,7 +55,7 @@ export default function Foguete() {
 
   // consulta o servidor: rápido enquanto voa, mais devagar no resto
   useEffect(() => {
-    if (!maior || (!profile && !TESTE)) return;
+    if (!maior) return;   // visitante também vê o foguete subindo
     let vivo = true, timer = null, faseAnt = null;
     async function puxa() {
       const t0 = Date.now();

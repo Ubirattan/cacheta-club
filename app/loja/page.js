@@ -4,7 +4,7 @@ import { sb } from '../../lib/supabase-browser.js';
 import Shell from '../../components/Shell.js';
 import { api } from '../../lib/supabase-browser.js';
 import { JOGOS, LOJA_TITULO } from '../../lib/jogos.js';
-import { ITEMS, PACKS, VIP_PERKS, FICHAS_POR_REAL, RECARGA_MIN, RECARGA_MAX, WELCOME } from '../../lib/shop-items.js';
+import { ITEMS, PACKS, FICHAS_POR_REAL, RECARGA_MIN, RECARGA_MAX, WELCOME } from '../../lib/shop-items.js';
 import { fmt } from '../../lib/modes.js';
 import { toast, Modal } from '../../components/ui.js';
 import { sfx } from '../../lib/sfx.js';
@@ -51,6 +51,7 @@ function Body({ profile, reloadProfile, user }) {
   const [doc, setDoc] = useState(null);     // pede nome e CPF (GeraPix)
   const [livre, setLivre] = useState('');
   const [pix, setPix] = useState(null);     // QR Code + copia e cola esperando pagamento
+  const [hist, setHist] = useState(false);  // janela "Minhas compras"
   async function pay(pack, extra = {}) {
     setBusy(true);
     try {
@@ -79,7 +80,6 @@ function Body({ profile, reloadProfile, user }) {
     catch (e) { toast(e.message); }
     setBusy(false);
   }
-  const vipItem = ITEMS.find(i => i.slot === 'vip');
   return <>
     {doc && <Modal onClose={() => setDoc(null)}>
       <h2>Pagar com Pix</h2>
@@ -100,33 +100,56 @@ function Body({ profile, reloadProfile, user }) {
       <p style={{ color: 'var(--gold)' }}>⏳ Aguardando pagamento…</p>
       <button className="sec" onClick={() => setPix(null)}>Fechar (as fichas entram mesmo assim)</button>
     </Modal>}
-    {!jogo && <div className="panel" id="comprar" style={{ borderColor: '#22c55e' }}><h3 style={{ fontSize: 22 }}>💰 Comprar fichas com Pix</h3>
-      <p className="hint"><b>R$ 1 = {FICHAS_POR_REAL} ficha</b>: o valor do Pix vira a mesma quantidade de fichas. Pague com <b>Pix</b>. As fichas são virtuais: servem só para jogar, não valem dinheiro, não têm saque e não podem ser trocadas.</p>
-      {welcome && <div className="item" style={{ border: '2px solid #f2c94c', background: 'linear-gradient(135deg,#3a2a08,#120e08)', flexDirection: 'row', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-        <span style={{ fontSize: 44 }}>🎁</span>
-        <div style={{ textAlign: 'left' }}><b style={{ fontSize: 18, color: 'var(--gold)' }}>Pacote de boas-vindas</b><br />
-          <span>R$ {WELCOME.brl.toFixed(2).replace('.', ',')} → <b>{fmt(WELCOME.coins)} fichas</b> + avatar exclusivo 🌟 Estrela</span><br /><small className="hint">Só na sua primeira compra</small></div>
-        <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay({ id: WELCOME.id, brl: WELCOME.brl, coins: WELCOME.coins })}>Gerar Pix</button>
-      </div>}
-      <div className="shopgrid">{PACKS.map(p => (
-        <div key={p.id} className="item"><span style={{ fontSize: 36 }}>💰</span><b style={{ fontSize: 20 }}>R$ {p.brl.toFixed(2).replace('.', ',')}</b><span style={{ color: 'var(--gold)', font: '600 16px Oswald' }}>{fmt(p.coins)} fichas</span>
-          {p.bonus > 0 && <span style={{ background: '#16a34a', color: '#fff', borderRadius: 10, padding: '1px 8px', font: '600 12px Rubik' }}>+{p.pct}% bônus · +{fmt(p.bonus)}</span>}
-          <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy} onClick={() => pay(p)}>Gerar Pix</button></div>))}
-        <div className="item"><span style={{ fontSize: 36 }}>✏️</span><b>Outro valor</b>
-          <input className="mini-in" style={{ width: 110, textAlign: 'center', fontSize: 16 }} inputMode="decimal" placeholder="R$" value={livre} onChange={e => setLivre(e.target.value.replace(/[^0-9,.]/g, ''))} />
-          <span style={{ color: 'var(--gold)', font: '600 15px Oswald' }}>{(() => { const v = Number(livre.replace(',', '.')); return v >= RECARGA_MIN && v <= RECARGA_MAX ? `${fmt(Math.floor(v * FICHAS_POR_REAL))} fichas` : `de R$ ${RECARGA_MIN} a R$ ${fmt(RECARGA_MAX)}`; })()}</span>
-          <button className="pillbtn" style={{ background: 'linear-gradient(180deg,#34d399,#059669)', fontSize: 16, padding: '10px 18px' }} disabled={busy || !(Number(livre.replace(',', '.')) >= RECARGA_MIN && Number(livre.replace(',', '.')) <= RECARGA_MAX)}
+    {!jogo && <div className="panel lj" id="comprar">
+      <div className="lj-top">
+        <div className="lj-tit"><h3>💰 Comprar fichas com Pix</h3>
+          <small>O valor do Pix vira a mesma quantidade de fichas.</small></div>
+        {buys.length > 0 && <button className="pillbtn dark lj-hist" onClick={() => setHist(true)}>📜 Minhas compras</button>}
+      </div>
+      <div className="lj-grade">
+        {welcome && <div className="item lj-card lj-bv">
+          <span className="lj-em">🎁</span><b className="lj-preco">R$ {WELCOME.brl.toFixed(2).replace('.', ',')}</b>
+          <span className="lj-fichas">{fmt(WELCOME.coins)} fichas</span><span className="lj-tag">Boas-vindas · só na 1ª compra</span>
+          <button className="pillbtn lj-btn" disabled={busy} onClick={() => pay({ id: WELCOME.id, brl: WELCOME.brl, coins: WELCOME.coins })}>Gerar Pix</button></div>}
+        {PACKS.map(p => (
+          <div key={p.id} className="item lj-card"><span className="lj-em">💰</span><b className="lj-preco">R$ {p.brl.toFixed(2).replace('.', ',')}</b>
+            <span className="lj-fichas">{fmt(p.coins)} fichas</span>
+            {p.bonus > 0 && <span className="lj-tag">+{p.pct}% bônus</span>}
+            <button className="pillbtn lj-btn" disabled={busy} onClick={() => pay(p)}>Gerar Pix</button></div>))}
+        <div className="item lj-card"><span className="lj-em">✏️</span><b className="lj-preco">Outro valor</b>
+          <input className="mini-in lj-in" inputMode="decimal" placeholder="R$" value={livre} onChange={e => setLivre(e.target.value.replace(/[^0-9,.]/g, ''))} />
+          <span className="lj-fichas">{(() => { const v = Number(livre.replace(',', '.')); return v >= RECARGA_MIN && v <= RECARGA_MAX ? `${fmt(Math.floor(v * FICHAS_POR_REAL))} fichas` : `R$ ${RECARGA_MIN} a ${fmt(RECARGA_MAX)}`; })()}</span>
+          <button className="pillbtn lj-btn" disabled={busy || !(Number(livre.replace(',', '.')) >= RECARGA_MIN && Number(livre.replace(',', '.')) <= RECARGA_MAX)}
             onClick={() => { const v = Math.round(Number(livre.replace(',', '.')) * 100) / 100; pay({ id: 'custom', brl: v, coins: Math.floor(v * FICHAS_POR_REAL) }); }}>Gerar Pix</button></div>
       </div>
-      {buys.length > 0 && <><h3 style={{ fontSize: 16, marginTop: 14 }}>Suas compras</h3><div className="rows">{buys.map(b => (
+      <style>{`
+.pagebody:has(.lj){min-height:0;padding:8px 12px;gap:8px}
+.page:has(.lj){overflow:hidden}
+.lj{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-color:#22c55e}
+.lj-top{display:flex;align-items:center;gap:10px}
+.lj-tit{flex:1;min-width:0}
+.lj-tit h3{font-size:clamp(18px,3.6vmin,22px)}
+.lj-tit small{display:block;font:400 clamp(11px,2.2vmin,13px) Rubik;color:#cfc4ad;line-height:1.3}
+.lj-hist{flex:none;padding:7px 12px;font-size:14px}
+.lj-grade{flex:1;min-height:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:clamp(6px,1.2vw,12px)}
+.lj-card{justify-content:center;gap:clamp(2px,.8vh,6px);padding:clamp(6px,1.4vh,12px) 6px;min-height:0;max-height:240px;align-self:center;height:100%}
+.lj-bv{border-color:#f2c94c;background:linear-gradient(160deg,#3a2a08,#120e08)}
+.lj-em{font-size:clamp(24px,6vmin,38px);line-height:1}
+.lj-preco{font:600 clamp(16px,3.4vmin,21px) Oswald!important}
+.lj-fichas{color:var(--gold);font:600 clamp(13px,2.8vmin,16px) Oswald}
+.lj-tag{background:#16a34a;color:#fff;border-radius:10px;padding:1px 6px;font:600 10px Rubik;line-height:1.3}
+.lj-btn{background:linear-gradient(180deg,#34d399,#059669)!important;padding:6px 12px!important;font-size:clamp(13px,2.6vmin,15px)!important;white-space:nowrap}
+.lj-in{width:min(100%,96px)!important;text-align:center;font-size:15px!important;padding:5px 6px!important}
+@media (orientation:portrait){.page:has(.lj){overflow:auto}.lj-grade{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-columns:auto;align-content:start}.lj-card{height:auto}}
+`}</style>
+    </div>}
+    {hist && <Modal onClose={() => setHist(false)}>
+      <h2>Suas compras</h2>
+      <div className="rows" style={{ textAlign: 'left' }}>{buys.map(b => (
         <div key={b.id} className="rowi"><div className="grow"><b>{fmt(b.coins)} fichas</b><small>{new Date(b.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · R$ {Number(b.price_brl || 0).toFixed(2).replace('.', ',')}</small></div>
-          <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div></>}
-    </div>}
-    {(!jogo || jogo === 'cacheta') && <div className="vipbox">
-      <h3 style={{ margin: 0, font: '700 24px Oswald', color: 'var(--gold)' }}>👑 VIP {vip && <small style={{ fontSize: 14, color: '#fff' }}>ativo até {new Date(profile.vip_until).toLocaleDateString('pt-BR')}</small>}</h3>
-      <ul>{VIP_PERKS.map(p => <li key={p}>{p}</li>)}</ul>
-      <button className="go" disabled={busy || profile.coins < vipItem.price} onClick={() => call({ op: 'buy', item: vipItem.id }, 'VIP ativado! 👑')}>{vip ? 'Renovar' : 'Ativar'} 30 dias · 💰 {fmt(vipItem.price)}</button>
-    </div>}
+          <span className={`num ${b.status === 'done' ? 'won' : ''}`}>{b.status === 'done' ? 'Creditado' : b.status === 'pending' ? 'Aguardando' : 'Não concluído'}</span></div>))}</div>
+      <button className="sec" onClick={() => setHist(false)}>Fechar</button>
+    </Modal>}
     {jogo && JOGOS[jogo] && <div className="panel" style={{ textAlign: 'center', borderColor: 'var(--gold)' }}><h3 style={{ fontSize: 22, margin: 0 }}>{JOGOS[jogo].em || '🔵'} Loja: {JOGOS[jogo].nome}</h3>
       <button className="sec" style={{ marginTop: 8 }} onClick={() => { location.href = JOGOS[jogo].href; }}>↩ Voltar pro jogo</button></div>}
     {(jogo && JOGOS[jogo] ? (JOGOS[jogo].loja || []) : []).map(slot => (
@@ -145,4 +168,4 @@ function Body({ profile, reloadProfile, user }) {
         })}</div></div>))}
   </>;
 }
-export default function Loja() { return <Shell title="🛒 Loja">{auth => <Body {...auth} />}</Shell>; }
+export default function Loja() { return <Shell required>{auth => <Body {...auth} />}</Shell>; }

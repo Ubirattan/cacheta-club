@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
 import { Modal, Seg, toast } from '../../components/ui.js';
 import { GudeField, Hud, Regras, recado, GUDE_CSS, quer3D } from '../../components/Gude.js';
-import { api } from '../../lib/supabase-browser.js';
+import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { fmt } from '../../lib/modes.js';
 import { sfx, soundOn, setSound, unlockAudio } from '../../lib/sfx.js';
 import { MODOS, NIVEIS } from '../../lib/gude.js';
@@ -15,7 +15,7 @@ const COST = 1;
 
 export default function Gude() {
   const router = useRouter();
-  const { profile, reloadProfile } = useAuth();
+  const { profile, reloadProfile } = useAuth({ required: false });
   const [mode, setMode] = useState('triangulo');
   const [level, setLevel] = useState('medio');
   const [game, setGame] = useState(null);      // { id, version, init }
@@ -35,7 +35,8 @@ export default function Gude() {
   useEffect(() => { try { localStorage.setItem('gd_mode', mode); localStorage.setItem('gd_level', level); } catch {} }, [mode, level]);
 
   async function start() {
-    if (!profile || busy) return;
+    if (busy) return;
+    if (!profile) return pedirConta();   // visitante: pede a conta
     unlockAudio();   // liga o som aqui, no toque do botão (criar no meio da tecada travava alguns celulares)
     if ((profile.coins || 0) < COST) return setSemFichas(true);
     setBusy(true);
@@ -94,7 +95,7 @@ export default function Gude() {
         </div>
         <Seg label="Computador" value={level} onChange={setLevel} options={NIVEIS} />
         <div className="gd-btns">
-          <button className="go" disabled={!profile || busy} onClick={start}>{busy ? 'Começando…' : `🤖 Jogar · ${COST} ficha`}</button>
+          <button className="go" disabled={busy} onClick={start}>{busy ? 'Começando…' : `🤖 Jogar · ${COST} ficha`}</button>
           <button className="go" style={{ background: 'linear-gradient(180deg,#3b82f6,#1d4ed8)' }} onClick={() => router.push('/lobby?jogo=gude')}>🌐 Online 1x1</button>
         </div>
         <button className="sec" onClick={() => setRules(true)}>📖 Como jogar {MODOS[mode].name}</button>

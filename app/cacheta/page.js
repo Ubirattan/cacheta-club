@@ -23,7 +23,7 @@ const TESTE = typeof window !== 'undefined' && /^deploy-preview-\d+--/.test(wind
 
 export default function Cacheta() {
   const router = useRouter();
-  const { user, profile, reloadProfile } = useAuth({ required: !TESTE });
+  const { user, profile, reloadProfile } = useAuth({ required: false });
   const online = useOnline(user, profile, 'inicio');
   const [modal, setModal] = useState(null);
   const [motd, setMotd] = useState('');

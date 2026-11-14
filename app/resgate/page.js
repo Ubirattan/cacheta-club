@@ -67,4 +67,4 @@ function Body({ profile, reloadProfile, user }) {
 `}</style>
   </>;
 }
-export default function Resgate() { return <Shell title="🎁 Resgatar fichas">{auth => <Body {...auth} />}</Shell>; }
+export default function Resgate() { return <Shell required title="🎁 Resgatar fichas">{auth => <Body {...auth} />}</Shell>; }

@@ -345,4 +345,4 @@ function Body({ profile, user }) {
     {tab === 'salas' && <Rooms />}{tab === 'tor' && <Tournaments />}{tab === 'cfg' && <><Settings /><ChangePass /></>}
   </>;
 }
-export default function Admin() { return <Shell title="🛠 Painel administrativo">{auth => <Body {...auth} />}</Shell>; }
+export default function Admin() { return <Shell required title="🛠 Painel administrativo">{auth => <Body {...auth} />}</Shell>; }
