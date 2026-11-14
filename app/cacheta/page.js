@@ -30,7 +30,7 @@ export default function Cacheta() {
   useEffect(() => { if (user) sb().from('app_settings').select('value').eq('key', 'motd').maybeSingle().then(({ data }) => setMotd(data ? data.value : '')); }, [user]);
   return (
     <div className="page lounge">
-      <Header profile={profile} onProfile={() => setModal('perfil')}
+      <Header profile={profile} onProfile={() => setModal('perfil')} semVisitante
         mid={<div className="cx-tit">🃏 CACHETA</div>}
         right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push('/inicio')}>↩</button></>} />
       {motd && <div className="note" style={{ fontSize: 14, color: 'var(--gold)' }}>📣 {motd}</div>}

@@ -22,7 +22,7 @@ export default function Jogo() {
   const opcoes = [...J.opcoes, ...rank, ...(J.semLoja ? [] : [{ t: `Loja ${id === 'gude' ? 'da gude' : id === 'truco' ? 'do truco' : 'da ' + J.nome.toLowerCase()}`, sub: 'Itens pra usar no jogo', em: '🛒', href: `/loja?jogo=${id}`, g: 'linear-gradient(180deg,#c084fc,#7e22ce 60%,#4c0d8a)' }])];
   return (
     <div className="page lounge">
-      <Header profile={profile} onProfile={() => setModal('perfil')}
+      <Header profile={profile} onProfile={() => setModal('perfil')} semVisitante={id === 'cassino'}
         mid={<div className="jg-tit">{J.em || '🔵'} {J.nome.toUpperCase()}</div>}
         right={<><span className="online"><i />{online.length} online</span><button className="rbtn" title="Voltar" onClick={() => router.push(id === 'truco' ? '/cacheta' : id === 'cassino' ? '/' : '/inicio')}>↩</button></>} />
       <div className="jg-ops" style={{ '--n': opcoes.length }}>
