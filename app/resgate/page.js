@@ -30,19 +30,22 @@ function Body({ profile, reloadProfile, user }) {
   const pend = rows.filter(r => r.status === 'pending'), feitos = rows.filter(r => r.status === 'done');
   return <>
     <AdSlot profile={profile} popup />
-    <div className="panel" style={{ marginBottom: 12, textAlign: 'center', display: 'grid', gap: 10, justifyItems: 'center' }}>
-      <span className="trgold big"><i>🏆</i><b>{invalido ? '—' : fmt(v)}</b></span>
-      <p style={{ margin: 0, font: '600 18px Oswald', color: 'var(--gold)' }}>Troque suas fichas por um Troféu de Ouro</p>
-      <small style={{ color: 'var(--mut)' }}>Você tem 💰 {fmt(saldo)} fichas</small>
-      <input inputMode="numeric" placeholder="Quantas fichas?" value={valor} onChange={e => setValor(e.target.value.replace(/\D/g, ''))}
-        style={{ width: 'min(260px,80vw)', textAlign: 'center', font: '700 22px Oswald', padding: '8px 12px', borderRadius: 12, border: '2px solid var(--gold2)', background: '#0c0a07', color: '#fff' }} />
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {RAPIDOS.map(n => <button key={n} className="pillbtn dark" style={{ padding: '4px 12px' }} disabled={n > saldo} onClick={() => setValor(String(n))}>{n}</button>)}
-        <button className="pillbtn dark" style={{ padding: '4px 12px' }} disabled={saldo < 1} onClick={() => setValor(String(Math.floor(saldo)))}>Tudo</button>
+    <div className="panel rg-box">
+      <div className="rg-esq">
+        <span className="trgold big"><i>🏆</i><b>{invalido ? '—' : fmt(v)}</b></span>
+        <p className="rg-tit">Troque suas fichas por um Troféu de Ouro</p>
+        <small style={{ color: 'var(--mut)' }}>Você tem 💰 {fmt(saldo)} fichas</small>
       </div>
-      <button className="pillbtn" disabled={busy || invalido || falta} style={{ background: invalido || falta ? '' : 'linear-gradient(180deg,#fb923c,#c2410c)', padding: '8px 22px', fontSize: 18 }} onClick={resgatar}>
-        {busy ? 'Resgatando…' : `🏆 Resgatar${invalido ? '' : ' ' + fmt(v)}`}</button>
-      {falta && <small style={{ color: '#fca5a5' }}>Você só tem {fmt(saldo)} fichas</small>}
+      <div className="rg-dir">
+        <input inputMode="numeric" placeholder="Quantas fichas?" value={valor} onChange={e => setValor(e.target.value.replace(/\D/g, ''))} className="rg-in" />
+        <div className="rg-q">
+          {RAPIDOS.map(n => <button key={n} className="pillbtn dark" disabled={n > saldo} onClick={() => setValor(String(n))}>{n}</button>)}
+          <button className="pillbtn dark" disabled={saldo < 1} onClick={() => setValor(String(Math.floor(saldo)))}>Tudo</button>
+        </div>
+        <button className="pillbtn rg-go" disabled={busy || invalido || falta} style={{ background: invalido || falta ? '' : 'linear-gradient(180deg,#fb923c,#c2410c)' }} onClick={resgatar}>
+          {busy ? 'Resgatando…' : `🏆 Resgatar${invalido ? '' : ' ' + fmt(v)}`}</button>
+        {falta && <small style={{ color: '#fca5a5' }}>Você só tem {fmt(saldo)} fichas</small>}
+      </div>
     </div>
     {pend.length > 0 && <div className="panel" style={{ marginBottom: 12 }}>
       <b style={{ color: '#fbbf24', font: '600 16px Oswald' }}>⏳ Aguardando liberação</b>
@@ -52,6 +55,16 @@ function Body({ profile, reloadProfile, user }) {
       <b style={{ color: '#4ade80', font: '600 16px Oswald' }}>✔ Sua coleção</b>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>{feitos.map(r => <span key={r.id} className="trgold"><i>🏆</i><b>{fmt(r.price_coins)}</b></span>)}</div>
     </div>}
+    <style>{`
+.rg-box{margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:clamp(12px,4vw,48px);padding:10px 14px;flex-wrap:wrap}
+.rg-esq{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.rg-tit{margin:0;font:600 17px Oswald;color:var(--gold)}
+.rg-dir{display:flex;flex-direction:column;align-items:center;gap:8px}
+.rg-in{width:min(240px,70vw);text-align:center;font:700 20px Oswald;padding:6px 12px;border-radius:12px;border:2px solid var(--gold2);background:#0c0a07;color:#fff}
+.rg-q{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.rg-q .pillbtn{padding:4px 12px}
+.rg-go{padding:7px 22px;font-size:17px}
+@media (orientation:landscape) and (max-height:520px){.rg-box .trgold.big{min-width:72px;padding:6px 8px 4px}.rg-box .trgold.big i{font-size:32px}.rg-tit{font-size:15px}.rg-dir{gap:6px}}
+`}</style>
   </>;
 }
 export default function Resgate() { return <Shell title="🎁 Resgatar fichas">{auth => <Body {...auth} />}</Shell>; }
