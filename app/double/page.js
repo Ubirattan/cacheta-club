@@ -154,7 +154,7 @@ export default function Double() {
         <div style={{ textAlign: 'left', fontSize: 14, lineHeight: 1.45, color: '#eadfca' }}>
           <p>• A roleta tem 15 casas: <b>7 vermelhas</b>, <b>7 pretas</b> e <b>1 branca</b>.</p>
           <p>• Antes de girar, escolha o valor e toque na cor. Vermelho e preto pagam <b>2x</b>; o branco paga <b>14x</b>. Dá pra apostar em mais de uma cor e tocar de novo pra aumentar.</p>
-          <p>• Todos jogam a mesma rodada ao vivo. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas em cada cor.</p>
+          <p>• Todos jogam a mesma rodada ao vivo. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas em cada cor. Prêmio máximo de <b>4 mil fichas</b> por aposta.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}

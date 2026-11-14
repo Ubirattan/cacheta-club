@@ -196,6 +196,7 @@ export default function Onca() {
           <p>• O prêmio é a aposta vezes o valor da tabela, somando as linhas que acertar.</p>
           <p>• <b>Tela cheia</b> com o mesmo símbolo (contando a onça) multiplica tudo por <b>{MULT_CHEIA}</b>.</p>
           <p>• <b>Rodada da Onça</b>: de surpresa a onça escolhe um símbolo e os rolos giram só com ele e o coringa. O que encaixa fica preso até sair um prêmio.</p>
+          <p>• Prêmio máximo de <b>4 mil fichas</b> por giro.</p>
           <p>• Em média o jogo devolve {Math.round(RETORNO * 100)}% do que é apostado.</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>

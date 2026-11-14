@@ -296,7 +296,7 @@ export default function Foguete() {
           <p>• O foguete sobe e o multiplicador cresce. Toque em <b>SACAR</b> pra receber a aposta vezes o multiplicador daquele momento.</p>
           <p>• Se o foguete <b>explodir</b> antes de você sacar, perde a aposta.</p>
           <p>• <b>Saque auto</b>: saca sozinho quando chegar no valor escolhido.</p>
-          <p>• Todos jogam a mesma rodada ao vivo. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas. O foguete vai até {MAX_MULT}x.</p>
+          <p>• Todos jogam a mesma rodada ao vivo. Aposta de {MIN_APOSTA} a {MAX_APOSTA} fichas. O foguete vai até {MAX_MULT}x. Prêmio máximo de <b>4 mil fichas</b> por aposta: em apostas altas o saque automático é ligado sozinho nesse limite (ex.: 100 fichas → saca em 40x).</p>
           <p style={{ fontSize: 12, color: 'var(--mut)' }}>Proibido para menores de 18 anos. Fichas sem valor em dinheiro. Jogue por diversão.</p>
         </div>
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
