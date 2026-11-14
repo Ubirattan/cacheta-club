@@ -53,6 +53,8 @@ export default function Futebol() {
   const [falha, setFalha] = useState('');
   const [minhas, setMinhas] = useState(null);
   const [liga, setLiga] = useState(0);
+  const [tempo, setTempo] = useState('todos');          // filtro: todos | hoje | 12 | 6 | 3 (horas)
+  const [menuLiga, setMenuLiga] = useState(false);      // lista de campeonatos aberta
   const [aberto, setAberto] = useState(null);           // jogo com os outros mercados à mostra
   const [criar, setCriar] = useState(null);
   const [jogoAberto, setJogoAberto] = useState(null);   // página do jogo (antes do jogo)
@@ -158,8 +160,17 @@ export default function Futebol() {
 
   const jogos = st?.jogos || [];
   // abas por nome (as eliminatórias de cada continente ficam juntas numa aba só)
-  const ligas = useMemo(() => { const m = new Map(); jogos.forEach(j => m.has(j.ligaNome) || m.set(j.ligaNome, j.ligaNome)); return [...m]; }, [jogos]);
-  const lista = liga ? jogos.filter(j => j.ligaNome === liga) : jogos;
+  // filtro de horário: jogos de hoje ou que começam nas próximas 12/6/3 horas
+  const porTempo = useMemo(() => {
+    if (tempo === 'todos') return jogos;
+    const agora = Date.now();
+    if (tempo === 'hoje') { const hoje = new Date().toDateString(); return jogos.filter(j => new Date(j.inicio).toDateString() === hoje); }
+    const lim = agora + Number(tempo) * 3600000;
+    return jogos.filter(j => Date.parse(j.inicio) <= lim);
+  }, [jogos, tempo]);
+  // campeonatos (com quantos jogos cada um tem no filtro de horário), em ordem alfabética
+  const ligas = useMemo(() => { const m = new Map(); porTempo.forEach(j => m.set(j.ligaNome, (m.get(j.ligaNome) || 0) + 1)); return [...m].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR')); }, [porTempo]);
+  const lista = liga ? porTempo.filter(j => j.ligaNome === liga) : porTempo;
   const dias = useMemo(() => { const g = []; for (const j of lista) { const n = nomeDia(j.inicio); const ult = g[g.length - 1]; if (ult && ult.n === n) ult.js.push(j); else g.push({ n, js: [j] }); } return g; }, [lista]);
 
   const igualL = (a, b) => (a == null && b == null) || Number(a) === Number(b);
@@ -424,14 +435,28 @@ export default function Futebol() {
             <button onClick={() => setRegras(true)}><b>💰 Pagamento antecipado</b><small>Jogos com o selo 💰 2 gols</small></button>
             <button onClick={() => setRegras(true)}><b>💸 Cash out</b><small>Encerre antes do fim</small></button>
           </div>
-          <div className="fb-ligas">
-            <button className={!liga ? 'on' : ''} onClick={() => setLiga(0)}>Todos</button>
-            {ligas.map(([id, n]) => <button key={id} className={liga === id ? 'on' : ''} onClick={() => setLiga(id)}>{n}</button>)}
+          <div className="fb-filtros">
+            <button className={'fb-campbtn' + (liga ? ' on' : '')} onClick={() => setMenuLiga(v => !v)}>
+              🏆 <span>{liga || 'Todos os campeonatos'}</span> <i>{menuLiga ? '▴' : '▾'}</i></button>
+            <div className="fb-ligas">
+              {[['todos', 'Todos'], ['hoje', 'Hoje'], ['12', '12 horas'], ['6', '6 horas'], ['3', '3 horas']].map(([v, t]) =>
+                <button key={v} className={tempo === v ? 'on' : ''} onClick={() => setTempo(v)}>{v === 'todos' ? t : v === 'hoje' ? '📅 ' + t : '⏱ ' + t}</button>)}
+            </div>
+            {menuLiga && <>
+              <div className="fb-campfundo" onClick={() => setMenuLiga(false)} />
+              <div className="fb-campmenu">
+                <button className={!liga ? 'on' : ''} onClick={() => { setLiga(0); setMenuLiga(false); }}><span>Todos os campeonatos</span><i>{porTempo.length}</i></button>
+                {liga && !ligas.some(([n]) => n === liga) && <button className="on" onClick={() => setMenuLiga(false)}><span>{liga}</span><i>0</i></button>}
+                {ligas.map(([n, q]) => <button key={n} className={liga === n ? 'on' : ''} onClick={() => { setLiga(n); setMenuLiga(false); }}><span>{n}</span><i>{q}</i></button>)}
+                {!ligas.length && <div className="fb-campvazio">Nenhum jogo nesse horário</div>}
+              </div>
+            </>}
           </div>
           <div className="fb-lista">
             {!st && !falha && <div className="fb-vazio">Carregando os jogos…</div>}
             {!st && falha && <div className="fb-vazio">Não deu pra carregar os jogos ({falha}).<br /><button className="fb-tenta" onClick={() => { setFalha(''); carregar(); }}>Tentar de novo</button></div>}
-            {st && !lista.length && <div className="fb-vazio">Nenhum jogo com odds agora. Os jogos dos próximos dias aparecem aqui assim que as casas abrem as odds.{st.admin && ' (admin: veja o aviso acima)'}</div>}
+            {st && !lista.length && (liga || tempo !== 'todos') && jogos.length > 0 && <div className="fb-vazio">Nenhum jogo nesse filtro.<br /><button className="fb-tenta" onClick={() => { setLiga(0); setTempo('todos'); }}>Ver todos os jogos</button></div>}
+            {st && !jogos.length && <div className="fb-vazio">Nenhum jogo com odds agora. Os jogos dos próximos dias aparecem aqui assim que as casas abrem as odds.{st.admin && ' (admin: veja o aviso acima)'}</div>}
             {dias.map(d => <div key={d.n}>
               <div className="fb-dia">{d.n}</div>
               {d.js.map(j => (
@@ -574,7 +599,20 @@ export default function Futebol() {
 .fb-aviso.bom{border-color:#4ade80}
 .fb-main{flex:1;min-height:0;display:flex;gap:8px;padding:0 8px 8px}
 .fb-esq{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.fb-ligas{display:flex;gap:6px;overflow-x:auto;flex:none;scrollbar-width:none}
+.fb-filtros{position:relative;display:flex;align-items:center;gap:6px;flex:none;min-width:0}
+.fb-campbtn{flex:none;display:flex;align-items:center;gap:5px;max-width:46%;border:1px solid #fbbf2488;background:#0009;color:#fff;font:600 13px Rubik;border-radius:16px;padding:5px 11px;cursor:pointer}
+.fb-campbtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-campbtn i{font-style:normal;color:#fbbf24}
+.fb-campbtn.on{background:#fbbf24;color:#1a1300;border-color:#fbbf24}.fb-campbtn.on i{color:#1a1300}
+.fb-campfundo{position:fixed;inset:0;z-index:24}
+.fb-campmenu{position:absolute;left:0;top:calc(100% + 4px);z-index:25;width:min(340px,92vw);max-height:min(60vh,360px);overflow-y:auto;background:#0b2416;border:1px solid #fbbf2488;border-radius:14px;padding:6px;box-shadow:0 12px 30px #000c;display:flex;flex-direction:column;gap:2px}
+.fb-campmenu button{display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:transparent;color:#e5f5ea;font:500 14px Rubik;text-align:left;border-radius:10px;padding:8px 10px;cursor:pointer}
+.fb-campmenu button:active{background:#ffffff14}
+.fb-campmenu button.on{background:#fbbf24;color:#1a1300}
+.fb-campmenu i{font-style:normal;font:600 12px Rubik;background:#ffffff1a;border-radius:9px;padding:1px 7px;flex:none}
+.fb-campmenu button.on i{background:#0002}
+.fb-campvazio{font:400 13px Rubik;color:#86b39a;padding:8px 10px}
+.fb-ligas{display:flex;gap:6px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
 .fb-ligas::-webkit-scrollbar{display:none}
 .fb-ligas button{flex:none;border:1px solid #ffffff22;background:#0007;color:#d1fae5;font:500 13px Rubik;border-radius:16px;padding:5px 12px}
 .fb-ligas button.on{background:#fbbf24;color:#1a1300;border-color:#fbbf24}
