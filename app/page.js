@@ -73,13 +73,13 @@ export default function Home() {
 .cj-hero b{font:700 clamp(28px,9vw,40px) Oswald;font-style:italic;color:#fff;letter-spacing:1px;text-shadow:0 3px 0 #000a;line-height:1}
 .cj-hero b i{color:var(--gold)}
 .cj-hero small{font:500 13px Rubik;color:#e8dcc0;opacity:.85;margin-top:4px}
-.cj-grade{flex:none;grid-template-columns:1fr 1fr;grid-template-rows:none;align-content:start;gap:12px;padding:10px 14px}
-.cj-jogo{height:auto;max-height:none;aspect-ratio:1/1.05;border-radius:24px}
-.cj-jogo:last-child:nth-child(odd){grid-column:1/-1;aspect-ratio:2.3/1}
-.cj-jogo:last-child:nth-child(odd) .cj-em{top:14%}
-.cj-em{font-size:clamp(46px,15vw,70px)}
-.cj-jogo b{font-size:clamp(18px,5.4vw,24px)}
-.cj-jogo small{font-size:clamp(10px,3vw,13px)}
+.cj-grade{flex:none;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:10px 12px}
+.cj-jogo{flex:0 0 calc((100% - 20px) / 3);height:auto;max-height:none;aspect-ratio:1/1.12;border-radius:18px;border-width:2px;padding:6px 4px 8px}
+.cj-em{top:12%;font-size:clamp(30px,10vw,44px)}
+.cj-gude{width:clamp(30px,10vw,44px)!important;height:clamp(30px,10vw,44px)!important}
+.cj-jogo b{font-size:clamp(13px,4vw,17px)}
+.cj-jogo small{display:none}
+.cj-jogo em{font-size:9px;top:6px;right:-34px}
 .cj-acoes{flex-direction:column;align-items:stretch;padding:4px 14px 12px;gap:8px}
 .cj-acoes .buybtn{margin:0!important;width:100%;justify-content:center}
 }
