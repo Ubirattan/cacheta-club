@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../components/useAuth.js';
-import { Modal } from '../../components/ui.js';
+import { Modal, voltar } from '../../components/ui.js';
 import { api, pedirConta } from '../../lib/supabase-browser.js';
 import { sfx } from '../../lib/sfx.js';
 import { BICHOS, TIPOS, POS, HORARIOS, MAX_POR_SORTEIO, PREMIO_MAXIMO, bicho, grupoDe, dezenasDo, conferir, premioPossivel, descreve, horaTxt, diaTxt } from '../../lib/bicho.js';
@@ -60,10 +60,10 @@ export default function JogoDoBicho() {
   return (
     <div className="page lounge bx">
       <div className="bx-top">
-        <div className="bx-logo">🐾 JOGO DO <b>BICHO</b></div>
+        <div className="bx-logo">🐾 <b>BICHO</b></div>
         {coins != null && <button className="bx-saldo" onClick={() => router.push('/loja#comprar')}>💰 <b>{fx(coins)}</b><i>+</i></button>}
         <button className="rbtn" title="Regras" onClick={() => setRegras(true)}>📖</button>
-        <button className="rbtn" title="Voltar" onClick={() => (window.history.length > 1 ? router.back() : router.push('/inicio'))}>↩</button>
+        <button className="rbtn bx-volta" title="Voltar" onClick={() => voltar(router, '/inicio')}>‹ Voltar</button>
       </div>
 
       <div className="bx-prox">
@@ -140,11 +140,12 @@ export default function JogoDoBicho() {
         <button className="go" onClick={() => setRegras(false)}>Entendi</button></Modal>}
       <style>{`
 .bx{overflow:hidden;display:flex;flex-direction:column}
-.bx-top{display:flex;align-items:center;gap:8px;padding:8px 12px 4px}
-.bx-logo{font:700 clamp(20px,5.6vw,28px) Oswald;color:#fff;font-style:italic;letter-spacing:.5px;margin-right:auto;white-space:nowrap}
+.bx-top{display:flex;align-items:center;gap:6px;padding:8px 10px 4px;min-width:0}
+.bx-logo{font:700 clamp(17px,5vw,28px) Oswald;color:#fff;font-style:italic;letter-spacing:.3px;margin-right:auto;white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .bx-logo b{color:var(--gold)}
-.bx-top .rbtn{width:38px;height:38px;font-size:16px}
-.bx-saldo{display:flex;align-items:center;gap:5px;border:1px solid #4ade8088;background:#0008;color:#fff;border-radius:20px;padding:4px 4px 4px 10px;font:600 16px Oswald;cursor:pointer}
+.bx-top .rbtn{width:40px;height:40px;font-size:18px;flex:none}
+.bx-top .bx-volta{width:auto;padding:0 12px;border-radius:20px;font:700 15px Oswald;gap:4px;display:flex;align-items:center;background:linear-gradient(180deg,#3a3326,#1d1810)}
+.bx-saldo{flex:none;display:flex;align-items:center;gap:5px;border:1px solid #4ade8088;background:#0008;color:#fff;border-radius:20px;padding:4px 4px 4px 10px;font:600 16px Oswald;cursor:pointer}
 .bx-saldo i{font-style:normal;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#22c55e;font:700 15px Rubik}
 .bx-prox{margin:4px 12px 6px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:16px;color:#fff;border:2px solid #fde68a99;
   background:repeating-linear-gradient(120deg,#ffffff10 0 14px,transparent 14px 34px),linear-gradient(135deg,#16a34a,#065f2c 60%,#033d1c);box-shadow:0 6px 16px #0008}
