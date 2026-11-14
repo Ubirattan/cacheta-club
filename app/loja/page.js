@@ -103,7 +103,7 @@ function Body({ profile, reloadProfile, user }) {
     {!jogo && <div className="panel lj" id="comprar">
       <div className="lj-top">
         <div className="lj-tit"><h3>💰 Comprar fichas com Pix</h3>
-          <small><b>R$ 1 = {FICHAS_POR_REAL} ficha</b> · fichas virtuais, só pra jogar: não valem dinheiro e não têm saque</small></div>
+          <small>O valor do Pix vira a mesma quantidade de fichas.</small></div>
         {buys.length > 0 && <button className="pillbtn dark lj-hist" onClick={() => setHist(true)}>📜 Minhas compras</button>}
       </div>
       <div className="lj-grade">
