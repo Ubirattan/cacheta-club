@@ -33,3 +33,4 @@ language sql stable security definer set search_path = public as $$
   where h.created_at >= desde group by h.mode;
 $$;
 revoke all on function public.relatorio_jogos(timestamptz) from public, anon, authenticated;
+grant execute on function public.relatorio_jogos(timestamptz) to service_role;
