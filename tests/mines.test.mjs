@@ -1,18 +1,18 @@
-// Mines: margem de 3%, bombas escondidas, abrir, perder, sacar, saque sozinho e prêmio máximo.
+// Mines: margem de 10%, bombas escondidas, abrir, perder, sacar, saque sozinho e prêmio máximo.
 import assert from 'node:assert/strict';
 import { memRepo, addUsers } from './memrepo.mjs';
 import { multDe, ganhoDe, sortearMinas, publico, MAX_GANHO } from '../lib/mines.js';
 import { mines } from '../lib/mines-service.js';
 
-// contas: 3 bombas, 1ª casa = 25/22 × 0,97 = 1,10x; nunca menos que a aposta na 1ª casa
-assert.equal(multDe(3, 1), 1.10); assert.equal(multDe(10, 1), 1.61); assert.equal(multDe(1, 1), 1.01); assert.equal(multDe(3, 0), 1);
-for (let b = 1; b <= 24; b++) assert.ok(multDe(b, 1) >= 1.01, 'bombas ' + b);
-assert.equal(multDe(24, 1), 24.25);
+// contas: 3 bombas, 1ª casa = 25/22 × 0,9 = 1,02x; nunca menos que a aposta na 1ª casa
+assert.equal(multDe(3, 1), 1.02); assert.equal(multDe(10, 1), 1.5); assert.equal(multDe(3, 0), 1);
+for (let b = 3; b <= 24; b++) assert.ok(multDe(b, 1) >= 1.01, 'bombas ' + b);
+assert.equal(multDe(24, 1), 22.5);
 // retorno médio ~90% pra qualquer jeito de jogar (sacar depois de k casas)
 for (const [b, k] of [[3, 1], [3, 5], [5, 3], [10, 4], [24, 1]]) {
   let s = 0; const N = 60000;
   for (let i = 0; i < N; i++) { const m = sortearMinas(b, n => Math.floor(Math.random() * n)); let ok = true; for (let c = 0; c < k; c++) if (m.includes(c)) { ok = false; break; } if (ok) s += multDe(b, k); }
-  const rtp = s / N; assert.ok(rtp > 0.92 && rtp < 1.0, `retorno ${b} bombas, ${k} casas: ${rtp}`);
+  const rtp = s / N; assert.ok(rtp > 0.85 && rtp < 0.95, `retorno ${b} bombas, ${k} casas: ${rtp}`);
 }
 assert.equal(sortearMinas(5, () => 0).length, 5);
 assert.equal(publico({ id: 1, valor: 10, bombas: 3, abertas: [], status: 'jogando', minas: [1, 2, 3] }).minas, undefined, 'não mostra as bombas');
@@ -28,7 +28,7 @@ await assert.rejects(mines(R, u0, { op: 'iniciar', valor: 10, bombas: 3 }), /Ter
 await assert.rejects(mines(R, u0, { op: 'sacar' }), /pelo menos uma/);
 const livre = [...Array(25).keys()].filter(c => !minas.includes(c));
 let r = await mines(R, u0, { op: 'abrir', casa: livre[0] });
-assert.equal(r.partida.mult, 1.10); assert.equal(r.partida.premio, 110); assert.equal(r.partida.status, 'jogando');
+assert.equal(r.partida.mult, 1.02); assert.equal(r.partida.premio, 102); assert.equal(r.partida.status, 'jogando');
 r = await mines(R, u0, { op: 'abrir', casa: livre[0] }); assert.equal(r.partida.abertas.length, 1, 'abrir a mesma casa não conta 2x');
 r = await mines(R, u0, { op: 'abrir', casa: livre[1] });
 const m2 = multDe(3, 2);
@@ -53,7 +53,7 @@ const m20 = R.T.mines_partidas.at(-1).minas;
 for (const c of [...Array(25).keys()].filter(c => !m20.includes(c))) r = await mines(R, u1, { op: 'abrir', casa: c });
 assert.equal(r.partida.status, 'sacou'); assert.equal(r.partida.ganho, ganhoDe(1, multDe(20, 5)));
 // validações
-await assert.rejects(mines(R, u0, { op: 'iniciar', valor: 10, bombas: 0 }), /de 1 a 24/);
+await assert.rejects(mines(R, u0, { op: 'iniciar', valor: 10, bombas: 2 }), /de 3 a 24/);
 await assert.rejects(mines(R, u0, { op: 'iniciar', valor: 0, bombas: 3 }), /Aposte de/);
 await assert.rejects(mines(R, u0, { op: 'iniciar', valor: 999999, bombas: 3 }), /Aposte de/);
-console.log('OK — Mines: margem 3%, abrir, perder, sacar, saque sozinho e prêmio máximo');
+console.log('OK — Mines: margem 10%, abrir, perder, sacar, saque sozinho e prêmio máximo');
