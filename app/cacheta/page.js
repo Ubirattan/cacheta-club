@@ -53,14 +53,6 @@ export default function Cacheta() {
         <button className="mode" style={{ '--g': 'linear-gradient(180deg,#c084fc,#7e22ce 60%,#4c0d8a)' }} onClick={() => router.push('/loja?jogo=cacheta')}>
           <Art cards={[[0, 2], [12, 2], [11, 2]]} em="🛒" /><h3>Loja da cacheta</h3></button>
       </div>
-      <div className="footbar">
-        <button onClick={() => setModal('perfil')} title="Perfil e configurações">⚙️</button>
-        <button onClick={() => router.push('/ranking?jogo=cacheta')} title="Ranking">🏆</button>
-        <button onClick={() => router.push('/historico')} title="Histórico">📜</button>
-        {profile?.is_admin && <button onClick={() => router.push('/admin')} title="Painel admin">🛠</button>}
-        <div className="ver">Casa de Jogos · Cacheta</div>
-        <button className="shop" onClick={() => router.push('/loja')} style={{ position: 'relative' }}><i>🛒</i>Loja</button>
-      </div>
       {modal === 'perfil' && profile && <ProfileModal profile={profile} onClose={() => setModal(null)} onSaved={reloadProfile} />}
       {modal === 'codigo' && <JoinCode onClose={() => setModal(null)} />}
       <style>{`.cx-tit{font:700 clamp(20px,4.4vmin,30px) Oswald;color:var(--gold);font-style:italic;letter-spacing:1px}.page .modes{grid-template-columns:repeat(5,1fr)}@media (orientation:portrait){.page .modes{grid-template-columns:1fr 1fr}}`}</style>
