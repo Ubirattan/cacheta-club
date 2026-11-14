@@ -26,7 +26,7 @@ export function memRepo() {
     async roomMessages(i, n = 60) { return T.messages.filter(m => m.room_id === i).sort((a, b) => a.id - b.id).slice(-n).map(clone); },
     async getGame(i) { const g = games.get(i); return g ? { version: g.version, state: clone(g.state) } : null; },
     async saveGame(i, st, pv, p, h) { const g = games.get(i); if (pv == null ? !!g : (!g || g.version !== pv)) return false; games.set(i, { version: (pv || 0) + 1, state: clone(st) }); pub.set(i, p); hands.set(i, h); return true; },
-    async sel(t, w = {}, o = {}) { let r = T[t].filter(x => match(x, w)).map(clone); if (o.order) { const [k, asc] = o.order; r.sort((a, b) => (a[k] > b[k] ? 1 : -1) * (asc ? 1 : -1)); } return o.limit ? r.slice(0, o.limit) : r; },
+    async sel(t, w = {}, o = {}) { let r = T[t].filter(x => match(x, w) && (!o.desde || x[o.desde[0]] >= o.desde[1])).map(clone); if (o.order) { const [k, asc] = o.order; r.sort((a, b) => (a[k] > b[k] ? 1 : -1) * (asc ? 1 : -1)); } return o.limit ? r.slice(0, o.limit) : r; },
     async ins(t, rows) { const arr = (Array.isArray(rows) ? rows : [rows]).map(r => ({ id: t === 'tournaments' ? 't' + (++seq) : ++seq, created_at: new Date().toISOString(), ...(t === 'tournaments' ? { status: 'open', round: 0, champion: null } : {}), ...(t === 'tournament_players' ? { status: 'in', round_reached: 0 } : {}), ...(t === 'tournament_tables' ? { done: false, winner: null } : {}), ...r })); T[t].push(...arr); return arr.map(clone); },
     async upd(t, w, p) { const r = T[t].filter(x => match(x, w)); r.forEach(x => Object.assign(x, clone(p))); return r.map(clone); },
     async deleteUser(uid) { T.profiles = T.profiles.filter(p => p.id !== uid); T.room_players = T.room_players.filter(x => x.user_id !== uid); },
